@@ -1,0 +1,4 @@
+/*
+  Access-Control-Allow-Origin: *
+  X-Frame-Options: ALLOWALL
+  Content-Security-Policy: frame-ancestors 'self' https://sites.google.com https://*.google.com https://*.googleusercontent.com https://*.nu.ac.th

@@ -1,0 +1,6 @@
+{
+  "name": "Med NU Research Reward System",
+  "description": "ระบบขอรับเงินรางวัลและค่าตีพิมพ์บทความวิจัย คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร พร้อมรองรับ Google Apps Script, LINE OA, แดชบอร์ดติดตาม และปฏิทิน",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
