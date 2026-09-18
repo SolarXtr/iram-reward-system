@@ -12,6 +12,7 @@ import {
   Banknote,
   Send
 } from 'lucide-react';
+import { UserRole } from './Header';
 import { ApplicationStatus, ResearchApplication, WorkflowStepId } from '../types';
 import { formatBaht } from '../data/regulations';
 
@@ -21,57 +22,71 @@ interface KanbanBoardProps {
   onViewApplication: (app: ResearchApplication) => void;
   onPrintApplication: (app: ResearchApplication) => void;
   onVerifyPayment: (app: ResearchApplication) => void;
+  currentRole?: UserRole;
+  onShowAlert?: (msg: string) => void;
 }
 
 interface KanbanLane {
   id: string;
+  order: number;
   title: string;
   statuses: ApplicationStatus[];
   badgeColor: string;
   headerBg: string;
   stepRange: string;
+  allowedRole: UserRole[];
 }
 
 const KANBAN_LANES: KanbanLane[] = [
   {
     id: 'lane-submitted',
+    order: 1,
     title: '1. ยื่นคำขอใหม่',
     statuses: ['submitted', 'draft'],
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
     headerBg: 'border-t-4 border-blue-500',
     stepRange: 'ขั้นตอนที่ 1 - 2',
+    allowedRole: ['researcher', 'coordinator'],
   },
   {
     id: 'lane-verify',
+    order: 2,
     title: '2. ตรวจสอบ & ลงนาม',
     statuses: ['staff_verified', 'researcher_signed'],
     badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
     headerBg: 'border-t-4 border-amber-500',
     stepRange: 'ขั้นตอนที่ 3 - 4',
+    allowedRole: ['coordinator'],
   },
   {
     id: 'lane-approval',
+    order: 3,
     title: '3. เสนอผู้บริหาร & คณบดี',
     statuses: ['admin_review', 'budget_verified', 'dean_approved'],
     badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     headerBg: 'border-t-4 border-indigo-500',
     stepRange: 'ขั้นตอนที่ 5 - 8',
+    allowedRole: ['coordinator'],
   },
   {
     id: 'lane-finance',
+    order: 4,
     title: '4. งานการเงินทำฎีกาเบิกจ่าย',
     statuses: ['finance_processing'],
     badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
     headerBg: 'border-t-4 border-purple-500',
     stepRange: 'ขั้นตอนที่ 9 - 10',
+    allowedRole: ['finance'],
   },
   {
     id: 'lane-transferred',
+    order: 5,
     title: '5. โอนเงินเรียบร้อย & ปิดงาน',
     statuses: ['paid', 'closed'],
     badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     headerBg: 'border-t-4 border-emerald-500',
     stepRange: 'ขั้นตอนที่ 11 - 12',
+    allowedRole: ['finance'],
   },
 ];
 
@@ -81,6 +96,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onViewApplication,
   onPrintApplication,
   onVerifyPayment,
+  currentRole = 'coordinator',
+  onShowAlert,
 }) => {
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
 
@@ -93,27 +110,56 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, lane: KanbanLane) => {
+  const handleDrop = (e: React.DragEvent, targetLane: KanbanLane) => {
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain') || draggedAppId;
     if (!id) return;
 
+    const targetApp = applications.find((a) => a.id === id);
+    if (!targetApp) return;
+
+    // Find source lane of this application
+    const sourceLane = KANBAN_LANES.find((l) => l.statuses.includes(targetApp.status)) || KANBAN_LANES[0];
+
+    // Check 1: Dropping in the same lane
+    if (sourceLane.id === targetLane.id) {
+      setDraggedAppId(null);
+      return;
+    }
+
+    // Check 2: Sequential advancement rule - only forward by exactly 1 lane
+    if (targetLane.order !== sourceLane.order + 1) {
+      const msg = targetLane.order < sourceLane.order
+        ? '⚠️ ไม่อนุญาตให้ย้อนสถานะงานกลับทางกระดาน'
+        : `⚠️ ห้ามเลื่อนข้ามขั้นตอน! ต้องดำเนินการตามลำดับจาก "${sourceLane.title}" ไปยังช่องถัดไปเท่านั้น`;
+      if (onShowAlert) onShowAlert(msg);
+      else alert(msg);
+      setDraggedAppId(null);
+      return;
+    }
+
+    // Check 3: Role authorization rule
+    if (!targetLane.allowedRole.includes(currentRole as UserRole)) {
+      const msg = `⚠️ สิทธิ์ไม่เพียงพอ! ช่อง "${targetLane.title}" กำหนดให้เฉพาะบทบาท [${targetLane.allowedRole.join(', ')}] เป็นผู้ดำเนินการเท่านั้น (ปัจจุบันท่านอยู่ในบทบาท: ${currentRole})`;
+      if (onShowAlert) onShowAlert(msg);
+      else alert(msg);
+      setDraggedAppId(null);
+      return;
+    }
+
     let nextStatus: ApplicationStatus = 'submitted';
     let nextStep: WorkflowStepId = 1;
 
-    if (lane.id === 'lane-submitted') {
-      nextStatus = 'submitted';
-      nextStep = 2;
-    } else if (lane.id === 'lane-verify') {
+    if (targetLane.id === 'lane-verify') {
       nextStatus = 'staff_verified';
       nextStep = 3;
-    } else if (lane.id === 'lane-approval') {
+    } else if (targetLane.id === 'lane-approval') {
       nextStatus = 'dean_approved';
       nextStep = 8;
-    } else if (lane.id === 'lane-finance') {
+    } else if (targetLane.id === 'lane-finance') {
       nextStatus = 'finance_processing';
       nextStep = 10;
-    } else if (lane.id === 'lane-transferred') {
+    } else if (targetLane.id === 'lane-transferred') {
       nextStatus = 'paid';
       nextStep = 12;
     }

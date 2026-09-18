@@ -16,8 +16,12 @@ import {
   UserCheck,
   RefreshCw,
   Lock,
-  Sparkles
+  Sparkles,
+  AlertTriangle,
+  ShieldAlert,
+  Loader2
 } from 'lucide-react';
+import { checkArticleDuplicate, DuplicateCheckResult } from '../services/rewardD1Service';
 import { 
   ArticleType, 
   AuthorRole, 
@@ -145,6 +149,36 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   const [pageChargeInput, setPageChargeInput] = useState<string>('125,216.54');
   const [claimedPageCharge, setClaimedPageCharge] = useState<number>(125216.54);
 
+  // Real-time Duplicate Check States (D1 Cloudflare)
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+  const [duplicateResult, setDuplicateResult] = useState<DuplicateCheckResult | null>(null);
+
+  // Debounced live check when DOI or articleTitle changes
+  useEffect(() => {
+    const cleanDoi = doi.trim();
+    const cleanTitle = articleTitle.trim();
+
+    if (!cleanDoi && cleanTitle.length < 10) {
+      setDuplicateResult(null);
+      setIsCheckingDuplicate(false);
+      return;
+    }
+
+    setIsCheckingDuplicate(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkArticleDuplicate(cleanDoi, cleanTitle);
+        setDuplicateResult(res);
+      } catch (e) {
+        console.error('Duplicate check error:', e);
+      } finally {
+        setIsCheckingDuplicate(false);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [doi, articleTitle]);
+
   // Mandatory regulation compliance checkboxes
   const [medNuAffiliationDeclared, setMedNuAffiliationDeclared] = useState(true);
   const [notForGraduation, setNotForGraduation] = useState(true);
@@ -200,6 +234,11 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
 
     if (!pdpaConsentAccepted) {
       alert('กรุณาให้ความยินยอมตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA Consent) ก่อนส่งแบบคำขอ');
+      return;
+    }
+
+    if (duplicateResult?.isDuplicate) {
+      alert(`ไม่สามารถส่งคำขอได้: ${duplicateResult.message}`);
       return;
     }
 
@@ -596,15 +635,70 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block font-medium text-slate-700 mb-1">ชื่อบทความวิชาการ (Manuscript Title)*</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-medium text-slate-700">ชื่อบทความวิชาการ (Manuscript Title)*</label>
+                  {isCheckingDuplicate && (
+                    <span className="flex items-center gap-1 text-[11px] text-blue-600 animate-pulse">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      กำลังตรวจสอบความซ้ำซ้อนใน D1...
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
                   required
                   value={articleTitle}
                   onChange={(e) => setArticleTitle(e.target.value)}
                   placeholder="เช่น Laparoscopic hepatectomy is feasible for patients diagnosed with..."
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:ring-2 focus:outline-none ${
+                    duplicateResult?.isDuplicate 
+                      ? 'border-rose-400 bg-rose-50/50 text-rose-950 focus:ring-rose-500' 
+                      : 'border-slate-300 focus:ring-blue-500'
+                  }`}
                 />
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  DOI (Digital Object Identifier)
+                </label>
+                <input
+                  type="text"
+                  value={doi}
+                  onChange={(e) => setDoi(e.target.value)}
+                  placeholder="เช่น 10.1007/s00464-023-..."
+                  className={`w-full px-3 py-2 bg-white border rounded-lg text-xs font-mono focus:ring-2 focus:outline-none ${
+                    duplicateResult?.isDuplicate 
+                      ? 'border-rose-400 bg-rose-50/50 text-rose-950 focus:ring-rose-500' 
+                      : 'border-slate-300 focus:ring-blue-500'
+                  }`}
+                />
+              </div>
+
+              {/* Real-time Duplicate Status Banner */}
+              <div className="sm:col-span-3">
+                {duplicateResult?.isDuplicate ? (
+                  <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl flex items-start gap-2.5 text-rose-900 shadow-sm animate-shake">
+                    <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="text-xs space-y-1">
+                      <div className="font-bold text-rose-950 flex items-center gap-1.5">
+                        <span>ตรวจพบประวัติการขอรับเงินรางวัลหรือเบิกจ่ายแล้ว (ซ้ำซ้อน)</span>
+                        <span className="bg-rose-200 text-rose-800 text-[10px] px-1.5 py-0.5 rounded font-mono">ไม่อนุญาตให้ยื่นซ้ำ</span>
+                      </div>
+                      <p className="text-rose-800 leading-relaxed">{duplicateResult.message}</p>
+                      {duplicateResult.match?.trackingNo && (
+                        <div className="text-[11px] text-rose-700 font-mono bg-rose-100/70 p-1.5 rounded">
+                          เลขที่คำขอเดิม: <strong>{duplicateResult.match.trackingNo}</strong> | ผู้ยื่น: {duplicateResult.match.applicantName} | สถานะ: {duplicateResult.match.status}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : duplicateResult && !duplicateResult.isDuplicate && (articleTitle.trim().length >= 10 || doi.trim()) ? (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 text-emerald-800 text-xs">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>✓ ผ่านการตรวจสอบ: บทความนี้ยังไม่เคยมีประวัติการขอรับเงินรางวัลหรือค่าตีพิมพ์ในระบบ Cloudflare D1</span>
+                  </div>
+                ) : null}
               </div>
 
               <div>
@@ -985,10 +1079,29 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
 
             <button
               type="submit"
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-700 to-indigo-800 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-lg text-xs shadow-md transition-all flex items-center gap-2"
+              disabled={duplicateResult?.isDuplicate || isCheckingDuplicate}
+              className={`px-6 py-2.5 font-semibold rounded-lg text-xs shadow-md transition-all flex items-center gap-2 ${
+                duplicateResult?.isDuplicate
+                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                  : 'bg-gradient-to-r from-blue-700 to-indigo-800 hover:from-blue-600 hover:to-indigo-700 text-white'
+              }`}
             >
-              <Upload className="w-4 h-4" />
-              <span>บันทึกและส่งคำขอออนไลน์ (เข้าระบบงานวิจัย)</span>
+              {isCheckingDuplicate ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>กำลังตรวจสอบซ้ำซ้อน...</span>
+                </>
+              ) : duplicateResult?.isDuplicate ? (
+                <>
+                  <ShieldAlert className="w-4 h-4 text-rose-500" />
+                  <span>ไม่อนุญาตให้ยื่น (ตรวจพบข้อมูลซ้ำซ้อน)</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  <span>บันทึกและส่งคำขอออนไลน์ (เข้าระบบ Cloudflare D1)</span>
+                </>
+              )}
             </button>
           </div>
         </form>

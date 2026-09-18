@@ -6,7 +6,7 @@
   }
 
   .font-sarabun {
-    font-family: 'Sarabun', serif, sans-serif;
+    font-family: 'Sarabun', 'TH Sarabun New', 'TH Sarabun PSK', serif, sans-serif;
   }
 
   .font-prompt {
@@ -14,24 +14,66 @@
   }
 }
 
+/* ========================================================================= */
+/* OFFICIAL THAI GOVERNMENT DOCUMENT PRINT STYLING (@media print)            */
+/* ========================================================================= */
+@page {
+  /* มาตรฐานหนังสือราชการไทย: ขนาดกระดาษ A4 แนวตั้ง ขอบซ้าย 3cm ขวา 2cm บน 2.5cm ล่าง 2cm */
+  size: A4 portrait;
+  margin: 15mm 15mm 15mm 20mm;
+}
+
 @media print {
+  html, body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ซ่อนทุก element บนหน้าจอ */
   body * {
     visibility: hidden;
   }
-  #printable-document, #printable-document * {
+
+  /* แสดงเฉพาะ printable-document */
+  #printable-document,
+  #printable-document * {
     visibility: visible;
   }
+
   #printable-document {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-    margin: 0;
-    padding: 20mm;
-    background: white;
-    color: black;
-    font-family: 'Sarabun', serif;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: #000000 !important;
+    font-family: 'Sarabun', 'TH Sarabun New', 'TH Sarabun PSK', serif !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
+
+  /* ป้องกันไม่ให้ตาราง ลายเซ็น หรือข้อสำคัญถูกตัดแบ่งหน้าผิดธรรมชาติ */
+  .avoid-break,
+  tr,
+  td,
+  th,
+  .signature-box {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* จัดย่อหน้าให้ชิดขอบแบบ justify สม่ำเสมอ (เฉพาะ p tag เท่านั้น ไม่ใช้ .text-justify เพื่อป้องกัน override) */
+  p {
+    text-align: justify !important;
+    text-justify: inter-cluster !important;
+  }
+
   .no-print {
     display: none !important;
   }

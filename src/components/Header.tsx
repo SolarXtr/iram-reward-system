@@ -14,12 +14,12 @@ import {
   CheckCircle2,
   ShieldCheck,
   User,
-  FileSpreadsheet
+  Database
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
 export type UserRole = 'researcher' | 'coordinator' | 'finance';
-export type ActiveTab = 'dashboard' | 'table' | 'kanban' | 'calendar' | 'appscript' | 'line_oa';
+export type ActiveTab = 'dashboard' | 'table' | 'kanban' | 'calendar' | 'line_oa';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -187,19 +187,15 @@ export const Header: React.FC<HeaderProps> = ({
             )}
 
             {/* Google Sheets Sync Settings Button */}
-            <button
-              onClick={onOpenGoogleSheetsSettings}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all text-xs ${
-                isSheetsConnected
-                  ? 'bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 border-emerald-700/60 shadow-sm'
-                  : 'bg-slate-800/90 hover:bg-slate-700 text-amber-300 border-amber-500/40'
-              }`}
-              title={isSheetsConnected ? 'Google Sheets: เชื่อมต่อแล้ว (คลิกเพื่อดูการตั้งค่า/ซิงก์ข้อมูล)' : 'ยังไม่ได้เชื่อมต่อ Google Sheets API (คลิกเพื่อตั้งค่า Web App URL)'}
+            {/* Cloudflare D1 Database Connection Status */}
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-emerald-950/70 text-emerald-300 border-emerald-700/60 shadow-sm text-xs"
+              title="เชื่อมต่อฐานข้อมูล Cloudflare D1 (iram-db) เรียบร้อยแล้ว"
             >
-              <FileSpreadsheet className={`w-3.5 h-3.5 ${isSheetsConnected ? 'text-emerald-400' : 'text-amber-400'}`} />
-              <span className="hidden sm:inline font-medium">Google Sheets</span>
-              <span className={`w-2 h-2 rounded-full ${isSheetsConnected ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-amber-400 animate-pulse'}`} />
-            </button>
+              <Database className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline font-medium">Cloudflare D1</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+            </div>
 
             {/* Primary Action Button */}
             <button
@@ -277,18 +273,6 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 4 Triggers
               </span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('appscript')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                activeTab === 'appscript'
-                  ? 'bg-slate-800 text-amber-400 border border-slate-700'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Code2 className="w-4 h-4 text-sky-400" />
-              <span>Google Apps Script Suite</span>
             </button>
           </nav>
 

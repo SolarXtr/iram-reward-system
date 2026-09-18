@@ -5,13 +5,11 @@ import { KanbanBoard } from './components/KanbanBoard';
 import { TableView } from './components/TableView';
 import { CalendarView } from './components/CalendarView';
 import { LineNotificationModal } from './components/LineNotificationModal';
-import { AppsScriptView } from './components/AppsScriptView';
 import { SubmissionFormModal } from './components/SubmissionFormModal';
 import { TimelineTrackerModal } from './components/TimelineTrackerModal';
 import { OfficialPrintModal } from './components/OfficialPrintModal';
 import { PaymentVerificationModal } from './components/PaymentVerificationModal';
 import { UserProfileModal } from './components/UserProfileModal';
-import { GoogleSheetsSettingsModal } from './components/GoogleSheetsSettingsModal';
 import { INITIAL_APPLICATIONS, OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
 import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, ResearchApplication, UserProfile, WorkflowStepId } from './types';
 import { generateNextTrackingNo } from './data/regulations';
@@ -22,24 +20,12 @@ import {
   getStoredLineNotifications, 
   saveStoredLineNotifications 
 } from './data/lineNotificationService';
-import { 
-  getStoredAppsScriptUrl, 
-  submitApplicationToGoogleSheets, 
-  updateApplicationStatusInGoogleSheets, 
-  recordPaymentInGoogleSheets 
-} from './services/googleSheetsService';
-import { 
-  auth, 
-  initAuth, 
-  googleSignIn, 
-  getAccessToken 
-} from './services/googleAuth';
-import { 
-  getStoredDirectSpreadsheetId, 
-  appendApplicationDirect, 
-  updateApplicationDirect 
-} from './services/directSheetsApi';
-import { User } from 'firebase/auth';
+import {
+  fetchRewardApplicationsFromD1,
+  createRewardApplicationInD1,
+  updateRewardApplicationInD1,
+  deleteRewardApplicationInD1
+} from './services/rewardD1Service';
 import { Bell, CheckCircle2 } from 'lucide-react';
 
 const STORAGE_KEY = 'med_nu_research_apps_v1';
@@ -96,33 +82,25 @@ export default function App() {
   const [timelineApp, setTimelineApp] = useState<ResearchApplication | null>(null);
   const [printApp, setPrintApp] = useState<ResearchApplication | null>(null);
   const [paymentApp, setPaymentApp] = useState<ResearchApplication | null>(null);
-  const [isSheetsModalOpen, setIsSheetsModalOpen] = useState(false);
-  const [isSheetsConnected, setIsSheetsConnected] = useState<boolean>(() => !!getStoredAppsScriptUrl() || !!getStoredDirectSpreadsheetId());
+  const [isLoadingD1, setIsLoadingD1] = useState(false);
 
-  // Google Workspace User state
-  const [googleUser, setGoogleUser] = useState<User | null>(auth.currentUser);
-
+  // Load applications from Cloudflare D1 on mount
   useEffect(() => {
-    const unsubscribe = initAuth((user) => {
-      setGoogleUser(user);
-    }, () => {
-      setGoogleUser(null);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleGoogleSignInFromHeader = async () => {
-    try {
-      const result = await googleSignIn();
-      if (result) {
-        setGoogleUser(result.user);
-        setIsSheetsConnected(!!getStoredAppsScriptUrl() || !!getStoredDirectSpreadsheetId());
-        showToast(`ยินดีต้อนรับ ${result.user.displayName || result.user.email} (เชื่อมต่อ Google Workspace เรียบร้อย)`);
+    const loadFromD1 = async () => {
+      setIsLoadingD1(true);
+      try {
+        const d1Data = await fetchRewardApplicationsFromD1();
+        if (Array.isArray(d1Data) && d1Data.length > 0) {
+          setApplications(d1Data);
+        }
+      } catch (err) {
+        console.warn('Using local applications cache, D1 fetch error:', err);
+      } finally {
+        setIsLoadingD1(false);
       }
-    } catch (err: any) {
-      showToast(`เข้าสู่ระบบไม่สำเร็จ: ${err.message}`);
-    }
-  };
+    };
+    loadFromD1();
+  }, []);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -133,11 +111,6 @@ export default function App() {
       setToastMessage(null);
     }, 4500);
   };
-
-  // Check sheets connected state whenever modal closes or on user change
-  useEffect(() => {
-    setIsSheetsConnected(!!getStoredAppsScriptUrl() || !!getStoredDirectSpreadsheetId());
-  }, [isSheetsModalOpen, googleUser]);
 
   // LINE OA Notification history log
   const [lineNotifications, setLineNotifications] = useState<LineNotificationRecord[]>(() => {
@@ -227,35 +200,15 @@ export default function App() {
     setIsSubmissionModalOpen(false);
     triggerLineMilestoneNotification(finalApp, 'application_submitted');
 
-    // 1. Google Sheets Sync: Direct Google Sheets API (if configured in Google Drive)
-    const directSheetId = getStoredDirectSpreadsheetId();
-    if (directSheetId) {
-      getAccessToken().then((token) => {
-        if (token) {
-          appendApplicationDirect(token, directSheetId, finalApp)
-            .then(() => {
-              showToast(`✅ บันทึกคำขอ ${finalApp.trackingNo} ลง Google Sheet (Direct Drive) สำเร็จ!`);
-            })
-            .catch((err) => {
-              console.warn('Direct Sheets append error:', err);
-            });
-        }
+    // Cloudflare D1 Database Sync
+    createRewardApplicationInD1(finalApp)
+      .then(() => {
+        showToast(`✅ บันทึกคำขอ ${finalApp.trackingNo} ลง Cloudflare D1 สำเร็จเรียบร้อย!`);
+      })
+      .catch((err) => {
+        console.error('D1 create error:', err);
+        showToast(`⚠️ บันทึกข้อมูลในเครื่องแล้ว แต่การซิงก์เข้า Cloudflare D1 ขัดข้อง: ${err.message}`);
       });
-    }
-
-    // 2. Google Sheets Sync: Apps Script Web App (if configured)
-    if (getStoredAppsScriptUrl()) {
-      showToast(`⏳ กำลังบันทึกคำขอ ${finalApp.trackingNo} ลง Google Sheets (Apps Script)...`);
-      submitApplicationToGoogleSheets(finalApp).then((res) => {
-        if (res.success) {
-          showToast(`✅ บันทึกคำขอ ${finalApp.trackingNo} ลง Google Sheets เรียบร้อยแล้ว!`);
-        } else {
-          showToast(`⚠️ บันทึกในระบบแล้ว แต่ส่งเข้าชีตไม่สำเร็จ: ${res.message}`);
-        }
-      });
-    } else if (!directSheetId) {
-      showToast(`ℹ️ บันทึกคำขอ ${finalApp.trackingNo} ในระบบแล้ว (คลิกไอคอน Google Sheets ด้านบนเพื่อเชื่อมต่อการส่งเข้าชีตจริง)`);
-    }
   };
 
   // 2. Drag-and-Drop / Kanban status update
@@ -279,22 +232,14 @@ export default function App() {
     showToast(`อัปเดตสถานะโครงการเป็น "${newStatus}" (ขั้นตอนที่ ${nextStep}) เรียบร้อย`);
 
     // Direct Sheets API sync for status update
-    const directSheetId = getStoredDirectSpreadsheetId();
-    if (directSheetId && target) {
-      getAccessToken().then((token) => {
-        if (token) {
-          updateApplicationDirect(token, directSheetId, target.trackingNo, {
-            nextStep,
-            status: newStatus
-          }).catch(e => console.warn('Direct update error:', e));
-        }
-      });
-    }
-
-    // Google Sheets sync for status update (Apps Script)
-    if (getStoredAppsScriptUrl() && target) {
-      updateApplicationStatusInGoogleSheets(target.trackingNo, nextStep, newStatus);
-    }
+    // Cloudflare D1 sync for status update
+    updateRewardApplicationInD1(id, {
+      status: newStatus,
+      currentStep: nextStep,
+      paymentStatus: newStatus === 'paid' ? 'transferred' : undefined,
+      paymentDate: newStatus === 'paid' ? new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : undefined,
+      disbursementVoucherNo: newStatus === 'paid' ? (target?.disbursementVoucherNo || `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70`) : undefined,
+    }).catch(e => console.warn('D1 update status error:', e));
 
     // Automatic LINE Trigger on milestone status changes
     if (target) {
@@ -320,27 +265,9 @@ export default function App() {
     );
     showToast(`บันทึกการแก้ไข ${updatedApp.trackingNo} สำเร็จ`);
 
-    // Direct Sheets API sync
-    const directSheetId = getStoredDirectSpreadsheetId();
-    if (directSheetId) {
-      getAccessToken().then((token) => {
-        if (token) {
-          updateApplicationDirect(token, directSheetId, updatedApp.trackingNo, {
-            nextStep: updatedApp.currentStep,
-            status: updatedApp.status,
-            notes: updatedApp.staffNotes || updatedApp.coordinatorNotes,
-            voucherNo: updatedApp.disbursementVoucherNo,
-            paymentDate: updatedApp.paymentDate,
-            paymentStatus: updatedApp.paymentStatus
-          }).catch(e => console.warn('Direct update row error:', e));
-        }
-      });
-    }
-
-    // Apps Script webhook sync
-    if (getStoredAppsScriptUrl()) {
-      updateApplicationStatusInGoogleSheets(updatedApp.trackingNo, updatedApp.currentStep, updatedApp.status, updatedApp.staffNotes);
-    }
+    // Cloudflare D1 sync
+    updateRewardApplicationInD1(updatedApp.id, updatedApp)
+      .catch(e => console.warn('D1 update row error:', e));
   };
 
   // 4. Advance timeline step
@@ -388,29 +315,19 @@ export default function App() {
       setTimelineApp((prev) => (prev ? { ...prev, currentStep: nextStep } : null));
     }
 
-    // Direct Sheets API sync
-    const directSheetId = getStoredDirectSpreadsheetId();
-    if (directSheetId && target) {
+    // Cloudflare D1 sync
+    if (target) {
       let calcStatus = target.status;
       if (nextStep >= 3 && nextStep <= 4) calcStatus = 'staff_verified';
       else if (nextStep >= 5 && nextStep <= 8) calcStatus = 'dean_approved';
       else if (nextStep >= 9 && nextStep <= 10) calcStatus = 'finance_processing';
       else if (nextStep >= 11) calcStatus = 'paid';
 
-      getAccessToken().then((token) => {
-        if (token) {
-          updateApplicationDirect(token, directSheetId, target.trackingNo, {
-            nextStep,
-            status: calcStatus,
-            notes: note
-          }).catch(e => console.warn('Direct advance step error:', e));
-        }
-      });
-    }
-
-    // Google Sheets sync (Apps Script)
-    if (getStoredAppsScriptUrl() && target) {
-      updateApplicationStatusInGoogleSheets(target.trackingNo, nextStep, undefined, note);
+      updateRewardApplicationInD1(id, {
+        currentStep: nextStep,
+        status: calcStatus,
+        coordinatorNotes: note
+      }).catch(e => console.warn('D1 advance step error:', e));
     }
 
     // Automatic LINE Notification Triggers for Milestones 2, 3, 4
@@ -468,10 +385,6 @@ export default function App() {
         setSearchQuery={setSearchQuery}
         currentUser={currentUser}
         onOpenProfile={() => setIsProfileModalOpen(true)}
-        onOpenGoogleSheetsSettings={() => setIsSheetsModalOpen(true)}
-        isSheetsConnected={isSheetsConnected}
-        googleUser={googleUser}
-        onGoogleSignIn={handleGoogleSignInFromHeader}
       />
 
       {/* Main Workspace Canvas */}
@@ -504,6 +417,8 @@ export default function App() {
             onViewApplication={(app) => setTimelineApp(app)}
             onPrintApplication={(app) => setPrintApp(app)}
             onVerifyPayment={(app) => setPaymentApp(app)}
+            currentRole={currentRole}
+            onShowAlert={showToast}
           />
         )}
 
@@ -535,10 +450,7 @@ export default function App() {
           />
         )}
 
-        {/* Tab 6: Google Apps Script Backend Code Suite */}
-        {activeTab === 'appscript' && (
-          <AppsScriptView />
-        )}
+
 
       </main>
 
@@ -553,7 +465,7 @@ export default function App() {
           <div className="flex items-center gap-4 text-slate-400">
             <span>ประกาศฯ ลงวันที่ 27 พฤษภาคม พ.ศ. 2567</span>
             <span>•</span>
-            <span>เชื่อมต่อ Google Sheets & LINE OA</span>
+            <span>เชื่อมต่อ Cloudflare D1 & LINE OA</span>
           </div>
         </div>
       </footer>
@@ -578,6 +490,7 @@ export default function App() {
         onPrint={(app) => setPrintApp(app)}
         onVerifyPayment={(app) => setPaymentApp(app)}
         canEdit={currentRole === 'coordinator' || currentRole === 'finance'}
+        currentRole={currentRole}
       />
 
       {/* MODAL 3: Official Printable Documents (AWP69 / Memo / Receipt) */}
@@ -613,22 +526,7 @@ export default function App() {
         />
       )}
 
-      {/* MODAL 6: Google Sheets API Connection & Sync Settings */}
-      {isSheetsModalOpen && (
-        <GoogleSheetsSettingsModal
-          isOpen={isSheetsModalOpen}
-          onClose={() => {
-            setIsSheetsModalOpen(false);
-            setIsSheetsConnected(!!getStoredAppsScriptUrl() || !!getStoredDirectSpreadsheetId());
-          }}
-          onSyncData={(remoteData) => {
-            if (Array.isArray(remoteData) && remoteData.length > 0) {
-              setApplications(remoteData);
-              showToast(`ซิงก์ข้อมูลจาก Google Sheets สำเร็จ (${remoteData.length} รายการ)`);
-            }
-          }}
-        />
-      )}
+      {/* Cloudflare D1 Sync Active */}
 
     </div>
   );

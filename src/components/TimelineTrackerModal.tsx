@@ -15,6 +15,7 @@ import {
   Send,
   MessageSquare
 } from 'lucide-react';
+import { UserRole } from './Header';
 import { ResearchApplication, WorkflowStepId } from '../types';
 import { formatBaht } from '../data/regulations';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from '../data/initialData';
@@ -27,6 +28,7 @@ interface TimelineTrackerModalProps {
   onPrint: (app: ResearchApplication) => void;
   onVerifyPayment: (app: ResearchApplication) => void;
   canEdit: boolean; // if staff/coordinator/finance
+  currentRole?: UserRole;
 }
 
 export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
@@ -37,6 +39,7 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
   onPrint,
   onVerifyPayment,
   canEdit,
+  currentRole = 'coordinator',
 }) => {
   if (!isOpen || !application) return null;
 
@@ -46,8 +49,30 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
     (s) => s.stepNumber === application.currentStep
   );
 
+  // Determine if the current active role is authorized to advance the current step
+  const isRoleAuthorizedForCurrentStep = (step: number, role: UserRole): boolean => {
+    // Step 1: Researcher (Submit)
+    // Step 2, 4, 6, 9, 12: Coordinator
+    // Step 3: Researcher (Sign & Attach) - coordinator can assist/advance
+    // Step 5, 8: Admin/Dean - coordinator advances on their behalf
+    // Step 7: Planning/Finance (budget check) - coordinator or finance
+    // Step 10, 11: Finance
+    if (role === 'finance') {
+      return step === 7 || step === 10 || step === 11;
+    }
+    if (role === 'coordinator') {
+      return step >= 2 && step <= 9; // steps managed by coordinator
+    }
+    if (role === 'researcher') {
+      return step === 1 || step === 3;
+    }
+    return false;
+  };
+
+  const isAllowedToAdvance = canEdit && isRoleAuthorizedForCurrentStep(application.currentStep, currentRole as UserRole);
+
   const handleNextStep = () => {
-    if (application.currentStep < 12) {
+    if (application.currentStep < 12 && isAllowedToAdvance) {
       const nextStep = (application.currentStep + 1) as WorkflowStepId;
       onAdvanceStep(application.id, nextStep, officerNote);
       setOfficerNote('');
@@ -269,27 +294,45 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
           {/* Officer Advance Controls (for Coordinator & Finance) */}
           {canEdit && application.currentStep < 12 && (
             <div className="p-4 bg-slate-100 rounded-xl border border-slate-300 space-y-3">
-              <div className="font-bold text-slate-900 font-prompt flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-blue-700" />
-                <span>ส่วนงานเจ้าหน้าที่: เลื่อนไปยังขั้นตอนถัดไป</span>
+              <div className="font-bold text-slate-900 font-prompt flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-blue-700" />
+                  <span>ส่วนงานเจ้าหน้าที่: ตรวจสอบและส่งต่องานตามลำดับ (Step-by-Step)</span>
+                </div>
+                <span className="text-[11px] font-normal text-slate-600">
+                  สิทธิ์ผู้ใช้งานปัจจุบัน: <strong className="text-blue-900 uppercase">{currentRole}</strong>
+                </span>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  placeholder="บันทึกข้อความเพิ่มเติม หรือเลขรับเรื่อง..."
-                  value={officerNote}
-                  onChange={(e) => setOfficerNote(e.target.value)}
-                  className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-                <button
-                  onClick={handleNextStep}
-                  className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors shrink-0"
-                >
-                  <span>ผ่านขั้นตอนที่ {application.currentStep} &rarr; ไปขั้นตอนที่ {application.currentStep + 1}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+              {!isAllowedToAdvance ? (
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">จำกัดสิทธิ์ตามระเบียบ: </span>
+                    <span>
+                      ขั้นตอนที่ {application.currentStep} ({currentStepDef?.title}) อยู่ในความรับผิดชอบของ <strong>{currentStepDef?.responsibleParty}</strong> ท่านเข้าสู่ระบบในบทบาท <strong className="uppercase">{currentRole}</strong> จึงไม่สามารถกดยืนยันขั้นตอนนี้ได้ (กรุณาสลับสิทธิ์มุมขวาบนให้ถูกต้อง)
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    placeholder="บันทึกข้อความเพิ่มเติม หรือเลขรับเรื่อง..."
+                    value={officerNote}
+                    onChange={(e) => setOfficerNote(e.target.value)}
+                    className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={handleNextStep}
+                    disabled={!isAllowedToAdvance}
+                    className="px-4 py-2 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors shrink-0"
+                  >
+                    <span>ผ่านขั้นตอนที่ {application.currentStep} &rarr; ไปขั้นตอนที่ {application.currentStep + 1}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
