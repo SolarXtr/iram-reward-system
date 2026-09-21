@@ -1,12 +1,51 @@
 @import "tailwindcss";
 
+/* ========================================================================= */
+/* EMBEDDED OFFICIAL THAI GOVERNMENT FONT: TH Sarabun New                     */
+/* ========================================================================= */
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New'), local('THSarabunNew'),
+       url('/fonts/THSarabunNew.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New Bold'), local('THSarabunNew-Bold'),
+       url('/fonts/THSarabunNew-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New Italic'), local('THSarabunNew-Italic'),
+       url('/fonts/THSarabunNew-Italic.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New Bold Italic'), local('THSarabunNew-BoldItalic'),
+       url('/fonts/THSarabunNew-BoldItalic.ttf') format('truetype');
+  font-weight: bold;
+  font-style: italic;
+  font-display: swap;
+}
+
 @layer base {
   body {
-    font-family: 'Prompt', 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Prompt', 'TH Sarabun New', 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   .font-sarabun {
-    font-family: 'Sarabun', 'TH Sarabun New', 'TH Sarabun PSK', serif, sans-serif;
+    font-family: 'TH Sarabun New', 'TH Sarabun PSK', 'Sarabun', serif, sans-serif;
   }
 
   .font-prompt {
@@ -53,7 +92,7 @@
     padding: 0 !important;
     background: white !important;
     color: #000000 !important;
-    font-family: 'Sarabun', 'TH Sarabun New', 'TH Sarabun PSK', serif !important;
+    font-family: 'TH Sarabun New', 'TH Sarabun PSK', 'Sarabun', serif !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
