@@ -15,7 +15,10 @@ import {
   Header,
   Footer,
   VerticalMergeType,
-  VerticalAlign
+  VerticalAlign,
+  TabStopType,
+  LeaderType,
+  DocumentGridType
 } from 'docx';
 import { saveAs } from 'file-saver';
 import { ResearchApplication } from '../types';
@@ -82,10 +85,21 @@ function createThaiDocument(sections: any[]) {
               bidirectional: 'th-TH',
             },
           },
+          paragraph: {
+            spacing: { line: 240, before: 0, after: 0 },
+          },
         },
       },
     },
-    sections,
+    sections: sections.map(sect => ({
+      ...sect,
+      properties: {
+        grid: {
+          type: DocumentGridType.DEFAULT,
+        },
+        ...sect.properties,
+      },
+    })),
   });
 }
 
@@ -140,6 +154,54 @@ const CELL_BORDERS_NONE = {
 };
 
 const TABLE_BORDERS_NONE = TableBorders.NONE;
+
+
+// ฟังก์ชันแปลงรูปแบบเงินเป็นภาษาไทยทางการ (ไม่มีเครื่องหมาย ฿ ต่อท้ายด้วย บาท)
+export function formatCurrencyBaht(amount: number): string {
+  const num = Number(amount) || 0;
+  return num.toLocaleString('th-TH') + ' บาท';
+}
+
+// ฟังก์ชันแปลงวันที่เป็นรูปแบบราชการไทย (เช่น 17 กันยายน 2569)
+export function formatThaiDateOfficial(dateStr?: string): string {
+  if (!dateStr || dateStr.trim() === '') return '...................................................';
+  // If already contains Thai month name
+  const thaiMonths = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+  for (const m of thaiMonths) {
+    if (dateStr.includes(m)) return dateStr;
+  }
+
+  // Parse ISO or YYYY-MM-DD or date with time
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+
+  const day = d.getDate();
+  const month = thaiMonths[d.getMonth()];
+  const year = d.getFullYear() > 2400 ? d.getFullYear() : d.getFullYear() + 543;
+  return `${day} ${month} ${year}`;
+}
+
+// ฟังก์ชันสร้างชื่อเรื่องบันทึกข้อความตามเงื่อนไข
+export function getMemoSubject(app: ResearchApplication, isDisbursement = false): string {
+  const isReward = (app.claimedRewardAmount || 0) > 0 || app.requestType === 'reward_only' || app.requestType === 'both';
+  const isPage = (app.approvedPageChargeAmount || 0) > 0 || app.requestType === 'page_charge_only' || app.requestType === 'both';
+  
+  let typeStr = 'ค่าตีพิมพ์และรางวัลตีพิมพ์';
+  if (isReward && isPage) {
+    typeStr = 'ค่าตีพิมพ์และรางวัลตีพิมพ์';
+  } else if (isPage) {
+    typeStr = 'ค่าตีพิมพ์';
+  } else if (isReward) {
+    typeStr = 'รางวัลตีพิมพ์';
+  }
+
+  const scopeStr = app.journalScope === 'national' ? 'ระดับชาติ' : 'ระดับนานาชาติ';
+  const actionStr = isDisbursement ? 'ขออนุมัติเบิกเงิน' : 'ขออนุมัติเงิน';
+  return `${actionStr}${typeStr}ในวารสารวิชาการ${scopeStr}`;
+}
 
 // แปลง Base64 ของรูปครุฑเป็น Uint8Array
 function getGarudaImageData(): Uint8Array {
@@ -787,446 +849,607 @@ export async function generateChecklistDocx(app: ResearchApplication) {
 
 
 // -------------------------------------------------------------------------
-// 2. บันทึกข้อความขออนุมัติเงินรางวัล (ตามแบบฟอร์ม 2 & ระเบียบสารบรรณ)
+// 2. บันทึกข้อความขออนุมัติเงินรางวัล (ตามแบบฟอร์ม 2 & Version 4.0.0.25Sep2026)
 // -------------------------------------------------------------------------
 export async function generateMemoRewardDocx(app: ResearchApplication) {
   const rewardAmt = app.claimedRewardAmount || 0;
   const pageAmt = app.approvedPageChargeAmount || 0;
   const totalAmt = app.totalClaimedAmount || 0;
-
   const garudaImg = getGarudaImageData();
 
+  const isReward = rewardAmt > 0 || app.requestType === 'reward_only' || app.requestType === 'both';
+  const isPage = pageAmt > 0 || app.requestType === 'page_charge_only' || app.requestType === 'both';
+  const subject = getMemoSubject(app, false);
+  const formattedDate = formatThaiDateOfficial(app.createdAt);
+
+  const authorRoleText = app.authorRole === 'first_author' 
+    ? '(1)First author' 
+    : app.authorRole === 'corresponding_author' 
+    ? '(1)Corresponding author' 
+    : '(2)Co-author';
+
+  const scopeText = app.journalScope === 'national' ? '(ข)ระดับชาติ' : '(ก)ระดับนานาชาติ';
+  const articleTypeText = app.articleType === 'research_article' ? '1)Research Article' : '2)บทความวิชาการอื่นๆ';
+
   const doc = createThaiDocument([
-      {
-        properties: {
-          page: {
-            margin: STANDARD_SARABAN_MARGINS,
+    {
+      properties: {
+        page: {
+          margin: {
+            top: 1134,    // 2.0 cm
+            bottom: 850,   // 1.5 cm
+            left: 1701,    // 3.0 cm
+            right: 1134,   // 2.0 cm
           },
         },
-        children: [
-          // ส่วนหัว: ครุฑ 1.5 ซม. ด้านซ้าย และคำว่า "บันทึกข้อความ" 29 pt กึ่งกลาง
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: TABLE_BORDERS_NONE,
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({
-                    width: { size: 20, type: WidthType.PERCENTAGE },
-                    borders: CELL_BORDERS_NONE,
-                    children: [
-                      new Paragraph({
-                        children: [
-                          new ImageRun({
-                            data: garudaImg,
-                            transformation: {
-                              width: 57, // 1.5 cm ≈ 56.7 pt
-                              height: 57,
-                            },
-                            type: 'png',
-                          } as any),
-                        ],
-                      }),
-                    ],
-                  }),
-                  new TableCell({
-                    width: { size: 80, type: WidthType.PERCENTAGE },
-                    borders: CELL_BORDERS_NONE,
-                    children: [
-                      new Paragraph({
-                        alignment: AlignmentType.CENTER,
-                        spacing: { line: 700 }, // Exactly 35 pt (700 half-points)
-                        children: [
-                          createThaiTextRun({
-                            text: 'บันทึกข้อความ',
-                            font: FONT_NAME,
-                            size: FONT_SIZE_MEMO_HEADER, // 29 pt
-                            bold: true,
-                          }),
-                        ],
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          }),
-
-          // ส่วนราชการ (คำนำหน้า 20 pt หนา, เนื้อความ 16 pt ปกติ)
-          new Paragraph({
-            spacing: { before: 120, after: 60 },
-            children: [
-              createThaiTextRun({ text: 'ส่วนราชการ   ', font: FONT_NAME, size: FONT_SIZE_FIELD_LABEL, bold: true }),
-              createThaiTextRun({ text: `คณะแพทยศาสตร์    ภาควิชา ${app.department}       โทร. ${app.phone || 'ภายในคณะ'}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-
-          // ที่ และ วันที่
-          new Paragraph({
-            spacing: { after: 60 },
-            children: [
-              createThaiTextRun({ text: 'ที่   ', font: FONT_NAME, size: FONT_SIZE_FIELD_LABEL, bold: true }),
-              createThaiTextRun({ text: `${app.internalDocNo || 'อว 0603.10.    / '}                                    `, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-              createThaiTextRun({ text: 'วันที่   ', font: FONT_NAME, size: FONT_SIZE_FIELD_LABEL, bold: true }),
-              createThaiTextRun({ text: `${app.createdAt || '...................................................'}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-
-          // เรื่อง
-          new Paragraph({
-            spacing: { after: 120 },
-            children: [
-              createThaiTextRun({ text: 'เรื่อง   ', font: FONT_NAME, size: FONT_SIZE_FIELD_LABEL, bold: true }),
-              createThaiTextRun({ text: 'ขออนุมัติเงินบทความในวารสารวิชาการ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-
-          // คำขึ้นต้น (1 Enter + 6 pt ตามคู่มือสารบรรณ)
-          new Paragraph({
-            spacing: { before: 120, after: 120 },
-            children: [
-              createThaiTextRun({ text: 'เรียน   ', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
-              createThaiTextRun({ text: 'คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-
-          // ภาคเหตุ (ย่อหน้า 2.5 ซม. / 1,417 dxa, จัดชิดขอบแบบ Justified)
-          new Paragraph({
-            alignment: AlignmentType.JUSTIFIED,
-            indent: { firstLine: INDENT_SARABAN },
-            spacing: { line: 360, after: 120 },
-            children: [
-              createThaiTextRun({
-                text: `ข้าพเจ้า ${app.applicantName} ตำแหน่ง ${app.academicPosition || 'อาจารย์แพทย์'} สังกัด ${app.department} คณะแพทยศาสตร์ มีความประสงค์ขอรับเงินบทความในวารสารวิชาการ ตามประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ ประกาศ ณ วันที่ 27 พฤษภาคม 2567 ซึ่งมีรายละเอียดดังนี้`,
-                font: FONT_NAME,
-                size: FONT_SIZE_CONTENT,
-              }),
-            ],
-          }),
-
-          // ข้อมูลบทความ
-          new Paragraph({
-            indent: { left: INDENT_SARABAN },
-            spacing: { line: 360 },
-            children: [
-              createThaiTextRun({ text: `ชื่อบทความที่ได้รับการตีพิมพ์ : `, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
-              createThaiTextRun({ text: `${app.articleTitle}`, font: FONT_NAME, size: FONT_SIZE_CONTENT, italics: true }),
-            ],
-          }),
-          new Paragraph({
-            indent: { left: INDENT_SARABAN },
-            spacing: { line: 360 },
-            children: [
-              createThaiTextRun({ text: `ชื่อวารสาร : `, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
-              createThaiTextRun({ text: `${app.journalName}  จากฐานข้อมูล ${app.database || 'Scopus'} จัดอยู่ใน Quartile ${app.quartile}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-          new Paragraph({
-            indent: { left: INDENT_SARABAN },
-            spacing: { line: 360 },
-            children: [
-              createThaiTextRun({ text: `วัน/เดือน/ปีที่พิมพ์ : `, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
-              createThaiTextRun({ text: `${app.volumeIssue || 'Vol...... No...... Month.......... Year..........'} วันที่เผยแพร่ ${app.publishedDate}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-          ...(app.doi
-            ? [
-                new Paragraph({
-                  indent: { left: INDENT_SARABAN },
-                  spacing: { line: 360 },
+      },
+      children: [
+        // 1. ส่วนหัว: ตาราง 3 คอลัมน์ ครุฑซ้าย 20%, บันทึกข้อความ กึ่งกลาง 60% (28 pt ตัวหนา), ขวาว่าง 20%
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: TABLE_BORDERS_NONE,
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 20, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
                   children: [
-                    createThaiTextRun({ text: `DOI : `, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
-                    createThaiTextRun({ text: `${app.doi}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+                    new Paragraph({
+                      spacing: { line: 240, before: 0, after: 0 },
+                      children: [
+                        new ImageRun({
+                          data: garudaImg,
+                          transformation: {
+                            width: 57, // 1.5 cm ≈ 56.7 pt
+                            height: 57,
+                          },
+                          type: 'png',
+                        } as any),
+                      ],
+                    }),
                   ],
                 }),
-              ]
-            : []),
+                new TableCell({
+                  width: { size: 60, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { line: 240, before: 0, after: 0 },
+                      children: [
+                        createThaiTextRun({
+                          text: 'บันทึกข้อความ',
+                          font: FONT_NAME,
+                          size: 56, // 28 pt
+                          bold: true,
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                new TableCell({
+                  width: { size: 20, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [new Paragraph({ spacing: { line: 240, before: 0, after: 0 }, text: '' })],
+                }),
+              ],
+            }),
+          ],
+        }),
+
+        // 2. ส่วนราชการ: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        new Paragraph({
+          spacing: { line: 240, before: 0, after: 0 },
+          tabStops: [
+            { type: TabStopType.RIGHT, position: 9071, leader: LeaderType.DOT },
+          ],
+          children: [
+            createThaiTextRun({ text: 'ส่วนราชการ  ', font: FONT_NAME, size: 40, bold: true }),
+            createThaiTextRun({ text: `คณะแพทยศาสตร์  ภาควิชา${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, font: FONT_NAME, size: 40 }),
+            new TextRun({ text: '\t' }),
+          ],
+        }),
+
+        // 3. ที่ และ วันที่: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        new Paragraph({
+          spacing: { line: 240, before: 0, after: 0 },
+          tabStops: [
+            { type: TabStopType.RIGHT, position: 4500, leader: LeaderType.DOT },
+            { type: TabStopType.LEFT, position: 4700 },
+            { type: TabStopType.RIGHT, position: 9071, leader: LeaderType.DOT },
+          ],
+          children: [
+            createThaiTextRun({ text: 'ที่  ', font: FONT_NAME, size: 40, bold: true }),
+            createThaiTextRun({ text: `${app.internalDocNo || 'อว 0603.10.    / '}`, font: FONT_NAME, size: 40 }),
+            new TextRun({ text: '\t\t' }),
+            createThaiTextRun({ text: 'วันที่  ', font: FONT_NAME, size: 40, bold: true }),
+            createThaiTextRun({ text: formattedDate, font: FONT_NAME, size: 40 }),
+            new TextRun({ text: '\t' }),
+          ],
+        }),
+
+        // 4. เรื่อง: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        new Paragraph({
+          spacing: { line: 240, before: 0, after: 0 },
+          tabStops: [
+            { type: TabStopType.RIGHT, position: 9071, leader: LeaderType.DOT },
+          ],
+          children: [
+            createThaiTextRun({ text: 'เรื่อง  ', font: FONT_NAME, size: 40, bold: true }),
+            createThaiTextRun({ text: subject, font: FONT_NAME, size: 40 }),
+            new TextRun({ text: '\t' }),
+          ],
+        }),
+
+        // 5. คำขึ้นต้น: เรียน คณบดีคณะแพทยศาสตร์
+        new Paragraph({
+          spacing: { line: 240, before: 20, after: 20 },
+          children: [
+            createThaiTextRun({ text: 'เรียน   คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+          ],
+        }),
+
+        // 6. ภาคเหตุ: เคาะ 10
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { line: 300, after: 60 },
+          children: [
+            createThaiTextRun({
+              text: `          ข้าพเจ้า ${app.applicantName} ตำแหน่ง ${app.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา${app.department || ''} คณะแพทยศาสตร์ มีความประสงค์${subject} ตามประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ ประกาศ ณ วันที่ 27 พฤษภาคม 2567 ซึ่งมีรายละเอียดดังนี้`,
+              font: FONT_NAME,
+              size: FONT_SIZE_CONTENT,
+            }),
+          ],
+        }),
+
+        // 7. รายละเอียดบทความ (เคาะ 10)
+        new Paragraph({
+          spacing: { line: 280 },
+          children: [
+            createThaiTextRun({ text: '          ชื่อบทความที่ได้รับการตีพิมพ์ : ', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
+            createThaiTextRun({ text: `${app.articleTitle}`, font: FONT_NAME, size: FONT_SIZE_CONTENT, italics: true }),
+          ],
+        }),
+        new Paragraph({
+          spacing: { line: 280 },
+          children: [
+            createThaiTextRun({ text: '          ชื่อวารสาร : ', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
+            createThaiTextRun({ text: `${app.journalName} จากฐานข้อมูล ${app.database || 'Scopus'} จัดอยู่ใน Quartile ${app.quartile || '-'}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+          ],
+        }),
+        new Paragraph({
+          spacing: { line: 280 },
+          children: [
+            createThaiTextRun({ text: '          วัน/เดือน/ปีที่พิมพ์ : ', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
+            createThaiTextRun({ text: `${app.volumeIssue || 'Vol...... No...... Month.......... Year..........'}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+          ],
+        }),
+        ...(app.doi ? [
           new Paragraph({
-            indent: { left: INDENT_SARABAN },
-            spacing: { line: 360 },
+            spacing: { line: 280 },
             children: [
-              createThaiTextRun({ text: `การมีส่วนในผลงาน : `, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
+              createThaiTextRun({ text: '          DOI : ', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
+              createThaiTextRun({ text: `${app.doi}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+            ],
+          })
+        ] : []),
+        new Paragraph({
+          spacing: { line: 280 },
+          children: [
+            createThaiTextRun({ text: '          การมีส่วนในผลงาน : ', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
+            createThaiTextRun({ text: authorRoleText, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+          ],
+        }),
+        new Paragraph({
+          spacing: { line: 280 },
+          children: [
+            createThaiTextRun({ text: '          วารสารวิชาการ : ', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
+            createThaiTextRun({ text: `${scopeText}   `, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+            createThaiTextRun({ text: 'บทความประเภท : ', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
+            createThaiTextRun({ text: articleTypeText, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+          ],
+        }),
+        new Paragraph({
+          spacing: { line: 280, before: 40, after: 60 },
+          children: [
+            createThaiTextRun({
+              text: isReward && isPage
+                ? `          โดยขออนุมัติ เงินรางวัลตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmt)} (${bahtText(rewardAmt)})`
+                : isReward
+                ? `          โดยขออนุมัติ เงินรางวัลตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmt)} (${bahtText(rewardAmt)})`
+                : `          โดยขออนุมัติ ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageAmt)} (${bahtText(pageAmt)})`,
+              font: FONT_NAME,
+              size: FONT_SIZE_CONTENT,
+              break: 0,
+            }),
+            ...(isReward && isPage ? [
               createThaiTextRun({
-                text: `${app.authorRole === 'first_author' ? 'First Author (ผู้เขียนชื่อแรก)' : app.authorRole === 'corresponding_author' ? 'Corresponding Author (ผู้เขียนชื่อหลัก)' : 'Co-author (ผู้ร่วมเขียน)'}`,
+                text: `                       ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageAmt)} (${bahtText(pageAmt)})`,
                 font: FONT_NAME,
                 size: FONT_SIZE_CONTENT,
-              }),
-            ],
-          }),
-          new Paragraph({
-            indent: { left: INDENT_SARABAN },
-            spacing: { line: 360 },
-            children: [
-              createThaiTextRun({ text: `วารสารวิชาการ : `, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
-              createThaiTextRun({ text: `ระดับ${app.journalScope === 'international' ? 'นานาชาติ' : 'ชาติ'}   `, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-              createThaiTextRun({ text: `บทความประเภท : `, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
-              createThaiTextRun({ text: `${app.articleType === 'research_article' ? 'บทความวิจัย (Research Article/Review)' : 'บทความวิชาการอื่นๆ'}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
+                break: 1,
+              })
+            ] : []),
+            createThaiTextRun({
+              text: `                       รวมเป็นเงินทั้งสิ้น ${formatCurrencyBaht(totalAmt)} (${bahtText(totalAmt)})`,
+              font: FONT_NAME,
+              size: FONT_SIZE_CONTENT,
+              bold: true,
+              break: 1,
+            }),
+          ],
+        }),
 
-          // ยอดเงินที่ขออนุมัติ
-          new Paragraph({
-            indent: { left: INDENT_SARABAN },
-            spacing: { line: 360, before: 60, after: 120 },
-            children: [
-              createThaiTextRun({ text: `โดยขออนุมัติ :`, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
-              createThaiTextRun({ text: `- เงินรางวัลตามเกณฑ์ข้อ 8 เงินรางวัล ${formatBaht(rewardAmt)} (${bahtText(rewardAmt)})`, font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
-              ...(pageAmt > 0
-                ? [createThaiTextRun({ text: `- ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatBaht(pageAmt)} (${bahtText(pageAmt)})`, font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 })]
-                : []),
-              createThaiTextRun({ text: `รวมเป็นเงินทั้งสิ้น ${formatBaht(totalAmt)} (${bahtText(totalAmt)})`, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true, break: 1 }),
-            ],
-          }),
+        // 8. ภาคสรุป: เคาะ 10
+        new Paragraph({
+          spacing: { line: 300, before: 60, after: 80 },
+          children: [
+            createThaiTextRun({ text: '          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+          ],
+        }),
 
-          // ภาคสรุป
-          new Paragraph({
-            indent: { firstLine: INDENT_SARABAN },
-            spacing: { before: 120, after: 240 },
-            children: [
-              createThaiTextRun({ text: 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
+        // 9. ลายมือชื่อผู้ขอรับรางวัล (ชิดกั้นหลัง จัดกึ่งกลางบล็อก)
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: TABLE_BORDERS_NONE,
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [new Paragraph({ text: '' })],
+                }),
+                new TableCell({
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { line: 280 },
+                      children: [
+                        createThaiTextRun({ text: 'ลงชื่อ.............................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+                        createThaiTextRun({ text: `(${app.applicantName})`, font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                        createThaiTextRun({ text: 'ผู้ขอรับรางวัล', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
 
-          // ลายมือชื่อเจ้าของหนังสือ (เว้นระยะ 4 Enter ตามระเบียบ)
-          new Paragraph({
-            alignment: AlignmentType.RIGHT,
-            spacing: { before: 360 },
-            children: [
-              createThaiTextRun({ text: 'ลงชื่อ.................................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-              createThaiTextRun({ text: `(${app.applicantName})`, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true, break: 1 }),
-              createThaiTextRun({ text: 'ผู้ขอรับรางวัล', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
-            ],
-          }),
-        ],
-      },
-    ]);
+        // 10. ส่วนลงนามของหัวหน้างานวิจัยและรองคณบดีฯ (บล็อกซ้าย จัดกึ่งกลางในบล็อก)
+        new Paragraph({
+          spacing: { line: 280, before: 100, after: 40 },
+          children: [
+            createThaiTextRun({ text: 'เรียน  คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
+            createThaiTextRun({ text: '          ขอเบิกจ่ายจาก งบประมาณรายได้ปี ........................', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+            createThaiTextRun({ text: '          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+          ],
+        }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: TABLE_BORDERS_NONE,
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 55, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { line: 260, before: 60, after: 40 },
+                      children: [
+                        createThaiTextRun({ text: 'ลงชื่อ....................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+                        createThaiTextRun({ text: '(นางสาวปรารถนา เอนกปัญญากุล)', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                        createThaiTextRun({ text: 'รักษาการในตำแหน่งหัวหน้างานวิจัย', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                        createThaiTextRun({ text: '(วันที่......../........./...........)', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                      ],
+                    }),
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { line: 260, before: 60 },
+                      children: [
+                        createThaiTextRun({ text: 'ลงชื่อ....................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+                        createThaiTextRun({ text: '(รองศาสตราจารย์ นายแพทย์อาทิตย์ เหล่าเรืองธนา)', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                        createThaiTextRun({ text: 'รองคณบดีฝ่ายวิจัยและถ่ายทอดเทคโนโลยี', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                        createThaiTextRun({ text: '(วันที่......../........./...........)', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                      ],
+                    }),
+                  ],
+                }),
+                new TableCell({
+                  width: { size: 45, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [new Paragraph({ text: '' })],
+                }),
+              ],
+            }),
+          ],
+        }),
+
+        // 11. Footer note Version
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          spacing: { before: 60 },
+          children: [
+            createThaiTextRun({ text: 'Version 4.0.0.25Sep2026', font: FONT_NAME, size: 18 }),
+          ],
+        }),
+      ],
+    },
+  ]);
 
   const blob = await Packer.toBlob(doc);
   saveAs(blob, `2_บันทึกข้อความ_ขออนุมัติเงินรางวัล_${app.trackingNo.replace('/', '_')}.docx`);
 }
 
 // -------------------------------------------------------------------------
-// 3. บันทึกข้อความขออนุมัติเบิกเงินรางวัล (ตามแบบฟอร์ม 3 & ระเบียบสารบรรณ)
+// 3. บันทึกข้อความขออนุมัติเบิกเงินรางวัล (ตามแบบฟอร์ม 3 & Version 4.0.0.25Sep2026)
 // -------------------------------------------------------------------------
 export async function generateMemoDisbursementDocx(app: ResearchApplication) {
   const rewardAmt = app.claimedRewardAmount || 0;
   const pageAmt = app.approvedPageChargeAmount || 0;
   const totalAmt = app.totalClaimedAmount || 0;
-
   const garudaImg = getGarudaImageData();
 
+  const isReward = rewardAmt > 0 || app.requestType === 'reward_only' || app.requestType === 'both';
+  const isPage = pageAmt > 0 || app.requestType === 'page_charge_only' || app.requestType === 'both';
+  const subject = getMemoSubject(app, true);
+  const memoApprovalSubject = getMemoSubject(app, false);
+  const formattedDate = formatThaiDateOfficial(app.createdAt);
+
   const doc = createThaiDocument([
-      {
-        properties: {
-          page: {
-            margin: STANDARD_SARABAN_MARGINS,
+    {
+      properties: {
+        page: {
+          margin: {
+            top: 1134,    // 2.0 cm
+            bottom: 850,   // 1.5 cm
+            left: 1701,    // 3.0 cm
+            right: 1134,   // 2.0 cm
           },
         },
-        children: [
-          // ส่วนหัว: ครุฑ 1.5 ซม. ด้านซ้าย และคำว่า "บันทึกข้อความ" 29 pt กึ่งกลาง
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: TABLE_BORDERS_NONE,
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({
-                    width: { size: 20, type: WidthType.PERCENTAGE },
-                    borders: CELL_BORDERS_NONE,
-                    children: [
-                      new Paragraph({
-                        children: [
-                          new ImageRun({
-                            data: garudaImg,
-                            transformation: {
-                              width: 57,
-                              height: 57,
-                            },
-                            type: 'png',
-                          } as any),
-                        ],
-                      }),
-                    ],
-                  }),
-                  new TableCell({
-                    width: { size: 80, type: WidthType.PERCENTAGE },
-                    borders: CELL_BORDERS_NONE,
-                    children: [
-                      new Paragraph({
-                        alignment: AlignmentType.CENTER,
-                        spacing: { line: 700 }, // Exactly 35 pt
-                        children: [
-                          createThaiTextRun({
-                            text: 'บันทึกข้อความ',
-                            font: FONT_NAME,
-                            size: FONT_SIZE_MEMO_HEADER,
-                            bold: true,
-                          }),
-                        ],
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          }),
-
-          // ส่วนราชการ
-          new Paragraph({
-            spacing: { before: 120, after: 60 },
-            children: [
-              createThaiTextRun({ text: 'ส่วนราชการ   ', font: FONT_NAME, size: FONT_SIZE_FIELD_LABEL, bold: true }),
-              createThaiTextRun({ text: `คณะแพทยศาสตร์    ภาควิชา ${app.department}       โทร. ${app.phone || 'ภายในคณะ'}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-
-          // ที่ และ วันที่
-          new Paragraph({
-            spacing: { after: 60 },
-            children: [
-              createThaiTextRun({ text: 'ที่   ', font: FONT_NAME, size: FONT_SIZE_FIELD_LABEL, bold: true }),
-              createThaiTextRun({ text: `${app.internalDocNo || 'อว 0603.10.    / '}                                    `, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-              createThaiTextRun({ text: 'วันที่   ', font: FONT_NAME, size: FONT_SIZE_FIELD_LABEL, bold: true }),
-              createThaiTextRun({ text: `${app.createdAt || '...................................................'}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-
-          // เรื่อง
-          new Paragraph({
-            spacing: { after: 120 },
-            children: [
-              createThaiTextRun({ text: 'เรื่อง   ', font: FONT_NAME, size: FONT_SIZE_FIELD_LABEL, bold: true }),
-              createThaiTextRun({ text: 'ขออนุมัติเบิกเงินบทความในวารสารวิชาการ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-
-          // คำขึ้นต้น
-          new Paragraph({
-            spacing: { before: 120, after: 120 },
-            children: [
-              createThaiTextRun({ text: 'เรียน   ', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
-              createThaiTextRun({ text: 'คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-
-          // ภาคเหตุ (อ้างถึง)
-          new Paragraph({
-            alignment: AlignmentType.JUSTIFIED,
-            indent: { firstLine: INDENT_SARABAN },
-            spacing: { line: 360 },
-            children: [
-              createThaiTextRun({
-                text: `อ้างถึงหนังสือคณะแพทยศาสตร์ ที่ ${app.internalDocNo || 'อว 0603.10..........................'} ลงวันที่ ${app.createdAt || '.............................'} เรื่อง ขออนุมัติเงินบทความในวารสารวิชาการ บทความวิจัยเรื่อง “${app.articleTitle}” นั้น`,
-                font: FONT_NAME,
-                size: FONT_SIZE_CONTENT,
-              }),
-            ],
-          }),
-
-          // ภาคความประสงค์
-          new Paragraph({
-            alignment: AlignmentType.JUSTIFIED,
-            indent: { firstLine: INDENT_SARABAN },
-            spacing: { line: 360, before: 60 },
-            children: [
-              createThaiTextRun({
-                text: `ในการนี้ ข้าพเจ้าจึงขออนุมัติเบิกเงิน${pageAmt > 0 ? `ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatBaht(pageAmt)} (${bahtText(pageAmt)}) และ` : ''}รางวัลตีพิมพ์ตามเกณฑ์ข้อ 8 เงินรางวัล ${formatBaht(rewardAmt)} (${bahtText(rewardAmt)}) รวมเป็นเงินทั้งสิ้น ${formatBaht(totalAmt)} (${bahtText(totalAmt)}) รายละเอียดตามเอกสารแนบท้าย`,
-                font: FONT_NAME,
-                size: FONT_SIZE_CONTENT,
-              }),
-            ],
-          }),
-
-          // ภาคสรุป
-          new Paragraph({
-            indent: { firstLine: INDENT_SARABAN },
-            spacing: { before: 120, after: 240 },
-            children: [
-              createThaiTextRun({ text: 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-            ],
-          }),
-
-          // ลายเซ็นคู่: ผู้ขอรับรางวัล & หัวหน้าภาควิชา
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: TABLE_BORDERS_NONE,
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({
-                    width: { size: 50, type: WidthType.PERCENTAGE },
-                    borders: CELL_BORDERS_NONE,
-                    children: [
-                      new Paragraph({
-                        alignment: AlignmentType.CENTER,
-                        children: [
-                          createThaiTextRun({ text: 'ลงชื่อ.................................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-                          createThaiTextRun({ text: `(${app.applicantName})`, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true, break: 1 }),
-                          createThaiTextRun({ text: 'ผู้ขอรับรางวัล', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
-                        ],
-                      }),
-                    ],
-                  }),
-                  new TableCell({
-                    width: { size: 50, type: WidthType.PERCENTAGE },
-                    borders: CELL_BORDERS_NONE,
-                    children: [
-                      new Paragraph({
-                        alignment: AlignmentType.CENTER,
-                        children: [
-                          createThaiTextRun({ text: 'ลงชื่อ.................................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
-                          createThaiTextRun({ text: '(................................................................)', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true, break: 1 }),
-                          createThaiTextRun({ text: 'หัวหน้าภาควิชาหรือหัวหน้าส่วนงาน', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
-                        ],
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          }),
-
-          // กล่องคำสั่งอนุมัติของผู้บริหาร
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({
-                    width: { size: 50, type: WidthType.PERCENTAGE },
-                    borders: CELL_BORDERS_ALL,
-                    children: [
-                      new Paragraph({
-                        children: [
-                          createThaiTextRun({ text: 'เรียน คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_TABLE, bold: true }),
-                          createThaiTextRun({ text: 'เพื่อโปรดพิจารณาอนุมัติเบิกจ่ายจากงบประมาณรายได้ กองทุนวิจัย', font: FONT_NAME, size: FONT_SIZE_SUBTEXT, break: 1 }),
-                          createThaiTextRun({ text: 'ลงชื่อ..........................................................', font: FONT_NAME, size: FONT_SIZE_TABLE, break: 2 }),
-                          createThaiTextRun({ text: '(รองคณบดีฝ่ายวิจัยและนวัตกรรม)', font: FONT_NAME, size: FONT_SIZE_SUBTEXT, break: 1 }),
-                        ],
-                      }),
-                    ],
-                  }),
-                  new TableCell({
-                    width: { size: 50, type: WidthType.PERCENTAGE },
-                    borders: CELL_BORDERS_ALL,
-                    children: [
-                      new Paragraph({
-                        children: [
-                          createThaiTextRun({ text: 'คำสั่งคณบดี', font: FONT_NAME, size: FONT_SIZE_TABLE, bold: true }),
-                          createThaiTextRun({ text: '[   ] อนุมัติ         [   ] ไม่อนุมัติ', font: FONT_NAME, size: FONT_SIZE_TABLE, break: 1 }),
-                          createThaiTextRun({ text: 'ลงชื่อ..........................................................', font: FONT_NAME, size: FONT_SIZE_TABLE, break: 2 }),
-                          createThaiTextRun({ text: '(คณบดีคณะแพทยศาสตร์)', font: FONT_NAME, size: FONT_SIZE_SUBTEXT, break: 1 }),
-                        ],
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          }),
-        ],
       },
-    ]);
+      children: [
+        // 1. ส่วนหัว: ตาราง 3 คอลัมน์ ครุฑซ้าย 20%, บันทึกข้อความ กึ่งกลาง 60% (28 pt ตัวหนา), ขวาว่าง 20%
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: TABLE_BORDERS_NONE,
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 20, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [
+                    new Paragraph({
+                      spacing: { line: 240, before: 0, after: 0 },
+                      children: [
+                        new ImageRun({
+                          data: garudaImg,
+                          transformation: {
+                            width: 57, // 1.5 cm ≈ 56.7 pt
+                            height: 57,
+                          },
+                          type: 'png',
+                        } as any),
+                      ],
+                    }),
+                  ],
+                }),
+                new TableCell({
+                  width: { size: 60, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { line: 240, before: 0, after: 0 },
+                      children: [
+                        createThaiTextRun({
+                          text: 'บันทึกข้อความ',
+                          font: FONT_NAME,
+                          size: 56, // 28 pt
+                          bold: true,
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                new TableCell({
+                  width: { size: 20, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [new Paragraph({ spacing: { line: 240, before: 0, after: 0 }, text: '' })],
+                }),
+              ],
+            }),
+          ],
+        }),
+
+        // 2. ส่วนราชการ: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        new Paragraph({
+          spacing: { line: 240, before: 0, after: 0 },
+          tabStops: [
+            { type: TabStopType.RIGHT, position: 9071, leader: LeaderType.DOT },
+          ],
+          children: [
+            createThaiTextRun({ text: 'ส่วนราชการ  ', font: FONT_NAME, size: 40, bold: true }),
+            createThaiTextRun({ text: `คณะแพทยศาสตร์  ภาควิชา${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, font: FONT_NAME, size: 40 }),
+            new TextRun({ text: '\t' }),
+          ],
+        }),
+
+        // 3. ที่ และ วันที่: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        new Paragraph({
+          spacing: { line: 240, before: 0, after: 0 },
+          tabStops: [
+            { type: TabStopType.RIGHT, position: 4500, leader: LeaderType.DOT },
+            { type: TabStopType.LEFT, position: 4700 },
+            { type: TabStopType.RIGHT, position: 9071, leader: LeaderType.DOT },
+          ],
+          children: [
+            createThaiTextRun({ text: 'ที่  ', font: FONT_NAME, size: 40, bold: true }),
+            createThaiTextRun({ text: `${app.internalDocNo || 'อว 0603.10.    / '}`, font: FONT_NAME, size: 40 }),
+            new TextRun({ text: '\t\t' }),
+            createThaiTextRun({ text: 'วันที่  ', font: FONT_NAME, size: 40, bold: true }),
+            createThaiTextRun({ text: formattedDate, font: FONT_NAME, size: 40 }),
+            new TextRun({ text: '\t' }),
+          ],
+        }),
+
+        // 4. เรื่อง: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        new Paragraph({
+          spacing: { line: 240, before: 0, after: 0 },
+          tabStops: [
+            { type: TabStopType.RIGHT, position: 9071, leader: LeaderType.DOT },
+          ],
+          children: [
+            createThaiTextRun({ text: 'เรื่อง  ', font: FONT_NAME, size: 40, bold: true }),
+            createThaiTextRun({ text: subject, font: FONT_NAME, size: 40 }),
+            new TextRun({ text: '\t' }),
+          ],
+        }),
+
+        // 5. คำขึ้นต้น: เรียน คณบดีคณะแพทยศาสตร์
+        new Paragraph({
+          spacing: { line: 240, before: 20, after: 20 },
+          children: [
+            createThaiTextRun({ text: 'เรียน   คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+          ],
+        }),
+
+        // 6. ภาคเหตุ (อ้างถึง): เคาะ 10
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { line: 300 },
+          children: [
+            createThaiTextRun({
+              text: `          ตามที่ ข้าพเจ้า ${app.applicantName} ตำแหน่ง ${app.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา${app.department || ''} คณะแพทยศาสตร์ ได้ยื่นเรื่อง ${memoApprovalSubject} บทความวิจัยเรื่อง “${app.articleTitle}” นั้น`,
+              font: FONT_NAME,
+              size: FONT_SIZE_CONTENT,
+            }),
+          ],
+        }),
+
+        // 7. ภาคความประสงค์: เคาะ 10
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { line: 300, before: 60, after: 80 },
+          children: [
+            createThaiTextRun({
+              text: `          ในการนี้ ข้าพเจ้าจึงขออนุมัติเบิกเงิน${isPage ? `ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageAmt)} (${bahtText(pageAmt)}) ` : ''}${isReward && isPage ? 'และ' : ''}${isReward ? `รางวัลตีพิมพ์ตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmt)} (${bahtText(rewardAmt)})` : ''} รวมเป็นเงินทั้งสิ้น ${formatCurrencyBaht(totalAmt)} (${bahtText(totalAmt)}) รายละเอียดตามเอกสารแนบท้าย`,
+              font: FONT_NAME,
+              size: FONT_SIZE_CONTENT,
+            }),
+          ],
+        }),
+
+        // 8. ภาคสรุป: เคาะ 10
+        new Paragraph({
+          spacing: { line: 300, before: 60, after: 80 },
+          children: [
+            createThaiTextRun({ text: '          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+          ],
+        }),
+
+        // 9. ลายมือชื่อผู้ขอรับรางวัล (ชิดกั้นหลัง จัดกึ่งกลางบล็อก)
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: TABLE_BORDERS_NONE,
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [new Paragraph({ text: '' })],
+                }),
+                new TableCell({
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { line: 280 },
+                      children: [
+                        createThaiTextRun({ text: 'ลงชื่อ.............................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+                        createThaiTextRun({ text: `(${app.applicantName})`, font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                        createThaiTextRun({ text: 'ผู้ขอรับรางวัล', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+
+        // 10. ส่วนลงนามของหัวหน้างานวิจัยและรองคณบดีฯ (บล็อกซ้าย จัดกึ่งกลางในบล็อก)
+        new Paragraph({
+          spacing: { line: 280, before: 100, after: 40 },
+          children: [
+            createThaiTextRun({ text: 'เรียน  คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true }),
+            createThaiTextRun({ text: '          ขอเบิกจ่ายจาก งบประมาณรายได้ปี ........................', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+            createThaiTextRun({ text: '          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+          ],
+        }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: TABLE_BORDERS_NONE,
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 55, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { line: 260, before: 60, after: 40 },
+                      children: [
+                        createThaiTextRun({ text: 'ลงชื่อ....................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+                        createThaiTextRun({ text: '(นางสาวปรารถนา เอนกปัญญากุล)', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                        createThaiTextRun({ text: 'รักษาการในตำแหน่งหัวหน้างานวิจัย', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                        createThaiTextRun({ text: '(วันที่......../........./...........)', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                      ],
+                    }),
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { line: 260, before: 60 },
+                      children: [
+                        createThaiTextRun({ text: 'ลงชื่อ....................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+                        createThaiTextRun({ text: '(รองศาสตราจารย์ นายแพทย์อาทิตย์ เหล่าเรืองธนา)', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                        createThaiTextRun({ text: 'รองคณบดีฝ่ายวิจัยและถ่ายทอดเทคโนโลยี', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                        createThaiTextRun({ text: '(วันที่......../........./...........)', font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+                      ],
+                    }),
+                  ],
+                }),
+                new TableCell({
+                  width: { size: 45, type: WidthType.PERCENTAGE },
+                  borders: CELL_BORDERS_NONE,
+                  children: [new Paragraph({ text: '' })],
+                }),
+              ],
+            }),
+          ],
+        }),
+
+        // 11. Footer note Version
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          spacing: { before: 60 },
+          children: [
+            createThaiTextRun({ text: 'Version 4.0.0.25Sep2026', font: FONT_NAME, size: 18 }),
+          ],
+        }),
+      ],
+    },
+  ]);
 
   const blob = await Packer.toBlob(doc);
   saveAs(blob, `3_บันทึกข้อความ_ขออนุมัติเบิกเงินรางวัล_${app.trackingNo.replace('/', '_')}.docx`);
