@@ -938,7 +938,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 2. ส่วนราชการ: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        // 2. ส่วนราชการ: ตัวหนา 20 pt (size: 40) ข้อความหลัง 16 pt (size: 32) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
         new Paragraph({
           spacing: { line: 240, before: 0, after: 0 },
           tabStops: [
@@ -946,12 +946,12 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
           children: [
             createThaiTextRun({ text: 'ส่วนราชการ  ', font: FONT_NAME, size: 40, bold: true }),
-            createThaiTextRun({ text: `คณะแพทยศาสตร์  ภาควิชา${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, font: FONT_NAME, size: 40 }),
+            createThaiTextRun({ text: `คณะแพทยศาสตร์  ภาควิชา${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
             new TextRun({ text: '\t' }),
           ],
         }),
 
-        // 3. ที่ และ วันที่: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        // 3. ที่ และ วันที่: ตัวหนา 20 pt (size: 40) ข้อความหลัง 16 pt (size: 32) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
         new Paragraph({
           spacing: { line: 240, before: 0, after: 0 },
           tabStops: [
@@ -961,15 +961,15 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
           children: [
             createThaiTextRun({ text: 'ที่  ', font: FONT_NAME, size: 40, bold: true }),
-            createThaiTextRun({ text: `${app.internalDocNo || 'อว 0603.10.    / '}`, font: FONT_NAME, size: 40 }),
+            createThaiTextRun({ text: `${app.internalDocNo || 'อว 0603.10.    / '}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
             new TextRun({ text: '\t\t' }),
             createThaiTextRun({ text: 'วันที่  ', font: FONT_NAME, size: 40, bold: true }),
-            createThaiTextRun({ text: formattedDate, font: FONT_NAME, size: 40 }),
+            createThaiTextRun({ text: formattedDate, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
             new TextRun({ text: '\t' }),
           ],
         }),
 
-        // 4. เรื่อง: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        // 4. เรื่อง: ตัวหนา 20 pt (size: 40) ข้อความหลัง 16 pt (size: 32) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
         new Paragraph({
           spacing: { line: 240, before: 0, after: 0 },
           tabStops: [
@@ -977,7 +977,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
           children: [
             createThaiTextRun({ text: 'เรื่อง  ', font: FONT_NAME, size: 40, bold: true }),
-            createThaiTextRun({ text: subject, font: FONT_NAME, size: 40 }),
+            createThaiTextRun({ text: subject, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
             new TextRun({ text: '\t' }),
           ],
         }),
@@ -1270,7 +1270,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 2. ส่วนราชการ: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        // 2. ส่วนราชการ: ตัวหนา 20 pt (size: 40) ข้อความหลัง 16 pt (size: 32) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
         new Paragraph({
           spacing: { line: 240, before: 0, after: 0 },
           tabStops: [
@@ -1278,12 +1278,12 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           ],
           children: [
             createThaiTextRun({ text: 'ส่วนราชการ  ', font: FONT_NAME, size: 40, bold: true }),
-            createThaiTextRun({ text: `คณะแพทยศาสตร์  ภาควิชา${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, font: FONT_NAME, size: 40 }),
+            createThaiTextRun({ text: `คณะแพทยศาสตร์  ภาควิชา${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
             new TextRun({ text: '\t' }),
           ],
         }),
 
-        // 3. ที่ และ วันที่: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        // 3. ที่ และ วันที่: ตัวหนา 20 pt (size: 40) ข้อความหลัง 16 pt (size: 32) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
         new Paragraph({
           spacing: { line: 240, before: 0, after: 0 },
           tabStops: [
@@ -1293,15 +1293,15 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           ],
           children: [
             createThaiTextRun({ text: 'ที่  ', font: FONT_NAME, size: 40, bold: true }),
-            createThaiTextRun({ text: `${app.internalDocNo || 'อว 0603.10.    / '}`, font: FONT_NAME, size: 40 }),
+            createThaiTextRun({ text: `${app.internalDocNo || 'อว 0603.10.    / '}`, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
             new TextRun({ text: '\t\t' }),
             createThaiTextRun({ text: 'วันที่  ', font: FONT_NAME, size: 40, bold: true }),
-            createThaiTextRun({ text: formattedDate, font: FONT_NAME, size: 40 }),
+            createThaiTextRun({ text: formattedDate, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
             new TextRun({ text: '\t' }),
           ],
         }),
 
-        // 4. เรื่อง: ตัวหนา 20 pt (size: 40) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
+        // 4. เรื่อง: ตัวหนา 20 pt (size: 40) ข้อความหลัง 16 pt (size: 32) พร้อมเส้นประถึงกั้นหลัง ระยะบรรทัด 1.0 (line: 240), space before/after 0.0
         new Paragraph({
           spacing: { line: 240, before: 0, after: 0 },
           tabStops: [
@@ -1309,7 +1309,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           ],
           children: [
             createThaiTextRun({ text: 'เรื่อง  ', font: FONT_NAME, size: 40, bold: true }),
-            createThaiTextRun({ text: subject, font: FONT_NAME, size: 40 }),
+            createThaiTextRun({ text: subject, font: FONT_NAME, size: FONT_SIZE_CONTENT }),
             new TextRun({ text: '\t' }),
           ],
         }),

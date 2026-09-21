@@ -641,7 +641,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     {/* ส่วนราชการ */}
                     <div className="flex items-baseline w-full">
                       <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ส่วนราชการ</span>
-                      <div className="flex-1 border-b border-dotted border-black pb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[15pt]">
+                      <div className="flex-1 border-b border-dotted border-black pb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[16pt]">
                         คณะแพทยศาสตร์ ภาควิชา{application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
                       </div>
                     </div>
@@ -650,13 +650,13 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     <div className="flex items-baseline w-full gap-4">
                       <div className="flex items-baseline flex-1">
                         <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
-                        <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[15pt]">
+                        <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
                           {application.internalDocNo || 'อว 0603.10.    / '}
                         </div>
                       </div>
                       <div className="flex items-baseline flex-1">
                         <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">วันที่</span>
-                        <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[15pt]">
+                        <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
                           {formattedDate}
                         </div>
                       </div>
@@ -665,7 +665,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     {/* เรื่อง */}
                     <div className="flex items-baseline w-full">
                       <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">เรื่อง</span>
-                      <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[15pt]">
+                      <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
                         {subject}
                       </div>
                     </div>
@@ -809,7 +809,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     {/* ส่วนราชการ */}
                     <div className="flex items-baseline w-full">
                       <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ส่วนราชการ</span>
-                      <div className="flex-1 border-b border-dotted border-black pb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[15pt]">
+                      <div className="flex-1 border-b border-dotted border-black pb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[16pt]">
                         คณะแพทยศาสตร์ ภาควิชา{application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
                       </div>
                     </div>
@@ -818,13 +818,13 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     <div className="flex items-baseline w-full gap-4">
                       <div className="flex items-baseline flex-1">
                         <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
-                        <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[15pt]">
+                        <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
                           {application.internalDocNo || 'อว 0603.10.    / '}
                         </div>
                       </div>
                       <div className="flex items-baseline flex-1">
                         <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">วันที่</span>
-                        <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[15pt]">
+                        <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
                           {formattedDate}
                         </div>
                       </div>
@@ -833,7 +833,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     {/* เรื่อง */}
                     <div className="flex items-baseline w-full">
                       <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">เรื่อง</span>
-                      <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[15pt]">
+                      <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
                         {subject}
                       </div>
                     </div>
