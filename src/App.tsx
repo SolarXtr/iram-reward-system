@@ -270,6 +270,27 @@ export default function App() {
       .catch(e => console.warn('D1 update row error:', e));
   };
 
+  // 3.1 Update Document Numbering & Online Review Details
+  const handleUpdateDocDetails = (appId: string, updates: Partial<ResearchApplication>) => {
+    setApplications((prev) =>
+      prev.map((app) => {
+        if (app.id !== appId) return app;
+        const updated = {
+          ...app,
+          ...updates,
+          updatedAt: new Date().toISOString().split('T')[0],
+        };
+        if (printApp && printApp.id === appId) {
+          setPrintApp(updated);
+        }
+        return updated;
+      })
+    );
+
+    updateRewardApplicationInD1(appId, updates).catch(e => console.warn('D1 update doc details error:', e));
+    showToast('บันทึกข้อมูลเลขที่หนังสือราชการและวันที่เรียบร้อย');
+  };
+
   // 4. Advance timeline step
   const handleAdvanceTimelineStep = (id: string, nextStep: WorkflowStepId, note?: string) => {
     const target = applications.find(a => a.id === id);
@@ -497,7 +518,9 @@ export default function App() {
       <OfficialPrintModal
         isOpen={!!printApp}
         application={printApp}
+        currentUser={currentUser}
         onClose={() => setPrintApp(null)}
+        onSaveDocDetails={handleUpdateDocDetails}
       />
 
       {/* MODAL 4: Payment Verification & Transfer Slip Modal */}

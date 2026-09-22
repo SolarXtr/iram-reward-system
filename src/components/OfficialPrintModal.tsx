@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Download, 
@@ -7,12 +7,20 @@ import {
   Award, 
   CreditCard, 
   FileCheck2, 
-  HelpCircle,
-  AlertCircle,
-  FileType,
-  Loader2
+  HelpCircle, 
+  AlertCircle, 
+  FileType, 
+  Loader2,
+  Lock,
+  Unlock,
+  CheckCircle2,
+  AlertTriangle,
+  Save,
+  Check,
+  Calendar,
+  Building
 } from 'lucide-react';
-import { ResearchApplication } from '../types';
+import { ResearchApplication, UserProfile } from '../types';
 import { bahtText, formatBaht, getTrackingPrefix } from '../data/regulations';
 import { MED_NU_LOGO_URL } from '../services/medNuLogo';
 import { TEMPLATE_CHECKLIST_LOGO_BASE64 } from '../services/templateChecklistLogo';
@@ -28,12 +36,16 @@ import {
   formatCurrencyBaht,
   formatThaiDateOfficial
 } from '../services/docxExportService';
+import { formatInternalDocNo, getDepartmentCode, DEPARTMENT_LIST } from '../data/departmentCodes';
 
 interface OfficialPrintModalProps {
   application: ResearchApplication | null;
+  currentUser?: UserProfile;
   isOpen: boolean;
   onClose: () => void;
+  onSaveDocDetails?: (appId: string, updates: Partial<ResearchApplication>) => void;
 }
+
 
 // 5 Official Documents in Requested Sequence:
 // 1. checklist: แบบตรวจสอบรายการ (AWP Checklist)
@@ -53,8 +65,10 @@ const TEMPLATE_LOGO_DATA_URL = `data:image/png;base64,${TEMPLATE_CHECKLIST_LOGO_
 
 export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   application,
+  currentUser,
   isOpen,
   onClose,
+  onSaveDocDetails,
 }) => {
   if (!isOpen || !application) return null;
 
@@ -64,6 +78,83 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   const sequenceOnly = application.trackingNo
     ? application.trackingNo.replace(new RegExp(`^${trackingPrefix}-?|^AWP\\d{2}-?`, 'i'), '')
     : '';
+
+  // Online Review Progress 100% Gatekeeper
+  const [isOnlineReviewComplete, setIsOnlineReviewComplete] = useState<boolean>(() => {
+    if (application.isOnlineReviewComplete !== undefined) {
+      return application.isOnlineReviewComplete;
+    }
+    return ['dean_approved', 'paid', 'finance_processing'].includes(application.status) || application.currentStep >= 8;
+  });
+
+  // Department code (10.xx): default from logged-in user or application
+  const [deptCode, setDeptCode] = useState<string>(() => {
+    return application.deptCode || getDepartmentCode(currentUser?.department || application.department);
+  });
+
+  // Running number (xxx)
+  const [docRunningNo, setDocRunningNo] = useState<string>(() => {
+    return application.docRunningNo || '';
+  });
+
+  // Official date (วันที่)
+  const [officialDocDate, setOfficialDocDate] = useState<string>(() => {
+    return application.officialDocDate || '';
+  });
+
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
+
+  useEffect(() => {
+    if (application) {
+      setIsOnlineReviewComplete(
+        application.isOnlineReviewComplete !== undefined 
+          ? application.isOnlineReviewComplete 
+          : (['dean_approved', 'paid', 'finance_processing'].includes(application.status) || application.currentStep >= 8)
+      );
+      setDeptCode(application.deptCode || getDepartmentCode(currentUser?.department || application.department));
+      setDocRunningNo(application.docRunningNo || '');
+      setOfficialDocDate(application.officialDocDate || '');
+    }
+  }, [application.id, currentUser?.department]);
+
+  // Download / Print is allowed ONLY when 100% complete AND both runningNo and date are properly filled!
+  const isDocReady = isOnlineReviewComplete && Boolean(docRunningNo.trim()) && Boolean(officialDocDate.trim());
+
+  const previewDocNo = isDocReady 
+    ? formatInternalDocNo(deptCode, docRunningNo) 
+    : formatInternalDocNo(deptCode, '');
+
+  const previewDate = isDocReady 
+    ? formatThaiDateOfficial(officialDocDate) 
+    : '...................................................';
+
+  const appWithDocDetails: ResearchApplication = {
+    ...application,
+    deptCode,
+    docRunningNo: isDocReady ? docRunningNo.trim() : undefined,
+    officialDocDate: isDocReady ? officialDocDate.trim() : undefined,
+    isOnlineReviewComplete,
+    internalDocNo: previewDocNo,
+  };
+
+  const handleSaveNumbering = () => {
+    if (onSaveDocDetails) {
+      onSaveDocDetails(application.id, {
+        deptCode,
+        docRunningNo: docRunningNo.trim(),
+        officialDocDate: officialDocDate.trim(),
+        isOnlineReviewComplete,
+        internalDocNo: previewDocNo,
+      });
+    }
+    setSaveSuccessMsg('บันทึกข้อมูลเรียบร้อยแล้ว');
+    setTimeout(() => setSaveSuccessMsg(''), 3000);
+  };
+
+  const handleSetToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setOfficialDocDate(formatThaiDateOfficial(today));
+  };
 
   const totalAmount = application.totalClaimedAmount || 0;
   const rewardAmount = application.claimedRewardAmount || 0;
@@ -78,6 +169,12 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   };
 
   const handlePrint = () => {
+    if (!isDocReady) {
+      alert(!isOnlineReviewComplete 
+        ? 'ไม่สามารถพิมพ์/ดาวน์โหลดได้: ต้องตรวจบันทึกและแก้ไขออนไลน์จนกระทั่ง 100% จึงจะอนุญาตให้ลงเลขลำดับและวันที่ได้' 
+        : 'ไม่สามารถพิมพ์/ดาวน์โหลดได้: ต้องกรอกเลขลำดับ (xxx) และวันที่ให้เรียบร้อยก่อน จึงจะดาวน์โหลดมาลงชื่อได้');
+      return;
+    }
     let docName = 'เอกสารราชการ';
     if (activeDoc === 'checklist') docName = `1_แบบตรวจสอบรายการ_${trackingPrefix}`;
     else if (activeDoc === 'memo_reward') docName = '2_บันทึกข้อความ_ขออนุมัติเงินรางวัล';
@@ -218,18 +315,24 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   };
 
   const handleDownloadCurrentDocx = async () => {
+    if (!isDocReady) {
+      alert(!isOnlineReviewComplete 
+        ? 'ไม่สามารถดาวน์โหลดได้: ต้องตรวจบันทึกและแก้ไขออนไลน์จนกระทั่ง 100% จึงจะอนุญาตให้ลงเลขลำดับและวันที่ได้' 
+        : 'ไม่สามารถดาวน์โหลดได้: ต้องกรอกเลขลำดับ (xxx) และวันที่ให้เรียบร้อยก่อน จึงจะดาวน์โหลดมาลงชื่อได้');
+      return;
+    }
     try {
       setIsExportingDocx(true);
       if (activeDoc === 'checklist') {
-        await generateChecklistDocx(application);
+        await generateChecklistDocx(appWithDocDetails);
       } else if (activeDoc === 'memo_reward') {
-        await generateMemoRewardDocx(application);
+        await generateMemoRewardDocx(appWithDocDetails);
       } else if (activeDoc === 'memo_disbursement') {
-        await generateMemoDisbursementDocx(application);
+        await generateMemoDisbursementDocx(appWithDocDetails);
       } else if (activeDoc === 'receipt') {
-        await generateReceiptDocx(application);
+        await generateReceiptDocx(appWithDocDetails);
       } else if (activeDoc === 'certification') {
-        await generateCertificationDocx(application);
+        await generateCertificationDocx(appWithDocDetails);
       }
     } catch (err) {
       console.error('Failed to export DOCX:', err);
@@ -240,9 +343,15 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   };
 
   const handleDownloadAllDocx = async () => {
+    if (!isDocReady) {
+      alert(!isOnlineReviewComplete 
+        ? 'ไม่สามารถดาวน์โหลดได้: ต้องตรวจบันทึกและแก้ไขออนไลน์จนกระทั่ง 100% จึงจะอนุญาตให้ลงเลขลำดับและวันที่ได้' 
+        : 'ไม่สามารถดาวน์โหลดได้: ต้องกรอกเลขลำดับ (xxx) และวันที่ให้เรียบร้อยก่อน จึงจะดาวน์โหลดมาลงชื่อได้');
+      return;
+    }
     try {
       setIsExportingDocx(true);
-      await generateAllDocsDocx(application);
+      await generateAllDocsDocx(appWithDocDetails);
     } catch (err) {
       console.error('Failed to export all DOCX:', err);
       alert('เกิดข้อผิดพลาดในการสร้างไฟล์ DOCX ทั้ง 5 ชุด');
@@ -273,12 +382,18 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
             {/* Download DOCX Button */}
             <button
               onClick={handleDownloadCurrentDocx}
-              disabled={isExportingDocx}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow transition-all cursor-pointer disabled:opacity-50"
-              title="ดาวน์โหลดแบบฟอร์มเอกสารนี้เป็นไฟล์ Word (.docx) เพื่อนำไปแก้ไขหรือปรับแต่งหน้าได้อิสระ"
+              disabled={!isDocReady || isExportingDocx}
+              className={`px-3.5 py-2 font-bold rounded-lg text-xs flex items-center gap-1.5 shadow transition-all ${
+                isDocReady && !isExportingDocx
+                  ? 'bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white cursor-pointer'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 opacity-60 cursor-not-allowed'
+              }`}
+              title={isDocReady ? "ดาวน์โหลดแบบฟอร์มเอกสารนี้เป็นไฟล์ Word (.docx)" : "ต้องตรวจบันทึกให้ครบ 100% และกรอกเลข/วันที่ให้เรียบร้อยก่อน"}
             >
               {isExportingDocx ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
+              ) : !isDocReady ? (
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
               ) : (
                 <FileType className="w-4 h-4 text-blue-200" />
               )}
@@ -288,20 +403,30 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
             {/* Download ALL 5 DOCX */}
             <button
               onClick={handleDownloadAllDocx}
-              disabled={isExportingDocx}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold rounded-lg text-xs flex items-center gap-1.5 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
-              title="ดาวน์โหลดครบทั้ง 5 ไฟล์เป็น .docx พร้อมกัน"
+              disabled={!isDocReady || isExportingDocx}
+              className={`px-3 py-2 font-semibold rounded-lg text-xs flex items-center gap-1.5 border transition-all ${
+                isDocReady && !isExportingDocx
+                  ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border-slate-700 cursor-pointer'
+                  : 'bg-slate-900 text-slate-500 border-slate-800 opacity-50 cursor-not-allowed'
+              }`}
+              title={isDocReady ? "ดาวน์โหลดครบทั้ง 5 ไฟล์เป็น .docx พร้อมกัน" : "ต้องตรวจบันทึกให้ครบ 100% และกรอกเลข/วันที่ให้เรียบร้อยก่อน"}
             >
+              {!isDocReady && <Lock className="w-3.5 h-3.5 text-amber-400" />}
               <span>โหลดครบ 5 ฟอร์ม (.docx)</span>
             </button>
 
             {/* Print / PDF Button */}
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-              title="สั่งพิมพ์ออกเครื่องพิมพ์ หรือเลือก 'Save as PDF'"
+              disabled={!isDocReady}
+              className={`px-3.5 py-2 font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-md transition-all ${
+                isDocReady
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 cursor-pointer'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 opacity-60 cursor-not-allowed'
+              }`}
+              title={isDocReady ? "สั่งพิมพ์ออกเครื่องพิมพ์ หรือเลือก 'Save as PDF'" : "ต้องตรวจบันทึกให้ครบ 100% และกรอกเลข/วันที่ให้เรียบร้อยก่อน"}
             >
-              <Download className="w-4 h-4" />
+              {!isDocReady ? <Lock className="w-3.5 h-3.5 text-amber-400" /> : <Download className="w-4 h-4" />}
               <span>พิมพ์ / PDF</span>
             </button>
 
@@ -375,6 +500,203 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
             <FileCheck2 className="w-3.5 h-3.5" />
             <span>5. ใบสำคัญรับรองจ่าย (ใบรับรองการจ่ายเงิน ข้อ 46)</span>
           </button>
+        </div>
+
+        {/* ONLINE REVIEW & DOCUMENT NUMBERING CONTROL PANEL (No Print) */}
+        <div className="bg-slate-50 border-b border-slate-200 px-6 py-3.5 space-y-3 no-print">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            
+            {/* Step 1: Online Review 100% Status */}
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg shrink-0 ${isOnlineReviewComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                {isOnlineReviewComplete ? <CheckCircle2 className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xs sm:text-sm text-slate-800 font-prompt">
+                    ผลการตรวจบันทึกและแก้ไขออนไลน์:
+                  </span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    isOnlineReviewComplete ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
+                  }`}>
+                    {isOnlineReviewComplete ? 'ตรวจครบ 100% แล้ว (ปลดล็อคให้ออกเลข)' : 'อยู่ระหว่างตรวจบันทึก (< 100%)'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {isOnlineReviewComplete 
+                    ? 'ปลดล็อคให้ลงเลขลำดับ (xxx) และวันที่ในหนังสือได้แล้ว กรอกเสร็จจึงจะดาวน์โหลดได้' 
+                    : 'ระบบล็อคการลงเลขลำดับและวันที่ จนกว่าจะตรวจบันทึกและแก้ไขออนไลน์จนกระทั่งครบ 100%'}
+                </p>
+              </div>
+            </div>
+
+            {/* Toggle Review Status Button */}
+            <button
+              onClick={() => setIsOnlineReviewComplete(!isOnlineReviewComplete)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+                isOnlineReviewComplete
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+              }`}
+            >
+              {isOnlineReviewComplete ? (
+                <>
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>สลับสถานะเป็นยังไม่ครบ 100%</span>
+                </>
+              ) : (
+                <>
+                  <Unlock className="w-3.5 h-3.5" />
+                  <span>กดยืนยันตรวจบันทึกครบ 100%</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Step 2: Numbering & Date Inputs */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm items-end">
+            
+            {/* Department Code: 10.xx */}
+            <div className="sm:col-span-4">
+              <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>รหัสหน่วยงาน (10.xx)*</span>
+                <span className="text-[10px] text-blue-600 font-normal">ดึงจากสังกัด / แก้ไขได้</span>
+              </label>
+              <div className="flex items-center">
+                <span className="px-2 py-1.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
+                  อว 0603.10.
+                </span>
+                <input
+                  type="text"
+                  value={deptCode}
+                  onChange={(e) => setDeptCode(e.target.value)}
+                  placeholder="xx"
+                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  list="dept-code-suggestions"
+                  title="รหัสหน่วยงาน 10.xx สามารถแก้ไขได้ตามต้องการ"
+                />
+                <datalist id="dept-code-suggestions">
+                  {DEPARTMENT_LIST.map((d) => (
+                    <option key={d.code} value={d.code}>{d.code} - {d.name}</option>
+                  ))}
+                </datalist>
+              </div>
+            </div>
+
+            {/* Running Number: xxx */}
+            <div className="sm:col-span-3">
+              <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>เลขลำดับ (xxx)*</span>
+                {!isOnlineReviewComplete && (
+                  <span className="text-[10px] text-amber-600 flex items-center gap-0.5">
+                    <Lock className="w-2.5 h-2.5" /> ล็อค
+                  </span>
+                )}
+              </label>
+              <div className="flex items-center">
+                <span className="px-2 py-1.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
+                  /
+                </span>
+                <input
+                  type="text"
+                  disabled={!isOnlineReviewComplete}
+                  value={docRunningNo}
+                  onChange={(e) => setDocRunningNo(e.target.value)}
+                  placeholder={isOnlineReviewComplete ? "เช่น 066" : "ต้องตรวจ 100% ก่อน"}
+                  className={`w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold focus:outline-none ${
+                    isOnlineReviewComplete 
+                      ? 'bg-white text-slate-900 border-blue-400 focus:ring-1 focus:ring-blue-500' 
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Official Date */}
+            <div className="sm:col-span-3">
+              <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>วันที่ในหนังสือ*</span>
+                {!isOnlineReviewComplete && (
+                  <span className="text-[10px] text-amber-600 flex items-center gap-0.5">
+                    <Lock className="w-2.5 h-2.5" /> ล็อค
+                  </span>
+                )}
+              </label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  disabled={!isOnlineReviewComplete}
+                  value={officialDocDate}
+                  onChange={(e) => setOfficialDocDate(e.target.value)}
+                  placeholder={isOnlineReviewComplete ? "เช่น 26 มกราคม 2569" : "ต้องตรวจ 100% ก่อน"}
+                  className={`w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none ${
+                    isOnlineReviewComplete 
+                      ? 'bg-white text-slate-900 border-blue-400 focus:ring-1 focus:ring-blue-500' 
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  }`}
+                />
+                {isOnlineReviewComplete && (
+                  <button
+                    type="button"
+                    onClick={handleSetToday}
+                    className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer"
+                    title="ใส่วันที่ปัจจุบัน"
+                  >
+                    วันนี้
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="sm:col-span-2">
+              <button
+                type="button"
+                onClick={handleSaveNumbering}
+                className="w-full px-3 py-1.5 bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>บันทึกเลขที่</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Feedback message */}
+          {saveSuccessMsg && (
+            <div className="p-2 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
+              <Check className="w-4 h-4 text-emerald-600" />
+              <span>{saveSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* Notice Banner */}
+          {!isDocReady ? (
+            <div className="p-2.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  {!isOnlineReviewComplete
+                    ? '🔒 ล็อคการดาวน์โหลด: ต้องตรวจบันทึกและแก้ไขออนไลน์จนกระทั่ง 100% จึงจะอนุญาตให้ลงเลขลำดับและวันที่ได้'
+                    : '⚠️ ล็อคการดาวน์โหลด: กรุณากรอกเลขลำดับ (xxx) และวันที่ในหนังสือให้เรียบร้อย จึงจะดาวน์โหลดมาลงชื่อได้'}
+                </span>
+              </div>
+              <span className="text-[10px] bg-amber-200/80 px-2 py-0.5 rounded font-semibold text-amber-950 shrink-0">
+                ยังไม่สามารถดาวน์โหลดได้
+              </span>
+            </div>
+          ) : (
+            <div className="p-2.5 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  ✅ ตรวจครบ 100% และลงเลขที่ <strong>อว 0603.10.{deptCode}/{docRunningNo}</strong> วันที่ <strong>{officialDocDate}</strong> เรียบร้อยแล้ว พร้อมดาวน์โหลดเพื่อลงนาม
+                </span>
+              </div>
+              <span className="text-[10px] bg-emerald-200 px-2 py-0.5 rounded font-semibold text-emerald-950 shrink-0">
+                ปลดล็อคการดาวน์โหลดแล้ว
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Guidance Tip Bar (No Print) */}
@@ -673,13 +995,13 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <div className="flex items-baseline pr-3 box-border" style={{ width: 'calc(50% - 8.92pt)' }}>
                           <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
                           <div className="flex-1 border-b border-dotted border-black pb-0 leading-[1.0] text-[16pt]">
-                            {application.internalDocNo || 'อว 0603.10.    / '}
+                            {previewDocNo}
                           </div>
                         </div>
                         <div className="flex items-baseline flex-1">
                           <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">วันที่</span>
                           <div className="flex-1 border-b border-dotted border-black pb-0 leading-[1.0] text-[16pt]">
-                            {formattedDate}
+                            {previewDate}
                           </div>
                         </div>
                       </div>
@@ -843,13 +1165,13 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <div className="flex items-baseline pr-3 box-border" style={{ width: 'calc(50% - 8.92pt)' }}>
                           <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
                           <div className="flex-1 border-b border-dotted border-black pb-0 leading-[1.0] text-[16pt]">
-                            {application.internalDocNo || 'อว 0603.10.    / '}
+                            {previewDocNo}
                           </div>
                         </div>
                         <div className="flex items-baseline flex-1">
                           <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">วันที่</span>
                           <div className="flex-1 border-b border-dotted border-black pb-0 leading-[1.0] text-[16pt]">
-                            {formattedDate}
+                            {previewDate}
                           </div>
                         </div>
                       </div>

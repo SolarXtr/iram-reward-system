@@ -29,6 +29,8 @@ import { GARUDA_BASE64 } from './garudaBase64';
 import { MED_NU_LOGO_BASE64 } from './medNuLogo';
 import { TEMPLATE_CHECKLIST_LOGO_BASE64 } from './templateChecklistLogo';
 import { getThSarabunFontData } from './thSarabunBase64';
+import { formatInternalDocNo, getDepartmentCode } from '../data/departmentCodes';
+
 
 // =========================================================================
 // STANDARD THAI GOVERNMENT SARABAN SPECIFICATIONS
@@ -880,7 +882,14 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
   const isReward = rewardAmt > 0 || app.requestType === 'reward_only' || app.requestType === 'both';
   const isPage = pageAmt > 0 || app.requestType === 'page_charge_only' || app.requestType === 'both';
   const subject = getMemoSubject(app, false);
-  const formattedDate = formatThaiDateOfficial(app.createdAt);
+  const effectiveDeptCode = app.deptCode || getDepartmentCode(app.department);
+  const isDocOfficiallyNumbered = Boolean(app.isOnlineReviewComplete && app.docRunningNo);
+  const docNoText = isDocOfficiallyNumbered 
+    ? formatInternalDocNo(effectiveDeptCode, app.docRunningNo) 
+    : (app.internalDocNo || formatInternalDocNo(effectiveDeptCode, ''));
+  const dateText = (app.isOnlineReviewComplete && app.officialDocDate) 
+    ? formatThaiDateOfficial(app.officialDocDate) 
+    : '';
 
   const authorRoleText = app.authorRole === 'first_author' 
     ? '(1)First author' 
@@ -1013,7 +1022,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
                       children: [
                         createThaiTextRun({ text: 'ที่  ', font: FONT_NAME, size: 40, bold: true }),
                         createThaiTextRun({ 
-                          text: `${app.internalDocNo || 'อว 0603.10.    / '}`, 
+                          text: docNoText, 
                           font: FONT_NAME, 
                           size: FONT_SIZE_META,
                           underline: { type: UnderlineType.DOTTED },
@@ -1040,7 +1049,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
                       children: [
                         createThaiTextRun({ text: 'วันที่  ', font: FONT_NAME, size: 40, bold: true }),
                         createThaiTextRun({ 
-                          text: formattedDate, 
+                          text: dateText, 
                           font: FONT_NAME, 
                           size: FONT_SIZE_META,
                           underline: { type: UnderlineType.DOTTED },
@@ -1295,7 +1304,14 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
   const isPage = pageAmt > 0 || app.requestType === 'page_charge_only' || app.requestType === 'both';
   const subject = getMemoSubject(app, true);
   const memoApprovalSubject = getMemoSubject(app, false);
-  const formattedDate = formatThaiDateOfficial(app.createdAt);
+  const effectiveDeptCode = app.deptCode || getDepartmentCode(app.department);
+  const isDocOfficiallyNumbered = Boolean(app.isOnlineReviewComplete && app.docRunningNo);
+  const docNoText = isDocOfficiallyNumbered 
+    ? formatInternalDocNo(effectiveDeptCode, app.docRunningNo) 
+    : (app.internalDocNo || formatInternalDocNo(effectiveDeptCode, ''));
+  const dateText = (app.isOnlineReviewComplete && app.officialDocDate) 
+    ? formatThaiDateOfficial(app.officialDocDate) 
+    : '';
 
   const doc = createThaiDocument([
     {
@@ -1419,7 +1435,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
                       children: [
                         createThaiTextRun({ text: 'ที่  ', font: FONT_NAME, size: 40, bold: true }),
                         createThaiTextRun({ 
-                          text: `${app.internalDocNo || 'อว 0603.10.    / '}`, 
+                          text: docNoText, 
                           font: FONT_NAME, 
                           size: FONT_SIZE_META,
                           underline: { type: UnderlineType.DOTTED },
@@ -1446,7 +1462,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
                       children: [
                         createThaiTextRun({ text: 'วันที่  ', font: FONT_NAME, size: 40, bold: true }),
                         createThaiTextRun({ 
-                          text: formattedDate, 
+                          text: dateText, 
                           font: FONT_NAME, 
                           size: FONT_SIZE_META,
                           underline: { type: UnderlineType.DOTTED },

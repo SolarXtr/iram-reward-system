@@ -122,6 +122,11 @@ export interface ResearchApplication {
   // Government & Financial References
   internalDocNo?: string; // เลขที่หนังสือ อว 0603.10.10/066
   memoDocNo?: string; // Alias for internalDocNo
+  deptCode?: string; // รหัสหน่วยงานสารบรรณ เช่น '10', '14', '02'
+  docRunningNo?: string; // เลขลำดับหนังสือออก เช่น '066'
+  officialDocDate?: string; // วันที่ลงนามในหนังสือราชการ เช่น '26 มกราคม 2569'
+  isOnlineReviewComplete?: boolean; // สถานะตรวจบันทึกและแก้ไขออนไลน์ครบ 100% หรือไม่
+  onlineReviewNotes?: string;
   researchDocRecNo?: string; // เลขรับงานวิจัย 0205 / เวลา 9.00 น.
   financeDocRecNo?: string; // เลขรับงานคลัง 2154/69
   disbursementVoucherNo?: string; // เลขที่ฎีกาเบิกเงิน 3606/69
