@@ -1080,18 +1080,18 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 5. คำขึ้นต้น: เรียน คณบดีคณะแพทยศาสตร์ (ระยะบรรทัด 0.85)
+        // 5. คำขึ้นต้น: เรียน คณบดีคณะแพทยศาสตร์ space before = 6/ after = 6 (120 dxa)
         new Paragraph({
-          spacing: { line: LINE_SPACING_BODY, before: 8, after: 6 },
+          spacing: { line: LINE_SPACING_BODY, before: 120, after: 120 },
           children: [
             createThaiTextRun({ text: 'เรียน   คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
           ],
         }),
 
-        // 6. ภาคเหตุ: เคาะ 10 (ระยะบรรทัด 0.85, alignment ชิดซ้ายไม่เกิด justify gap)
+        // 6. ภาคเหตุ: เคาะ 10 space before = 0/ after = 0
         new Paragraph({
           alignment: AlignmentType.LEFT,
-          spacing: { line: LINE_SPACING_BODY, before: 0, after: 6 },
+          spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
           children: [
             createThaiTextRun({
               text: `          ข้าพเจ้า ${app.applicantName} ตำแหน่ง ${app.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา${app.department || ''} คณะแพทยศาสตร์ มีความประสงค์${subject} ตามประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ ประกาศ ณ วันที่ 27 พฤษภาคม 2567 ซึ่งมีรายละเอียดดังนี้`,
@@ -1101,7 +1101,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 7. รายละเอียดบทความ (เคาะ 10, ระยะบรรทัด 0.85 ทั้งหมด)
+        // 7. รายละเอียดบทความ (เคาะ 10 space before = 0/ after = 0 ทั้งหมด)
         new Paragraph({
           spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
           children: [
@@ -1149,7 +1149,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
         }),
         new Paragraph({
-          spacing: { line: LINE_SPACING_BODY, before: 4, after: 4 },
+          spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
           children: [
             createThaiTextRun({
               text: isReward && isPage
@@ -1179,15 +1179,15 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 8. ภาคสรุป: เคาะ 10 (ระยะบรรทัด 0.85)
+        // 8. ภาคสรุป: เคาะ 10 space before = 6/ after = 6 (120 dxa)
         new Paragraph({
-          spacing: { line: LINE_SPACING_BODY, before: 4, after: 6 },
+          spacing: { line: LINE_SPACING_BODY, before: 120, after: 120 },
           children: [
             createThaiTextRun({ text: '          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
           ],
         }),
 
-        // 9. ลายมือชื่อผู้ขอรับรางวัล (ชิดกั้นหลัง จัดกึ่งกลางบล็อก, ระยะบรรทัด 0.85)
+        // 9. ลายมือชื่อผู้ขอรับรางวัล (ชิดกั้นหลัง จัดกึ่งกลางบล็อก space before = 6/ after = 6 (120 dxa))
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           borders: TABLE_BORDERS_NONE,
@@ -1207,7 +1207,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
                   children: [
                     new Paragraph({
                       alignment: AlignmentType.CENTER,
-                      spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
+                      spacing: { line: LINE_SPACING_BODY, before: 120, after: 120 },
                       children: [
                         createThaiTextRun({ text: 'ลงชื่อ.............................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
                         createThaiTextRun({ text: `(${app.applicantName})`, font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
@@ -1221,9 +1221,9 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 10. ส่วนลงนามของหัวหน้างานวิจัยและรองคณบดีฯ (บล็อกซ้าย จัดกึ่งกลางในบล็อก, 14.5 pt, ระยะบรรทัด 0.85)
+        // 10. ส่วนลงนามของหัวหน้างานวิจัยและรองคณบดีฯ (บล็อกซ้าย จัดกึ่งกลางในบล็อก, 14.5 pt)
         new Paragraph({
-          spacing: { line: LINE_SPACING_BODY, before: 6, after: 6 },
+          spacing: { line: LINE_SPACING_BODY, before: 120, after: 120 },
           children: [
             createThaiTextRun({ text: 'เรียน  คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_APPROVERS, bold: true }),
             createThaiTextRun({ text: '          ขอเบิกจ่ายจาก งบประมาณรายได้ปี ........................', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
@@ -1243,7 +1243,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
                   children: [
                     new Paragraph({
                       alignment: AlignmentType.CENTER,
-                      spacing: { line: LINE_SPACING_BODY, before: 4, after: 6 },
+                      spacing: { line: LINE_SPACING_BODY, before: 120, after: 0 },
                       children: [
                         createThaiTextRun({ text: 'ลงชื่อ....................................................', font: FONT_NAME, size: FONT_SIZE_APPROVERS }),
                         createThaiTextRun({ text: '(นางสาวปรารถนา เอนกปัญญากุล)', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
@@ -1253,7 +1253,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
                     }),
                     new Paragraph({
                       alignment: AlignmentType.CENTER,
-                      spacing: { line: LINE_SPACING_BODY, before: 6, after: 0 },
+                      spacing: { line: LINE_SPACING_BODY, before: 240, after: 0 },
                       children: [
                         createThaiTextRun({ text: 'ลงชื่อ....................................................', font: FONT_NAME, size: FONT_SIZE_APPROVERS }),
                         createThaiTextRun({ text: '(รองศาสตราจารย์ นายแพทย์อาทิตย์ เหล่าเรืองธนา)', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
@@ -1486,18 +1486,18 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 5. คำขึ้นต้น: เรียน คณบดีคณะแพทยศาสตร์
+        // 5. คำขึ้นต้น: เรียน คณบดีคณะแพทยศาสตร์ space before = 6/ after = 6 (120 dxa)
         new Paragraph({
-          spacing: { line: LINE_SPACING_BODY, before: 8, after: 4 },
+          spacing: { line: LINE_SPACING_BODY, before: 120, after: 120 },
           children: [
             createThaiTextRun({ text: 'เรียน   คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
           ],
         }),
 
-        // 6. ภาคเหตุ (อ้างถึง): เคาะ 10 (ระยะบรรทัด 0.85, alignment ชิดซ้ายไม่เกิด justify gap)
+        // 6. ภาคเหตุ (อ้างถึง): เคาะ 10 space before = 0/ after = 0
         new Paragraph({
           alignment: AlignmentType.LEFT,
-          spacing: { line: LINE_SPACING_BODY, before: 0, after: 4 },
+          spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
           children: [
             createThaiTextRun({
               text: `          ตามที่ ข้าพเจ้า ${app.applicantName} ตำแหน่ง ${app.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา${app.department || ''} คณะแพทยศาสตร์ ได้ยื่นเรื่อง ${memoApprovalSubject} บทความวิจัยเรื่อง “${app.articleTitle}” นั้น`,
@@ -1507,10 +1507,10 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 7. ภาคความประสงค์: เคาะ 10 (ระยะบรรทัด 0.85, alignment ชิดซ้ายไม่เกิด justify gap)
+        // 7. ภาคความประสงค์: เคาะ 10 space before = 0/ after = 0
         new Paragraph({
           alignment: AlignmentType.LEFT,
-          spacing: { line: LINE_SPACING_BODY, before: 4, after: 4 },
+          spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
           children: [
             createThaiTextRun({
               text: `          ในการนี้ ข้าพเจ้าจึงขออนุมัติเบิกเงิน${isPage ? `ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageAmt)} (${bahtText(pageAmt)}) ` : ''}${isReward && isPage ? 'และ' : ''}${isReward ? `รางวัลตีพิมพ์ตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmt)} (${bahtText(rewardAmt)})` : ''} รวมเป็นเงินทั้งสิ้น ${formatCurrencyBaht(totalAmt)} (${bahtText(totalAmt)}) รายละเอียดตามเอกสารแนบท้าย`,
@@ -1520,15 +1520,15 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 8. ภาคสรุป: เคาะ 10 (ระยะบรรทัด 0.85)
+        // 8. ภาคสรุป: เคาะ 10 space before = 6/ after = 6 (120 dxa)
         new Paragraph({
-          spacing: { line: LINE_SPACING_BODY, before: 4, after: 8 },
+          spacing: { line: LINE_SPACING_BODY, before: 120, after: 120 },
           children: [
             createThaiTextRun({ text: '          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
           ],
         }),
 
-        // 9. ลายมือชื่อผู้ขอรับรางวัล (ชิดกั้นหลัง จัดกึ่งกลางบล็อก, ระยะบรรทัด 0.85)
+        // 9. ลายมือชื่อผู้ขอรับรางวัล (ชิดกั้นหลัง จัดกึ่งกลางบล็อก space before = 6/ after = 6 (120 dxa))
         // (หมายเหตุ: ตัดข้อความส่วนของหัวหน้างานและรองคณบดีออกตามที่ผู้ใช้ร้องขอ)
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
@@ -1549,7 +1549,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
                   children: [
                     new Paragraph({
                       alignment: AlignmentType.CENTER,
-                      spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
+                      spacing: { line: LINE_SPACING_BODY, before: 120, after: 120 },
                       children: [
                         createThaiTextRun({ text: 'ลงชื่อ.............................................................', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
                         createThaiTextRun({ text: `(${app.applicantName})`, font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),

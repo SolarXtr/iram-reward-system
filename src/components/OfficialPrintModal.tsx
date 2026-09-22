@@ -651,10 +651,10 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       <div className="col-span-2"></div>
                     </div>
 
-                    {/* Header Meta Fields with Dotted Underlines (ระยะบรรทัด 0.9) */}
-                    <div className="space-y-0.5 mb-1.5" style={{ lineHeight: 0.9 }}>
+                    {/* Header Meta Fields with Dotted Underlines (space before = 0/ after = 0, ระยะบรรทัด 0.9) */}
+                    <div className="space-y-0 my-0" style={{ lineHeight: 0.9 }}>
                       {/* ส่วนราชการ */}
-                      <div className="flex items-baseline w-full">
+                      <div className="flex items-baseline w-full my-0 py-0">
                         <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ส่วนราชการ</span>
                         <div className="flex-1 border-b border-dotted border-black pb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[16pt]">
                           คณะแพทยศาสตร์ ภาควิชา{application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
@@ -662,7 +662,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       </div>
 
                       {/* ที่ และ วันที่ */}
-                      <div className="flex items-baseline w-full gap-4 mt-0.5">
+                      <div className="flex items-baseline w-full gap-4 my-0 py-0">
                         <div className="flex items-baseline flex-1">
                           <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
                           <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
@@ -678,7 +678,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       </div>
 
                       {/* เรื่อง */}
-                      <div className="flex items-baseline w-full mt-0.5">
+                      <div className="flex items-baseline w-full my-0 py-0">
                         <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">เรื่อง</span>
                         <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
                           {subject}
@@ -686,18 +686,18 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Salutation */}
-                    <div className="mb-1 font-normal" style={{ lineHeight: 0.85 }}>
+                    {/* Salutation (space before = 6 / after = 6) */}
+                    <div className="font-normal" style={{ marginTop: '6pt', marginBottom: '6pt', lineHeight: 0.85 }}>
                       เรียน&nbsp;&nbsp;&nbsp;คณบดีคณะแพทยศาสตร์
                     </div>
 
-                    {/* Body Paragraph 1 (เคาะ 10, ระยะบรรทัด 0.85) */}
-                    <p className="text-left break-words mb-1.5" style={{ lineHeight: 0.85 }}>
+                    {/* Body Paragraph 1 (เคาะ 10, space before = 0/ after = 0, ระยะบรรทัด 0.85) */}
+                    <p className="text-left break-words my-0 py-0" style={{ marginTop: 0, marginBottom: 0, lineHeight: 0.85 }}>
                       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ข้าพเจ้า {application.applicantName} ตำแหน่ง {application.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา{application.department || ''} คณะแพทยศาสตร์ มีความประสงค์{subject} ตามประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ ประกาศ ณ วันที่ 27 พฤษภาคม 2567 ซึ่งมีรายละเอียดดังนี้
                     </p>
 
-                    {/* Article Details (เคาะ 10, ระยะบรรทัด 0.85) */}
-                    <div className="space-y-0.5 mb-1" style={{ lineHeight: 0.85 }}>
+                    {/* Article Details (เคาะ 10, space before = 0/ after = 0, ระยะบรรทัด 0.85) */}
+                    <div className="space-y-0 my-0 py-0" style={{ marginTop: 0, marginBottom: 0, lineHeight: 0.85 }}>
                       <div>
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">ชื่อบทความที่ได้รับการตีพิมพ์ : </span>
                         <span className="italic">{application.articleTitle}</span>
@@ -728,8 +728,8 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Financial amounts (ระยะบรรทัด 0.85) */}
-                    <div className="mb-1.5" style={{ lineHeight: 0.85 }}>
+                    {/* Financial amounts (space before = 0/ after = 0, ระยะบรรทัด 0.85) */}
+                    <div className="my-0 py-0" style={{ marginTop: 0, marginBottom: 0, lineHeight: 0.85 }}>
                       <div>
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;โดยขออนุมัติ {isReward && isPage ? `เงินรางวัลตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmount)} (${bahtText(rewardAmount)})` : isReward ? `เงินรางวัลตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmount)} (${bahtText(rewardAmount)})` : `ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageChargeAmount)} (${bahtText(pageChargeAmount)})`}
                       </div>
@@ -743,13 +743,13 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Closing (เคาะ 10, ระยะบรรทัด 0.85) */}
-                    <div className="mb-1.5" style={{ lineHeight: 0.85 }}>
+                    {/* Closing (เคาะ 10, space before = 6/ after = 6, ระยะบรรทัด 0.85) */}
+                    <div style={{ marginTop: '6pt', marginBottom: '6pt', lineHeight: 0.85 }}>
                       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
                     </div>
 
-                    {/* Applicant Signature Block (จัดชิดกั้นหลัง กึ่งกลางบล็อก, ระยะบรรทัด 0.85) */}
-                    <div className="grid grid-cols-2 mb-2 avoid-break" style={{ lineHeight: 0.85 }}>
+                    {/* Applicant Signature Block (จัดชิดกั้นหลัง กึ่งกลางบล็อก, space before = 6/ after = 6, ระยะบรรทัด 0.85) */}
+                    <div className="grid grid-cols-2 avoid-break" style={{ marginTop: '6pt', marginBottom: '6pt', lineHeight: 0.85 }}>
                       <div></div>
                       <div className="text-center">
                         <div>ลงชื่อ.............................................................</div>
@@ -759,22 +759,22 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     </div>
 
                     {/* Approvers Section (ด้านล่างซ้าย จัดกึ่งกลางในบล็อก, 14.5 pt, ระยะบรรทัด 0.85) */}
-                    <div className="avoid-break grid grid-cols-12 text-[14.5pt] mt-2" style={{ lineHeight: 0.85 }}>
-                      <div className="col-span-8 space-y-2">
-                        <div>
+                    <div className="avoid-break grid grid-cols-12 text-[14.5pt]" style={{ lineHeight: 0.85 }}>
+                      <div className="col-span-8">
+                        <div style={{ marginTop: '6pt', marginBottom: '6pt' }}>
                           <div className="font-bold">เรียน  คณบดีคณะแพทยศาสตร์</div>
                           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ขอเบิกจ่ายจาก งบประมาณรายได้ปี ........................</div>
                           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ</div>
                         </div>
 
-                        <div className="text-center">
+                        <div className="text-center" style={{ marginTop: '6pt' }}>
                           <div>ลงชื่อ....................................................</div>
                           <div>(นางสาวปรารถนา เอนกปัญญากุล)</div>
                           <div>รักษาการในตำแหน่งหัวหน้างานวิจัย</div>
                           <div>วันที่......../........./...........</div>
                         </div>
 
-                        <div className="text-center">
+                        <div className="text-center" style={{ marginTop: '12pt' }}>
                           <div>ลงชื่อ....................................................</div>
                           <div>(รองศาสตราจารย์ นายแพทย์อาทิตย์ เหล่าเรืองธนา)</div>
                           <div>รองคณบดีฝ่ายวิจัยและถ่ายทอดเทคโนโลยี</div>
@@ -821,10 +821,10 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       <div className="col-span-2"></div>
                     </div>
 
-                    {/* Header Meta Fields with Dotted Underlines (ระยะบรรทัด 0.9) */}
-                    <div className="space-y-0.5 mb-1.5" style={{ lineHeight: 0.9 }}>
+                    {/* Header Meta Fields with Dotted Underlines (space before = 0/ after = 0, ระยะบรรทัด 0.9) */}
+                    <div className="space-y-0 my-0" style={{ lineHeight: 0.9 }}>
                       {/* ส่วนราชการ */}
-                      <div className="flex items-baseline w-full">
+                      <div className="flex items-baseline w-full my-0 py-0">
                         <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ส่วนราชการ</span>
                         <div className="flex-1 border-b border-dotted border-black pb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[16pt]">
                           คณะแพทยศาสตร์ ภาควิชา{application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
@@ -832,7 +832,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       </div>
 
                       {/* ที่ และ วันที่ */}
-                      <div className="flex items-baseline w-full gap-4 mt-0.5">
+                      <div className="flex items-baseline w-full gap-4 my-0 py-0">
                         <div className="flex items-baseline flex-1">
                           <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
                           <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
@@ -848,7 +848,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       </div>
 
                       {/* เรื่อง */}
-                      <div className="flex items-baseline w-full mt-0.5">
+                      <div className="flex items-baseline w-full my-0 py-0">
                         <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">เรื่อง</span>
                         <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
                           {subject}
@@ -856,29 +856,29 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Salutation */}
-                    <div className="mb-1 font-normal" style={{ lineHeight: 0.85 }}>
+                    {/* Salutation (space before = 6 / after = 6) */}
+                    <div className="font-normal" style={{ marginTop: '6pt', marginBottom: '6pt', lineHeight: 0.85 }}>
                       เรียน&nbsp;&nbsp;&nbsp;คณบดีคณะแพทยศาสตร์
                     </div>
 
-                    {/* Reference text (เคาะ 10, ระยะบรรทัด 0.85) */}
-                    <p className="text-left break-words mb-1.5" style={{ lineHeight: 0.85 }}>
+                    {/* Reference text (เคาะ 10, space before = 0/ after = 0, ระยะบรรทัด 0.85) */}
+                    <p className="text-left break-words my-0 py-0" style={{ marginTop: 0, marginBottom: 0, lineHeight: 0.85 }}>
                       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ตามที่ ข้าพเจ้า {application.applicantName} ตำแหน่ง {application.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา{application.department || ''} คณะแพทยศาสตร์ ได้ยื่นเรื่อง {memoApprovalSubject} บทความวิจัยเรื่อง “{application.articleTitle}” นั้น
                     </p>
 
-                    {/* Request details (เคาะ 10, ระยะบรรทัด 0.85) */}
-                    <p className="text-left break-words mb-1.5" style={{ lineHeight: 0.85 }}>
+                    {/* Request details (เคาะ 10, space before = 0/ after = 0, ระยะบรรทัด 0.85) */}
+                    <p className="text-left break-words my-0 py-0" style={{ marginTop: 0, marginBottom: 0, lineHeight: 0.85 }}>
                       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ในการนี้ ข้าพเจ้าจึงขออนุมัติเบิกเงิน{isPage ? `ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageChargeAmount)} (${bahtText(pageChargeAmount)}) ` : ''}{isReward && isPage ? 'และ' : ''}{isReward ? `รางวัลตีพิมพ์ตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmount)} (${bahtText(rewardAmount)})` : ''} รวมเป็นเงินทั้งสิ้น {formatCurrencyBaht(totalAmount)} ({bahtText(totalAmount)}) รายละเอียดตามเอกสารแนบท้าย
                     </p>
 
-                    {/* Closing (เคาะ 10, ระยะบรรทัด 0.85) */}
-                    <div className="mb-1.5" style={{ lineHeight: 0.85 }}>
+                    {/* Closing (เคาะ 10, space before = 6/ after = 6, ระยะบรรทัด 0.85) */}
+                    <div style={{ marginTop: '6pt', marginBottom: '6pt', lineHeight: 0.85 }}>
                       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
                     </div>
 
-                    {/* Applicant Signature Block (จัดชิดกั้นหลัง กึ่งกลางบล็อก, ระยะบรรทัด 0.85) */}
+                    {/* Applicant Signature Block (จัดชิดกั้นหลัง กึ่งกลางบล็อก, space before = 6/ after = 6, ระยะบรรทัด 0.85) */}
                     {/* หมายเหตุ: ตัดข้อความส่วนของหัวหน้างานวิจัยและรองคณบดีออก 100% ตามที่ผู้ใช้ร้องขอ */}
-                    <div className="grid grid-cols-2 mb-2 avoid-break" style={{ lineHeight: 0.85 }}>
+                    <div className="grid grid-cols-2 avoid-break" style={{ marginTop: '6pt', marginBottom: '6pt', lineHeight: 0.85 }}>
                       <div></div>
                       <div className="text-center">
                         <div>ลงชื่อ.............................................................</div>
