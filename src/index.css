@@ -96,9 +96,9 @@
 /* OFFICIAL THAI GOVERNMENT DOCUMENT PRINT STYLING (@media print)            */
 /* ========================================================================= */
 @page {
-  /* มาตรฐานหนังสือราชการไทย: ขนาดกระดาษ A4 แนวตั้ง ขอบซ้าย 3cm ขวา 2cm บน 2.5cm ล่าง 2cm */
+  /* มาตรฐานหนังสือราชการไทย: ขนาดกระดาษ A4 แนวตั้ง กั้นหน้า(ซ้าย) 3cm กั้นหลัง(ขวา) 2cm ขอบบน 2cm ขอบล่าง 2cm */
   size: A4 portrait;
-  margin: 15mm 15mm 15mm 20mm;
+  margin: 20mm 20mm 20mm 30mm;
 }
 
 @media print {

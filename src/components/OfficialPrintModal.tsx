@@ -150,7 +150,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
             }
             @page {
               size: A4 portrait;
-              margin: 10mm 15mm 10mm 20mm;
+              margin: 20mm 20mm 20mm 30mm;
             }
             html, body {
               background: white !important;
@@ -375,15 +375,15 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
-              💡 <strong>คำแนะนำการพิมพ์:</strong> ตั้งค่า Margin เป็น <strong>Default</strong> และติ๊กเลือก <strong>Background graphics</strong> เพื่อให้ตารางและตราครุฑคมชัดสวยงามตรงตามระเบียบงานสารบรรณ
+              💡 <strong>คำแนะนำการพิมพ์:</strong> ตั้งค่า Margin เป็น <strong>Default</strong> และติ๊กเลือก <strong>Background graphics</strong> เพื่อให้กั้นหน้า 3 ซม. กั้นหลัง 2 ซม. คมชัดตรงตามระเบียบงานสารบรรณ
             </span>
           </div>
-          <span className="font-mono text-slate-500 text-[10px]">A4 Portrait • TH Sarabun PSK 16pt</span>
+          <span className="font-mono text-slate-500 text-[10px]">A4 Portrait • กั้นหน้า 3cm กั้นหลัง 2cm • TH Sarabun PSK 16pt</span>
         </div>
 
         {/* Printable Paper Area */}
         <div className="overflow-y-auto p-4 sm:p-8 bg-slate-50 print:p-0 print:m-0 print:bg-white print:overflow-visible flex-1" id="printable-document">
-          <div className="bg-white shadow-md print:shadow-none p-8 sm:p-12 max-w-[210mm] mx-auto min-h-[297mm] print:min-h-0 print:h-auto print:max-w-none print:w-full text-black font-sarabun text-[15pt] leading-normal border border-slate-200 print:border-none print:p-0">
+          <div className="bg-white shadow-md print:shadow-none pt-[20mm] pr-[20mm] pb-[20mm] pl-[30mm] max-w-[210mm] mx-auto min-h-[297mm] print:min-h-0 print:h-auto print:max-w-none print:w-full text-black font-sarabun text-[15pt] leading-normal border border-slate-200 print:border-none print:p-0">
             
             {/* ========================================================= */}
             {/* 1. CHECKLIST (แบบตรวจสอบรายการ AWP)                       */}
