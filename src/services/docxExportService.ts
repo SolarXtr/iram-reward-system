@@ -111,7 +111,8 @@ function createThaiDocument(sections: any[]) {
 }
 
 // ขนาดตัวอักษร (ใน docx หน่วยเป็น half-points: 1 pt = 2 half-points)
-const FONT_SIZE_CONTENT = 32;       // 16 pt (เนื้อหาปกติ)
+const FONT_SIZE_META = 32;          // 16 pt (ข้อความในส่วนราชการ, ที่, วันที่, เรื่อง)
+const FONT_SIZE_CONTENT = 30;       // 15 pt (เนื้อหาบันทึกข้อความ ตรงตาม PDF text-[15pt] ตัดคำเต็มบรรทัดพอดี)
 const FONT_SIZE_APPROVERS = 29;     // 14.5 pt (ส่วนลงนามหัวหน้างานวิจัยและรองคณบดีฯ)
 const FONT_SIZE_MEMO_HEADER = 58;   // 29 pt (คำว่า "บันทึกข้อความ")
 const FONT_SIZE_FIELD_LABEL = 40;   // 20 pt (คำว่า "ส่วนราชการ", "ที่", "วันที่", "เรื่อง")
@@ -974,14 +975,14 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
         new Paragraph({
           spacing: { line: LINE_SPACING_HEADER, before: 0, after: 0 },
           tabStops: [
-            { type: TabStopType.RIGHT, position: 9071, leader: LeaderType.DOT },
+            { type: TabStopType.RIGHT, position: 9071 },
           ],
           children: [
             createThaiTextRun({ text: 'ส่วนราชการ  ', font: FONT_NAME, size: 40, bold: true }),
             createThaiTextRun({ 
               text: `คณะแพทยศาสตร์  ภาควิชา${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, 
               font: FONT_NAME, 
-              size: FONT_SIZE_CONTENT,
+              size: FONT_SIZE_META,
               underline: { type: UnderlineType.DOTTED },
             }),
             new TextRun({
@@ -992,7 +993,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 3. ที่ และ วันที่: แยก 2 คอลัมน์ (50% / 50%) พร้อมขีดเส้นใต้เส้นประถึงกั้นหลัง ระยะบรรทัด 0.9 (line: LINE_SPACING_HEADER)
+        // 3. ที่ และ วันที่: แยก 2 คอลัมน์ (48% / 52% ให้ 'วันที่' ตรงกับคำว่า 'ข้อ' ของ 'บันทึกข้อความ') พร้อมขีดเส้นใต้เส้นประถึงกั้นหลัง ระยะบรรทัด 0.9
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           borders: TABLE_BORDERS_NONE,
@@ -1000,21 +1001,21 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
             new TableRow({
               children: [
                 new TableCell({
-                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  width: { size: 48, type: WidthType.PERCENTAGE },
                   borders: CELL_BORDERS_NONE,
                   margins: CELL_NO_PADDING,
                   children: [
                     new Paragraph({
                       spacing: { line: LINE_SPACING_HEADER, before: 0, after: 0 },
                       tabStops: [
-                        { type: TabStopType.RIGHT, position: 4500, leader: LeaderType.DOT },
+                        { type: TabStopType.RIGHT, position: 4354 },
                       ],
                       children: [
                         createThaiTextRun({ text: 'ที่  ', font: FONT_NAME, size: 40, bold: true }),
                         createThaiTextRun({ 
                           text: `${app.internalDocNo || 'อว 0603.10.    / '}`, 
                           font: FONT_NAME, 
-                          size: FONT_SIZE_CONTENT,
+                          size: FONT_SIZE_META,
                           underline: { type: UnderlineType.DOTTED },
                         }),
                         new TextRun({
@@ -1027,21 +1028,21 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
                   ],
                 }),
                 new TableCell({
-                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  width: { size: 52, type: WidthType.PERCENTAGE },
                   borders: CELL_BORDERS_NONE,
                   margins: CELL_NO_PADDING,
                   children: [
                     new Paragraph({
                       spacing: { line: LINE_SPACING_HEADER, before: 0, after: 0 },
                       tabStops: [
-                        { type: TabStopType.RIGHT, position: 4500, leader: LeaderType.DOT },
+                        { type: TabStopType.RIGHT, position: 4717 },
                       ],
                       children: [
                         createThaiTextRun({ text: 'วันที่  ', font: FONT_NAME, size: 40, bold: true }),
                         createThaiTextRun({ 
                           text: formattedDate, 
                           font: FONT_NAME, 
-                          size: FONT_SIZE_CONTENT,
+                          size: FONT_SIZE_META,
                           underline: { type: UnderlineType.DOTTED },
                         }),
                         new TextRun({
@@ -1062,14 +1063,14 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
         new Paragraph({
           spacing: { line: LINE_SPACING_HEADER, before: 0, after: 0 },
           tabStops: [
-            { type: TabStopType.RIGHT, position: 9071, leader: LeaderType.DOT },
+            { type: TabStopType.RIGHT, position: 9071 },
           ],
           children: [
             createThaiTextRun({ text: 'เรื่อง  ', font: FONT_NAME, size: 40, bold: true }),
             createThaiTextRun({ 
               text: subject, 
               font: FONT_NAME, 
-              size: FONT_SIZE_CONTENT,
+              size: FONT_SIZE_META,
               underline: { type: UnderlineType.DOTTED },
             }),
             new TextRun({
@@ -1088,9 +1089,9 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 6. ภาคเหตุ: เคาะ 10 space before = 0/ after = 0
+        // 6. ภาคเหตุ: เคาะ 10 จัดกระจายแบบไทย (THAI_DISTRIBUTE) space before = 0/ after = 0
         new Paragraph({
-          alignment: AlignmentType.LEFT,
+          alignment: AlignmentType.THAI_DISTRIBUTE,
           spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
           children: [
             createThaiTextRun({
@@ -1380,14 +1381,14 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
         new Paragraph({
           spacing: { line: LINE_SPACING_HEADER, before: 0, after: 0 },
           tabStops: [
-            { type: TabStopType.RIGHT, position: 9071, leader: LeaderType.DOT },
+            { type: TabStopType.RIGHT, position: 9071 },
           ],
           children: [
             createThaiTextRun({ text: 'ส่วนราชการ  ', font: FONT_NAME, size: 40, bold: true }),
             createThaiTextRun({ 
               text: `คณะแพทยศาสตร์  ภาควิชา${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, 
               font: FONT_NAME, 
-              size: FONT_SIZE_CONTENT,
+              size: FONT_SIZE_META,
               underline: { type: UnderlineType.DOTTED },
             }),
             new TextRun({
@@ -1398,7 +1399,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 3. ที่ และ วันที่: แยก 2 คอลัมน์ (50% / 50%) พร้อมขีดเส้นใต้เส้นประถึงกั้นหลัง ระยะบรรทัด 0.9 (line: LINE_SPACING_HEADER)
+        // 3. ที่ และ วันที่: แยก 2 คอลัมน์ (48% / 52% ให้ 'วันที่' ตรงกับคำว่า 'ข้อ' ของ 'บันทึกข้อความ') พร้อมขีดเส้นใต้เส้นประถึงกั้นหลัง ระยะบรรทัด 0.9
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           borders: TABLE_BORDERS_NONE,
@@ -1406,21 +1407,21 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
             new TableRow({
               children: [
                 new TableCell({
-                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  width: { size: 48, type: WidthType.PERCENTAGE },
                   borders: CELL_BORDERS_NONE,
                   margins: CELL_NO_PADDING,
                   children: [
                     new Paragraph({
                       spacing: { line: LINE_SPACING_HEADER, before: 0, after: 0 },
                       tabStops: [
-                        { type: TabStopType.RIGHT, position: 4500, leader: LeaderType.DOT },
+                        { type: TabStopType.RIGHT, position: 4354 },
                       ],
                       children: [
                         createThaiTextRun({ text: 'ที่  ', font: FONT_NAME, size: 40, bold: true }),
                         createThaiTextRun({ 
                           text: `${app.internalDocNo || 'อว 0603.10.    / '}`, 
                           font: FONT_NAME, 
-                          size: FONT_SIZE_CONTENT,
+                          size: FONT_SIZE_META,
                           underline: { type: UnderlineType.DOTTED },
                         }),
                         new TextRun({
@@ -1433,21 +1434,21 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
                   ],
                 }),
                 new TableCell({
-                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  width: { size: 52, type: WidthType.PERCENTAGE },
                   borders: CELL_BORDERS_NONE,
                   margins: CELL_NO_PADDING,
                   children: [
                     new Paragraph({
                       spacing: { line: LINE_SPACING_HEADER, before: 0, after: 0 },
                       tabStops: [
-                        { type: TabStopType.RIGHT, position: 4500, leader: LeaderType.DOT },
+                        { type: TabStopType.RIGHT, position: 4717 },
                       ],
                       children: [
                         createThaiTextRun({ text: 'วันที่  ', font: FONT_NAME, size: 40, bold: true }),
                         createThaiTextRun({ 
                           text: formattedDate, 
                           font: FONT_NAME, 
-                          size: FONT_SIZE_CONTENT,
+                          size: FONT_SIZE_META,
                           underline: { type: UnderlineType.DOTTED },
                         }),
                         new TextRun({
@@ -1468,14 +1469,14 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
         new Paragraph({
           spacing: { line: LINE_SPACING_HEADER, before: 0, after: 0 },
           tabStops: [
-            { type: TabStopType.RIGHT, position: 9071, leader: LeaderType.DOT },
+            { type: TabStopType.RIGHT, position: 9071 },
           ],
           children: [
             createThaiTextRun({ text: 'เรื่อง  ', font: FONT_NAME, size: 40, bold: true }),
             createThaiTextRun({ 
               text: subject, 
               font: FONT_NAME, 
-              size: FONT_SIZE_CONTENT,
+              size: FONT_SIZE_META,
               underline: { type: UnderlineType.DOTTED },
             }),
             new TextRun({
@@ -1494,9 +1495,9 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 6. ภาคเหตุ (อ้างถึง): เคาะ 10 space before = 0/ after = 0
+        // 6. ภาคเหตุ (อ้างถึง): เคาะ 10 จัดกระจายแบบไทย (THAI_DISTRIBUTE) space before = 0/ after = 0
         new Paragraph({
-          alignment: AlignmentType.LEFT,
+          alignment: AlignmentType.THAI_DISTRIBUTE,
           spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
           children: [
             createThaiTextRun({
@@ -1507,9 +1508,9 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           ],
         }),
 
-        // 7. ภาคความประสงค์: เคาะ 10 space before = 0/ after = 0
+        // 7. ภาคความประสงค์: เคาะ 10 จัดกระจายแบบไทย (THAI_DISTRIBUTE) space before = 0/ after = 0
         new Paragraph({
-          alignment: AlignmentType.LEFT,
+          alignment: AlignmentType.THAI_DISTRIBUTE,
           spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
           children: [
             createThaiTextRun({
