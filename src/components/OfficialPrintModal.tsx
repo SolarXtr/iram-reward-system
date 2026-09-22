@@ -634,157 +634,159 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               const articleTypeText = application.articleType === 'research_article' ? '1)Research Article' : '2)บทความวิชาการอื่นๆ';
 
               return (
-                <div className="text-[15pt] leading-[1.2] text-black tracking-normal">
-                  {/* Header: Garuda 1.5 cm left, บันทึกข้อความ 28pt bold center across page */}
-                  <div className="grid grid-cols-12 items-end mb-1.5">
-                    <div className="col-span-2 flex items-start">
-                      <img 
-                        src={GARUDA_URL} 
-                        alt="Garuda" 
-                        className="w-[54px] h-[54px] object-contain"
-                      />
-                    </div>
-                    <div className="col-span-8 text-center font-bold text-[28pt] leading-none">
-                      บันทึกข้อความ
-                    </div>
-                    <div className="col-span-2"></div>
-                  </div>
-
-                  {/* Header Meta Fields with Dotted Underlines */}
-                  <div className="space-y-0.5 mb-1.5">
-                    {/* ส่วนราชการ */}
-                    <div className="flex items-baseline w-full">
-                      <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ส่วนราชการ</span>
-                      <div className="flex-1 border-b border-dotted border-black pb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[16pt]">
-                        คณะแพทยศาสตร์ ภาควิชา{application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
+                <div className="text-[15pt] text-black tracking-normal flex flex-col justify-between min-h-[250mm] print:min-h-0">
+                  <div>
+                    {/* Header: Garuda 1.5 cm left, บันทึกข้อความ 28pt bold center across page */}
+                    <div className="grid grid-cols-12 items-end mb-1.5">
+                      <div className="col-span-2 flex items-start">
+                        <img 
+                          src={GARUDA_URL} 
+                          alt="Garuda" 
+                          className="w-[54px] h-[54px] object-contain"
+                        />
                       </div>
+                      <div className="col-span-8 text-center font-bold text-[28pt] leading-none">
+                        บันทึกข้อความ
+                      </div>
+                      <div className="col-span-2"></div>
                     </div>
 
-                    {/* ที่ และ วันที่ */}
-                    <div className="flex items-baseline w-full gap-4">
-                      <div className="flex items-baseline flex-1">
-                        <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
-                        <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
-                          {application.internalDocNo || 'อว 0603.10.    / '}
+                    {/* Header Meta Fields with Dotted Underlines (ระยะบรรทัด 0.9) */}
+                    <div className="space-y-0.5 mb-1.5" style={{ lineHeight: 0.9 }}>
+                      {/* ส่วนราชการ */}
+                      <div className="flex items-baseline w-full">
+                        <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ส่วนราชการ</span>
+                        <div className="flex-1 border-b border-dotted border-black pb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[16pt]">
+                          คณะแพทยศาสตร์ ภาควิชา{application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
                         </div>
                       </div>
-                      <div className="flex items-baseline flex-1">
-                        <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">วันที่</span>
+
+                      {/* ที่ และ วันที่ */}
+                      <div className="flex items-baseline w-full gap-4 mt-0.5">
+                        <div className="flex items-baseline flex-1">
+                          <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
+                          <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
+                            {application.internalDocNo || 'อว 0603.10.    / '}
+                          </div>
+                        </div>
+                        <div className="flex items-baseline flex-1">
+                          <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">วันที่</span>
+                          <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
+                            {formattedDate}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* เรื่อง */}
+                      <div className="flex items-baseline w-full mt-0.5">
+                        <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">เรื่อง</span>
                         <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
-                          {formattedDate}
+                          {subject}
                         </div>
                       </div>
                     </div>
 
-                    {/* เรื่อง */}
-                    <div className="flex items-baseline w-full">
-                      <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">เรื่อง</span>
-                      <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
-                        {subject}
-                      </div>
+                    {/* Salutation */}
+                    <div className="mb-1 font-normal" style={{ lineHeight: 0.85 }}>
+                      เรียน&nbsp;&nbsp;&nbsp;คณบดีคณะแพทยศาสตร์
                     </div>
-                  </div>
 
-                  {/* Salutation */}
-                  <div className="mb-1 font-normal">
-                    เรียน&nbsp;&nbsp;&nbsp;คณบดีคณะแพทยศาสตร์
-                  </div>
+                    {/* Body Paragraph 1 (เคาะ 10, ระยะบรรทัด 0.85) */}
+                    <p className="text-left break-words mb-1.5" style={{ lineHeight: 0.85 }}>
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ข้าพเจ้า {application.applicantName} ตำแหน่ง {application.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา{application.department || ''} คณะแพทยศาสตร์ มีความประสงค์{subject} ตามประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ ประกาศ ณ วันที่ 27 พฤษภาคม 2567 ซึ่งมีรายละเอียดดังนี้
+                    </p>
 
-                  {/* Body Paragraph 1 (เคาะ 10) - text-left with break-words to avoid justify gaps */}
-                  <p className="text-left break-words mb-1.5">
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ข้าพเจ้า {application.applicantName} ตำแหน่ง {application.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา{application.department || ''} คณะแพทยศาสตร์ มีความประสงค์{subject} ตามประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ ประกาศ ณ วันที่ 27 พฤษภาคม 2567 ซึ่งมีรายละเอียดดังนี้
-                  </p>
-
-                  {/* Article Details (เคาะ 10) */}
-                  <div className="space-y-0.5 mb-1">
-                    <div>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">ชื่อบทความที่ได้รับการตีพิมพ์ : </span>
-                      <span className="italic">{application.articleTitle}</span>
-                    </div>
-                    <div>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">ชื่อวารสาร : </span>
-                      <span>{application.journalName} จากฐานข้อมูล {application.database || 'Scopus'} จัดอยู่ใน Quartile {application.quartile || '-'}</span>
-                    </div>
-                    <div>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">วัน/เดือน/ปีที่พิมพ์ : </span>
-                      <span>{application.volumeIssue || 'Vol...... No...... Month.......... Year..........'}</span>
-                    </div>
-                    {application.doi && (
+                    {/* Article Details (เคาะ 10, ระยะบรรทัด 0.85) */}
+                    <div className="space-y-0.5 mb-1" style={{ lineHeight: 0.85 }}>
                       <div>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">DOI : </span>
-                        <span>{application.doi}</span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">ชื่อบทความที่ได้รับการตีพิมพ์ : </span>
+                        <span className="italic">{application.articleTitle}</span>
                       </div>
-                    )}
-                    <div>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">การมีส่วนในผลงาน : </span>
-                      <span>{authorRoleText}</span>
-                    </div>
-                    <div>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">วารสารวิชาการ : </span>
-                      <span>{scopeText}&nbsp;&nbsp;&nbsp;</span>
-                      <span className="font-bold">บทความประเภท : </span>
-                      <span>{articleTypeText}</span>
-                    </div>
-                  </div>
-
-                  {/* Financial amounts */}
-                  <div className="mb-1.5">
-                    <div>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;โดยขออนุมัติ {isReward && isPage ? `เงินรางวัลตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmount)} (${bahtText(rewardAmount)})` : isReward ? `เงินรางวัลตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmount)} (${bahtText(rewardAmount)})` : `ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageChargeAmount)} (${bahtText(pageChargeAmount)})`}
-                    </div>
-                    {isReward && isPage && (
                       <div>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน {formatCurrencyBaht(pageChargeAmount)} ({bahtText(pageChargeAmount)})
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">ชื่อวารสาร : </span>
+                        <span>{application.journalName} จากฐานข้อมูล {application.database || 'Scopus'} จัดอยู่ใน Quartile {application.quartile || '-'}</span>
                       </div>
-                    )}
-                    <div className="font-bold">
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;รวมเป็นเงินทั้งสิ้น {formatCurrencyBaht(totalAmount)} ({bahtText(totalAmount)})
+                      <div>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">วัน/เดือน/ปีที่พิมพ์ : </span>
+                        <span>{application.volumeIssue || 'Vol...... No...... Month.......... Year..........'}</span>
+                      </div>
+                      {application.doi && (
+                        <div>
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">DOI : </span>
+                          <span>{application.doi}</span>
+                        </div>
+                      )}
+                      <div>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">การมีส่วนในผลงาน : </span>
+                        <span>{authorRoleText}</span>
+                      </div>
+                      <div>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">วารสารวิชาการ : </span>
+                        <span>{scopeText}&nbsp;&nbsp;&nbsp;</span>
+                        <span className="font-bold">บทความประเภท : </span>
+                        <span>{articleTypeText}</span>
+                      </div>
+                    </div>
+
+                    {/* Financial amounts (ระยะบรรทัด 0.85) */}
+                    <div className="mb-1.5" style={{ lineHeight: 0.85 }}>
+                      <div>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;โดยขออนุมัติ {isReward && isPage ? `เงินรางวัลตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmount)} (${bahtText(rewardAmount)})` : isReward ? `เงินรางวัลตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmount)} (${bahtText(rewardAmount)})` : `ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageChargeAmount)} (${bahtText(pageChargeAmount)})`}
+                      </div>
+                      {isReward && isPage && (
+                        <div>
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน {formatCurrencyBaht(pageChargeAmount)} ({bahtText(pageChargeAmount)})
+                        </div>
+                      )}
+                      <div className="font-bold">
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;รวมเป็นเงินทั้งสิ้น {formatCurrencyBaht(totalAmount)} ({bahtText(totalAmount)})
+                      </div>
+                    </div>
+
+                    {/* Closing (เคาะ 10, ระยะบรรทัด 0.85) */}
+                    <div className="mb-1.5" style={{ lineHeight: 0.85 }}>
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
+                    </div>
+
+                    {/* Applicant Signature Block (จัดชิดกั้นหลัง กึ่งกลางบล็อก, ระยะบรรทัด 0.85) */}
+                    <div className="grid grid-cols-2 mb-2 avoid-break" style={{ lineHeight: 0.85 }}>
+                      <div></div>
+                      <div className="text-center">
+                        <div>ลงชื่อ.............................................................</div>
+                        <div>({application.applicantName})</div>
+                        <div>ผู้ขอรับรางวัล</div>
+                      </div>
+                    </div>
+
+                    {/* Approvers Section (ด้านล่างซ้าย จัดกึ่งกลางในบล็อก, 14.5 pt, ระยะบรรทัด 0.85) */}
+                    <div className="avoid-break grid grid-cols-12 text-[14.5pt] mt-2" style={{ lineHeight: 0.85 }}>
+                      <div className="col-span-8 space-y-2">
+                        <div>
+                          <div className="font-bold">เรียน  คณบดีคณะแพทยศาสตร์</div>
+                          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ขอเบิกจ่ายจาก งบประมาณรายได้ปี ........................</div>
+                          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ</div>
+                        </div>
+
+                        <div className="text-center">
+                          <div>ลงชื่อ....................................................</div>
+                          <div>(นางสาวปรารถนา เอนกปัญญากุล)</div>
+                          <div>รักษาการในตำแหน่งหัวหน้างานวิจัย</div>
+                          <div>วันที่......../........./...........</div>
+                        </div>
+
+                        <div className="text-center">
+                          <div>ลงชื่อ....................................................</div>
+                          <div>(รองศาสตราจารย์ นายแพทย์อาทิตย์ เหล่าเรืองธนา)</div>
+                          <div>รองคณบดีฝ่ายวิจัยและถ่ายทอดเทคโนโลยี</div>
+                          <div>วันที่......../........./...........</div>
+                        </div>
+                      </div>
+                      <div className="col-span-4"></div>
                     </div>
                   </div>
 
-                  {/* Closing (เคาะ 10) */}
-                  <div className="mb-1.5">
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
-                  </div>
-
-                  {/* Applicant Signature Block (จัดชิดกั้นหลัง กึ่งกลางบล็อก) */}
-                  <div className="grid grid-cols-2 mb-2 avoid-break">
-                    <div></div>
-                    <div className="text-center leading-snug">
-                      <div>ลงชื่อ.............................................................</div>
-                      <div>({application.applicantName})</div>
-                      <div>ผู้ขอรับรางวัล</div>
-                    </div>
-                  </div>
-
-                  {/* Approvers Section (ด้านล่างซ้าย จัดกึ่งกลางในบล็อก) */}
-                  <div className="avoid-break grid grid-cols-12">
-                    <div className="col-span-8 space-y-1.5">
-                      <div className="leading-snug">
-                        <div className="font-bold">เรียน  คณบดีคณะแพทยศาสตร์</div>
-                        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ขอเบิกจ่ายจาก งบประมาณรายได้ปี ........................</div>
-                        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ</div>
-                      </div>
-
-                      <div className="text-center leading-snug">
-                        <div>ลงชื่อ....................................................</div>
-                        <div>(นางสาวปรารถนา เอนกปัญญากุล)</div>
-                        <div>รักษาการในตำแหน่งหัวหน้างานวิจัย</div>
-                        <div>(วันที่......../........./...........)</div>
-                      </div>
-
-                      <div className="text-center leading-snug">
-                        <div>ลงชื่อ....................................................</div>
-                        <div>(รองศาสตราจารย์ นายแพทย์อาทิตย์ เหล่าเรืองธนา)</div>
-                        <div>รองคณบดีฝ่ายวิจัยและถ่ายทอดเทคโนโลยี</div>
-                        <div>(วันที่......../........./...........)</div>
-                      </div>
-                    </div>
-                    <div className="col-span-4"></div>
-                  </div>
-
-                  {/* Version Footer */}
-                  <div className="text-right text-[9pt] text-slate-500 mt-0.5 avoid-break">
+                  {/* Version Footer (ท้ายกระดาษชิดกั้นหลัง) */}
+                  <div className="mt-auto pt-2 text-right text-[9pt] text-slate-500 avoid-break">
                     Version 4.0.0.25Sep2026
                   </div>
                 </div>
@@ -802,115 +804,92 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               const formattedDate = formatThaiDateOfficial(application.createdAt);
 
               return (
-                <div className="text-[15pt] leading-[1.2] text-black tracking-normal">
-                  {/* Header: Garuda 1.5 cm left, บันทึกข้อความ 28pt bold center across page */}
-                  <div className="grid grid-cols-12 items-end mb-1.5">
-                    <div className="col-span-2 flex items-start">
-                      <img 
-                        src={GARUDA_URL} 
-                        alt="Garuda" 
-                        className="w-[54px] h-[54px] object-contain"
-                      />
-                    </div>
-                    <div className="col-span-8 text-center font-bold text-[28pt] leading-none">
-                      บันทึกข้อความ
-                    </div>
-                    <div className="col-span-2"></div>
-                  </div>
-
-                  {/* Header Meta Fields with Dotted Underlines */}
-                  <div className="space-y-0.5 mb-1.5">
-                    {/* ส่วนราชการ */}
-                    <div className="flex items-baseline w-full">
-                      <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ส่วนราชการ</span>
-                      <div className="flex-1 border-b border-dotted border-black pb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[16pt]">
-                        คณะแพทยศาสตร์ ภาควิชา{application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
+                <div className="text-[15pt] text-black tracking-normal flex flex-col justify-between min-h-[250mm] print:min-h-0">
+                  <div>
+                    {/* Header: Garuda 1.5 cm left, บันทึกข้อความ 28pt bold center across page */}
+                    <div className="grid grid-cols-12 items-end mb-1.5">
+                      <div className="col-span-2 flex items-start">
+                        <img 
+                          src={GARUDA_URL} 
+                          alt="Garuda" 
+                          className="w-[54px] h-[54px] object-contain"
+                        />
                       </div>
+                      <div className="col-span-8 text-center font-bold text-[28pt] leading-none">
+                        บันทึกข้อความ
+                      </div>
+                      <div className="col-span-2"></div>
                     </div>
 
-                    {/* ที่ และ วันที่ */}
-                    <div className="flex items-baseline w-full gap-4">
-                      <div className="flex items-baseline flex-1">
-                        <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
-                        <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
-                          {application.internalDocNo || 'อว 0603.10.    / '}
+                    {/* Header Meta Fields with Dotted Underlines (ระยะบรรทัด 0.9) */}
+                    <div className="space-y-0.5 mb-1.5" style={{ lineHeight: 0.9 }}>
+                      {/* ส่วนราชการ */}
+                      <div className="flex items-baseline w-full">
+                        <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ส่วนราชการ</span>
+                        <div className="flex-1 border-b border-dotted border-black pb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[16pt]">
+                          คณะแพทยศาสตร์ ภาควิชา{application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
                         </div>
                       </div>
-                      <div className="flex items-baseline flex-1">
-                        <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">วันที่</span>
+
+                      {/* ที่ และ วันที่ */}
+                      <div className="flex items-baseline w-full gap-4 mt-0.5">
+                        <div className="flex items-baseline flex-1">
+                          <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
+                          <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
+                            {application.internalDocNo || 'อว 0603.10.    / '}
+                          </div>
+                        </div>
+                        <div className="flex items-baseline flex-1">
+                          <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">วันที่</span>
+                          <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
+                            {formattedDate}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* เรื่อง */}
+                      <div className="flex items-baseline w-full mt-0.5">
+                        <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">เรื่อง</span>
                         <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
-                          {formattedDate}
+                          {subject}
                         </div>
                       </div>
                     </div>
 
-                    {/* เรื่อง */}
-                    <div className="flex items-baseline w-full">
-                      <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">เรื่อง</span>
-                      <div className="flex-1 border-b border-dotted border-black pb-0.5 text-[16pt]">
-                        {subject}
+                    {/* Salutation */}
+                    <div className="mb-1 font-normal" style={{ lineHeight: 0.85 }}>
+                      เรียน&nbsp;&nbsp;&nbsp;คณบดีคณะแพทยศาสตร์
+                    </div>
+
+                    {/* Reference text (เคาะ 10, ระยะบรรทัด 0.85) */}
+                    <p className="text-left break-words mb-1.5" style={{ lineHeight: 0.85 }}>
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ตามที่ ข้าพเจ้า {application.applicantName} ตำแหน่ง {application.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา{application.department || ''} คณะแพทยศาสตร์ ได้ยื่นเรื่อง {memoApprovalSubject} บทความวิจัยเรื่อง “{application.articleTitle}” นั้น
+                    </p>
+
+                    {/* Request details (เคาะ 10, ระยะบรรทัด 0.85) */}
+                    <p className="text-left break-words mb-1.5" style={{ lineHeight: 0.85 }}>
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ในการนี้ ข้าพเจ้าจึงขออนุมัติเบิกเงิน{isPage ? `ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageChargeAmount)} (${bahtText(pageChargeAmount)}) ` : ''}{isReward && isPage ? 'และ' : ''}{isReward ? `รางวัลตีพิมพ์ตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmount)} (${bahtText(rewardAmount)})` : ''} รวมเป็นเงินทั้งสิ้น {formatCurrencyBaht(totalAmount)} ({bahtText(totalAmount)}) รายละเอียดตามเอกสารแนบท้าย
+                    </p>
+
+                    {/* Closing (เคาะ 10, ระยะบรรทัด 0.85) */}
+                    <div className="mb-1.5" style={{ lineHeight: 0.85 }}>
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
+                    </div>
+
+                    {/* Applicant Signature Block (จัดชิดกั้นหลัง กึ่งกลางบล็อก, ระยะบรรทัด 0.85) */}
+                    {/* หมายเหตุ: ตัดข้อความส่วนของหัวหน้างานวิจัยและรองคณบดีออก 100% ตามที่ผู้ใช้ร้องขอ */}
+                    <div className="grid grid-cols-2 mb-2 avoid-break" style={{ lineHeight: 0.85 }}>
+                      <div></div>
+                      <div className="text-center">
+                        <div>ลงชื่อ.............................................................</div>
+                        <div>({application.applicantName})</div>
+                        <div>ผู้ขอรับรางวัล</div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Salutation */}
-                  <div className="mb-1 font-normal">
-                    เรียน&nbsp;&nbsp;&nbsp;คณบดีคณะแพทยศาสตร์
-                  </div>
-
-                  {/* Reference text (เคาะ 10) - text-left with break-words to avoid justify gaps */}
-                  <p className="text-left break-words mb-1.5">
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ตามที่ ข้าพเจ้า {application.applicantName} ตำแหน่ง {application.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา{application.department || ''} คณะแพทยศาสตร์ ได้ยื่นเรื่อง {memoApprovalSubject} บทความวิจัยเรื่อง “{application.articleTitle}” นั้น
-                  </p>
-
-                  {/* Request details (เคาะ 10) */}
-                  <p className="text-left break-words mb-1.5">
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ในการนี้ ข้าพเจ้าจึงขออนุมัติเบิกเงิน{isPage ? `ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageChargeAmount)} (${bahtText(pageChargeAmount)}) ` : ''}{isReward && isPage ? 'และ' : ''}{isReward ? `รางวัลตีพิมพ์ตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmount)} (${bahtText(rewardAmount)})` : ''} รวมเป็นเงินทั้งสิ้น {formatCurrencyBaht(totalAmount)} ({bahtText(totalAmount)}) รายละเอียดตามเอกสารแนบท้าย
-                  </p>
-
-                  {/* Closing (เคาะ 10) */}
-                  <div className="mb-1.5">
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
-                  </div>
-
-                  {/* Applicant Signature Block (จัดชิดกั้นหลัง กึ่งกลางบล็อก) */}
-                  <div className="grid grid-cols-2 mb-2 avoid-break">
-                    <div></div>
-                    <div className="text-center leading-snug">
-                      <div>ลงชื่อ.............................................................</div>
-                      <div>({application.applicantName})</div>
-                      <div>ผู้ขอรับรางวัล</div>
-                    </div>
-                  </div>
-
-                  {/* Approvers Section (ด้านล่างซ้าย จัดกึ่งกลางในบล็อก) */}
-                  <div className="avoid-break grid grid-cols-12">
-                    <div className="col-span-8 space-y-1.5">
-                      <div className="leading-snug">
-                        <div className="font-bold">เรียน  คณบดีคณะแพทยศาสตร์</div>
-                        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ขอเบิกจ่ายจาก งบประมาณรายได้ปี ........................</div>
-                        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ</div>
-                      </div>
-
-                      <div className="text-center leading-snug">
-                        <div>ลงชื่อ....................................................</div>
-                        <div>(นางสาวปรารถนา เอนกปัญญากุล)</div>
-                        <div>รักษาการในตำแหน่งหัวหน้างานวิจัย</div>
-                        <div>(วันที่......../........./...........)</div>
-                      </div>
-
-                      <div className="text-center leading-snug">
-                        <div>ลงชื่อ....................................................</div>
-                        <div>(รองศาสตราจารย์ นายแพทย์อาทิตย์ เหล่าเรืองธนา)</div>
-                        <div>รองคณบดีฝ่ายวิจัยและถ่ายทอดเทคโนโลยี</div>
-                        <div>(วันที่......../........./...........)</div>
-                      </div>
-                    </div>
-                    <div className="col-span-4"></div>
-                  </div>
-
-                  {/* Version Footer */}
-                  <div className="text-right text-[9pt] text-slate-500 mt-0.5 avoid-break">
+                  {/* Version Footer (ท้ายกระดาษชิดกั้นหลัง) */}
+                  <div className="mt-auto pt-2 text-right text-[9pt] text-slate-500 avoid-break">
                     Version 4.0.0.25Sep2026
                   </div>
                 </div>
