@@ -150,7 +150,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
             }
             @page {
               size: A4 portrait;
-              margin: 20mm 20mm 20mm 30mm;
+              margin: 20mm 20mm 15mm 30mm;
             }
             html, body {
               background: white !important;
@@ -177,7 +177,9 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               border: none !important;
               box-shadow: none !important;
             }
-            #printable-document > div {
+            #printable-document,
+            #printable-document > div,
+            #printable-document > div > div {
               padding: 0 !important;
               margin: 0 !important;
               border: none !important;
@@ -185,6 +187,11 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               max-width: 100% !important;
               min-height: 0 !important;
               height: auto !important;
+            }
+            .version-footer {
+              margin-top: 4px !important;
+              padding-top: 0 !important;
+              page-break-inside: avoid !important;
             }
           </style>
         </head>
@@ -634,7 +641,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               const articleTypeText = application.articleType === 'research_article' ? '1)Research Article' : '2)บทความวิชาการอื่นๆ';
 
               return (
-                <div className="text-[15pt] leading-[1.2] text-black tracking-normal flex flex-col justify-between min-h-[250mm] print:min-h-0">
+                <div className="text-[15pt] leading-[1.2] text-black tracking-normal flex flex-col justify-between min-h-[225mm] print:min-h-0 print:block">
                   <div>
                     {/* Header: Garuda 1.5 cm left, บันทึกข้อความ 28pt bold center across page */}
                     <div className="grid grid-cols-12 items-end mb-1.5">
@@ -786,7 +793,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                   </div>
 
                   {/* Version Footer (ท้ายกระดาษชิดกั้นหลัง) */}
-                  <div className="mt-auto pt-2 text-right text-[9pt] text-slate-500 avoid-break">
+                  <div className="version-footer mt-auto pt-1 text-right text-[9pt] text-slate-500 print:mt-2">
                     Version 4.0.0.25Sep2026
                   </div>
                 </div>
@@ -804,7 +811,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               const formattedDate = formatThaiDateOfficial(application.createdAt);
 
               return (
-                <div className="text-[15pt] leading-[1.2] text-black tracking-normal flex flex-col justify-between min-h-[250mm] print:min-h-0">
+                <div className="text-[15pt] leading-[1.2] text-black tracking-normal flex flex-col justify-between min-h-[225mm] print:min-h-0 print:block">
                   <div>
                     {/* Header: Garuda 1.5 cm left, บันทึกข้อความ 28pt bold center across page */}
                     <div className="grid grid-cols-12 items-end mb-1.5">
@@ -889,7 +896,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                   </div>
 
                   {/* Version Footer (ท้ายกระดาษชิดกั้นหลัง) */}
-                  <div className="mt-auto pt-2 text-right text-[9pt] text-slate-500 avoid-break">
+                  <div className="version-footer mt-auto pt-1 text-right text-[9pt] text-slate-500 print:mt-2">
                     Version 4.0.0.25Sep2026
                   </div>
                 </div>
