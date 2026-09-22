@@ -121,6 +121,20 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
           ${styles}
           <style>
             @font-face {
+              font-family: 'TH Sarabun PSK';
+              src: local('TH Sarabun PSK'), local('THSarabunPSK'), local('THSarabun'),
+                   url('/fonts/THSarabunPSK.ttf') format('truetype');
+              font-weight: normal;
+              font-style: normal;
+            }
+            @font-face {
+              font-family: 'TH Sarabun PSK';
+              src: local('TH Sarabun PSK Bold'), local('THSarabunPSK-Bold'), local('THSarabun Bold'),
+                   url('/fonts/THSarabunPSK-Bold.ttf') format('truetype');
+              font-weight: bold;
+              font-style: normal;
+            }
+            @font-face {
               font-family: 'TH Sarabun New';
               src: local('TH Sarabun New'), local('THSarabunNew'),
                    url('/fonts/THSarabunNew.ttf') format('truetype');
@@ -144,7 +158,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               margin: 0 !important;
               padding: 0 !important;
               height: auto !important;
-              font-family: 'TH Sarabun New', 'TH Sarabun PSK', 'Sarabun', serif, sans-serif !important;
+              font-family: 'TH Sarabun PSK', 'THSarabunPSK', 'TH Sarabun New', 'Sarabun', serif, sans-serif !important;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
@@ -364,7 +378,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               💡 <strong>คำแนะนำการพิมพ์:</strong> ตั้งค่า Margin เป็น <strong>Default</strong> และติ๊กเลือก <strong>Background graphics</strong> เพื่อให้ตารางและตราครุฑคมชัดสวยงามตรงตามระเบียบงานสารบรรณ
             </span>
           </div>
-          <span className="font-mono text-slate-500 text-[10px]">A4 Portrait • TH Sarabun New 16pt</span>
+          <span className="font-mono text-slate-500 text-[10px]">A4 Portrait • TH Sarabun PSK 16pt</span>
         </div>
 
         {/* Printable Paper Area */}

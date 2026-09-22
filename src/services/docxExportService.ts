@@ -34,7 +34,7 @@ import { getThSarabunFontData } from './thSarabunBase64';
 // STANDARD THAI GOVERNMENT SARABAN SPECIFICATIONS
 // ตามระเบียบสำนักนายกรัฐมนตรี ว่าด้วยงานสารบรรณ พ.ศ. 2526 & คู่มือการจัดทำเอกสารราชการ
 // =========================================================================
-const FONT_NAME = 'TH Sarabun New';
+const FONT_NAME = 'TH Sarabun PSK';
 
 // ฟอนต์ฝังในตัวไฟล์ docx เพื่อให้เครื่อง PC ปลายทางที่ไม่มีฟอนต์แสดงผลได้ถูกต้อง 100%
 const FONT_CONFIG = {
@@ -64,12 +64,17 @@ function createThaiDocument(sections: any[]) {
   return new Document({
     fonts: [
       {
-        name: 'TH Sarabun New',
+        name: 'TH Sarabun PSK',
         data: fontData.regular as any,
         characterSet: CharacterSet.THAI,
       },
       {
-        name: 'TH Sarabun PSK',
+        name: 'TH SarabunPSK',
+        data: fontData.regular as any,
+        characterSet: CharacterSet.THAI,
+      },
+      {
+        name: 'TH Sarabun New',
         data: fontData.regular as any,
         characterSet: CharacterSet.THAI,
       },
