@@ -130,7 +130,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   <div className="font-bold truncate text-[11px]">{user.name}</div>
                   <div className="text-[10px] text-slate-400 font-mono truncate">{user.email}</div>
                   <div className="text-[9px] text-amber-700 font-medium mt-0.5">
-                    {user.role === 'researcher' ? 'นักวิจัย' : user.role === 'coordinator' ? 'เจ้าหน้าที่' : 'การเงิน'}
+                    {user.role === 'admin' 
+                      ? 'ผู้ดูแลระบบ / วิจัย / ประสานงาน' 
+                      : user.role === 'researcher' 
+                        ? 'นักวิจัย' 
+                        : user.role === 'coordinator' 
+                          ? 'เจ้าหน้าที่วิจัย' 
+                          : 'งานการเงิน'}
                   </div>
                 </button>
               ))}
@@ -159,11 +165,23 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-medium text-slate-700 mb-1">ตำแหน่งทางวิชาการ</label>
+              <label className="block font-medium text-slate-700 mb-1">ตำแหน่งทางวิชาการ/ตำแหน่งงาน</label>
               <input
                 type="text"
                 value={formData.academicPosition}
                 onChange={(e) => setFormData({ ...formData, academicPosition: e.target.value })}
+                placeholder="เช่น เจ้าหน้าที่วิจัย, ผู้ช่วยศาสตราจารย์"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block font-medium text-slate-700 mb-1">ตำแหน่งบริหาร (ถ้ามี)</label>
+              <input
+                type="text"
+                value={formData.administrativePosition || ''}
+                onChange={(e) => setFormData({ ...formData, administrativePosition: e.target.value })}
+                placeholder="เช่น รักษาการในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>

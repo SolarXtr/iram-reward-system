@@ -51,6 +51,10 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
 
   // Determine if the current active role is authorized to advance the current step
   const isRoleAuthorizedForCurrentStep = (step: number, role: UserRole): boolean => {
+    // Admin has full authorization to manage and advance all 12 steps
+    if (role === 'admin') {
+      return true;
+    }
     // Step 1: Researcher (Submit)
     // Step 2, 4, 6, 9, 12: Coordinator
     // Step 3: Researcher (Sign & Attach) - coordinator can assist/advance

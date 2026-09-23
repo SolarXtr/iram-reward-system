@@ -560,7 +560,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
             <div className="sm:col-span-4">
               <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                 <span>รหัสหน่วยงาน (10.xx)*</span>
-                <span className="text-[10px] text-blue-600 font-normal">ดึงจากสังกัด / แก้ไขได้</span>
+                <span className="text-[10px] text-blue-600 font-normal">ตามประกาศ ๒ ธ.ค. ๖๘ / แก้ไขได้</span>
               </label>
               <div className="flex items-center">
                 <span className="px-2 py-1.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
@@ -570,10 +570,10 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                   type="text"
                   value={deptCode}
                   onChange={(e) => setDeptCode(e.target.value)}
-                  placeholder="xx"
+                  placeholder="01(9)"
                   className="w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   list="dept-code-suggestions"
-                  title="รหัสหน่วยงาน 10.xx สามารถแก้ไขได้ตามต้องการ"
+                  title="รหัสหน่วยงาน อว 0603.10.xx (เช่น 01(9) งานวิจัย, 10 ศัลยศาสตร์, 12 อายุรศาสตร์, 02 กุมารเวชฯ) อ้างอิงประกาศ ๒ ธ.ค. ๒๕๖๘"
                 />
                 <datalist id="dept-code-suggestions">
                   {DEPARTMENT_LIST.map((d) => (

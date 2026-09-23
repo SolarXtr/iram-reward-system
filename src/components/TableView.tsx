@@ -42,7 +42,7 @@ export const TableView: React.FC<TableViewProps> = ({
   onPrintApplication,
   onVerifyPayment,
   currentUserEmail = 'tinnakornh@nu.ac.th',
-  currentUserName = 'ดร.ทินกร หอมดี',
+  currentUserName = 'นายทินกรณ์ หาญณรงค์',
 }) => {
   const [filterScope, setFilterScope] = useState<'all' | 'my_jobs'>('all');
   const [selectedFiscalYear, setSelectedFiscalYear] = useState<string>('all');

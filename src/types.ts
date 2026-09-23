@@ -206,12 +206,13 @@ export interface CalendarEventSchedule {
   googleCalendarUrl?: string;
 }
 
-export type UserRole = 'researcher' | 'coordinator' | 'finance';
+export type UserRole = 'researcher' | 'coordinator' | 'finance' | 'admin';
 
 export interface UserProfile {
   id: string;
   name: string;
-  academicPosition: string;
+  academicPosition: string; // e.g. เจ้าหน้าที่วิจัย
+  administrativePosition?: string; // e.g. รักษาการในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย
   department: string;
   phone: string;
   email: string;
@@ -219,5 +220,6 @@ export interface UserProfile {
   bankAccountNo: string;
   idCardNo: string;
   role: UserRole;
+  roles?: UserRole[]; // e.g. ['researcher', 'coordinator', 'admin']
   isNuAccount: boolean;
 }

@@ -138,8 +138,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       return;
     }
 
-    // Check 3: Role authorization rule
-    if (!targetLane.allowedRole.includes(currentRole as UserRole)) {
+    // Check 3: Role authorization rule (Admin role has full access to all lanes)
+    if (currentRole !== 'admin' && !targetLane.allowedRole.includes(currentRole as UserRole)) {
       const msg = `⚠️ สิทธิ์ไม่เพียงพอ! ช่อง "${targetLane.title}" กำหนดให้เฉพาะบทบาท [${targetLane.allowedRole.join(', ')}] เป็นผู้ดำเนินการเท่านั้น (ปัจจุบันท่านอยู่ในบทบาท: ${currentRole})`;
       if (onShowAlert) onShowAlert(msg);
       else alert(msg);

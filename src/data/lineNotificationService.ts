@@ -158,7 +158,7 @@ export const INITIAL_LINE_NOTIFICATION_LOG: LineNotificationRecord[] = [
     trackingNo: 'AWP70-001',
     milestone: 'application_submitted',
     title: 'ยื่นคำขอรับรางวัลและค่าตีพิมพ์ [AWP70-001]',
-    recipientName: 'ดร.ทินกร หอมดี',
+    recipientName: 'นายทินกรณ์ หาญณรงค์',
     recipientEmail: 'tinnakornh@nu.ac.th',
     amount: 60000,
     details: 'ยื่นคำขอปีงบประมาณ 2570 เข้าสู่ระบบเรียบร้อย อยู่ระหว่างคิวตรวจเอกสาร',

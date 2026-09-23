@@ -16,9 +16,9 @@ import {
   User,
   Database
 } from 'lucide-react';
-import { UserProfile } from '../types';
+import { UserProfile, UserRole } from '../types';
 
-export type UserRole = 'researcher' | 'coordinator' | 'finance';
+export type { UserRole };
 export type ActiveTab = 'dashboard' | 'table' | 'kanban' | 'calendar' | 'line_oa';
 
 interface HeaderProps {
@@ -130,6 +130,17 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <span>งานการเงิน</span>
               </button>
+              <button
+                onClick={() => setCurrentRole('admin')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+                  currentRole === 'admin'
+                    ? 'bg-purple-600 text-white font-medium shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                }`}
+                title="มุมมองผู้ดูแลระบบ (Admin - ตรวจสอบและจัดการได้ทุกขั้นตอน)"
+              >
+                <span>ผู้ดูแลระบบ</span>
+              </button>
             </div>
 
             {/* User Profile / SSO Account Button */}
@@ -139,13 +150,13 @@ export const Header: React.FC<HeaderProps> = ({
               title="ดูโปรไฟล์บัญชีผู้ใช้และมาตรการคุ้มครองข้อมูล PDPA"
             >
               <div className="w-6 h-6 rounded-full bg-amber-500/30 text-amber-300 font-bold flex items-center justify-center text-[11px] border border-amber-400/40">
-                {currentUser?.name ? currentUser.name.charAt(currentUser.name.indexOf(' ') > 0 ? currentUser.name.indexOf(' ') + 1 : 0) : 'T'}
+                {currentUser?.name ? currentUser.name.charAt(currentUser.name.indexOf(' ') > 0 ? currentUser.name.indexOf(' ') + 1 : 0) : 'ท'}
               </div>
-              <div className="hidden xl:block text-left">
-                <div className="font-semibold text-white leading-tight truncate max-w-[130px]">
-                  {currentUser?.name || 'ดร.ทินกร หอมดี'}
+              <div className="hidden md:block text-left">
+                <div className="font-semibold text-white leading-tight truncate max-w-[150px]">
+                  {currentUser?.name || 'นายทินกรณ์ หาญณรงค์'}
                 </div>
-                <div className="text-[10px] text-slate-400 font-mono leading-tight truncate max-w-[130px]">
+                <div className="text-[10px] text-slate-400 font-mono leading-tight truncate max-w-[150px]">
                   {currentUser?.email || 'tinnakornh@nu.ac.th'}
                 </div>
               </div>
@@ -281,9 +292,10 @@ export const Header: React.FC<HeaderProps> = ({
             <UserCheck className="w-4 h-4 text-amber-400" />
             <span>สิทธิ์ปัจจุบัน:</span>
             <span className="font-semibold text-slate-200">
-              {currentRole === 'researcher' && 'อาจารย์/นักวิจัย (ขอรับทุน)'}
+              {currentRole === 'researcher' && 'เจ้าหน้าที่วิจัย/นักวิจัย (ขอรับทุน)'}
               {currentRole === 'coordinator' && 'ผู้ประสานงานวิจัย (ตรวจเอกสาร)'}
               {currentRole === 'finance' && 'เจ้าหน้าที่การเงิน (เบิกจ่าย)'}
+              {currentRole === 'admin' && 'ผู้ดูแลระบบ (Admin - ตรวจสอบและบริหารจัดการทุกสิทธิ์)'}
             </span>
           </div>
         </div>

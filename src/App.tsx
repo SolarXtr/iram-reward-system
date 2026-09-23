@@ -510,7 +510,7 @@ export default function App() {
         onAdvanceStep={handleAdvanceTimelineStep}
         onPrint={(app) => setPrintApp(app)}
         onVerifyPayment={(app) => setPaymentApp(app)}
-        canEdit={currentRole === 'coordinator' || currentRole === 'finance'}
+        canEdit={currentRole === 'coordinator' || currentRole === 'finance' || currentRole === 'admin'}
         currentRole={currentRole}
       />
 
