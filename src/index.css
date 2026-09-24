@@ -149,6 +149,20 @@
     page-break-inside: avoid !important;
   }
 
+  #printable-document .checklist-print-page {
+    min-height: 268mm !important;
+    height: 268mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+  }
+
+  #printable-document .checklist-print-page .checklist-remarks {
+    margin-top: auto !important;
+    padding-top: 4px !important;
+  }
+
   /* ป้องกันไม่ให้ตาราง ลายเซ็น หรือข้อสำคัญถูกตัดแบ่งหน้าผิดธรรมชาติ */
   .avoid-break,
   tr,

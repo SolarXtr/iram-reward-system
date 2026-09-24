@@ -87,7 +87,7 @@ export const DEPARTMENT_LIST: DepartmentInfo[] = [
  * อ้างอิงตามประกาศคณะแพทยศาสตร์ มน. ณ วันที่ ๒ ธันวาคม ๒๕๖๘
  */
 export function getDepartmentCode(departmentName?: string): string {
-  if (!departmentName) return '01(9)';
+  if (!departmentName) return '';
   const cleanName = departmentName.trim().toLowerCase();
 
   // 1. ศูนย์วิจัยโลหิตวิทยา (แยกจากงานวิจัยทั่วไป)
@@ -133,7 +133,7 @@ export function getDepartmentCode(departmentName?: string): string {
   if (cleanName.includes('ผู้สูงอายุ')) return '18(19)';
   if (cleanName.includes('พยาธิวิทยากายวิภาค')) return '18(36)';
 
-  return '01(9)'; // default หน่วยบริหารและจัดการงานวิจัย งานวิจัย คณะแพทยศาสตร์
+  return ''; // ถ้าไม่มีสังกัดหรือหารหัสไม่พบ ให้เป็นค่าว่างเพื่อให้กรอกเอง
 }
 
 /**
@@ -141,7 +141,7 @@ export function getDepartmentCode(departmentName?: string): string {
  * อว 0603.10.{deptCode}/{runningNo}
  */
 export function formatInternalDocNo(deptCode?: string, runningNo?: string): string {
-  const code = deptCode ? deptCode.trim() : '01(9)';
+  const code = deptCode && deptCode.trim() ? deptCode.trim() : '...';
   if (runningNo && runningNo.trim()) {
     return `อว 0603.10.${code}/${runningNo.trim()}`;
   }

@@ -145,9 +145,26 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   const [issn, setIssn] = useState('');
   const [doi, setDoi] = useState('');
   const [volumeIssue, setVolumeIssue] = useState('');
+  const [databaseYear, setDatabaseYear] = useState<string>('2025');
+  const [vol, setVol] = useState<string>('');
+  const [no, setNo] = useState<string>('');
+  const [publishMonth, setPublishMonth] = useState<string>('' );
+  const [publishYear, setPublishYear] = useState<string>('2026');
+  const [pages, setPages] = useState<string>('');
   const [publishedDate, setPublishedDate] = useState('2026-02-15');
   const [pageChargeInput, setPageChargeInput] = useState<string>('125,216.54');
   const [claimedPageCharge, setClaimedPageCharge] = useState<number>(125216.54);
+  const [pageChargePaidDate, setPageChargePaidDate] = useState<string>('2026-02-15');
+
+  const handlePublishedDateChange = (dateVal: string) => {
+    setPublishedDate(dateVal);
+    if (dateVal) {
+      const parsedYear = new Date(dateVal).getFullYear();
+      if (!isNaN(parsedYear) && parsedYear > 1900) {
+        setPublishYear(parsedYear.toString());
+      }
+    }
+  };
 
   // Real-time Duplicate Check States (D1 Cloudflare)
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
@@ -290,13 +307,19 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
       journalName,
       journalScope,
       database,
+      databaseYear: databaseYear.trim() || '2025',
       quartile,
       isTier1Top10,
       authorRole,
       articleType,
       issn,
       doi,
-      volumeIssue,
+      vol: vol.trim(),
+      no: no.trim(),
+      publishMonth: publishMonth.trim(),
+      publishYear: publishYear.trim(),
+      pages: pages.trim(),
+      volumeIssue: volumeIssue.trim() || `Vol ${vol.trim() || '-'} No ${no.trim() || '-'} Month ${publishMonth.trim() || '-'} Year ${publishYear.trim() || '-'} pages: ${pages.trim() || '-'}`,
       publishedDate,
       within24Months,
       notForGraduation,
@@ -304,6 +327,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
       claimedRewardAmount: requestType === 'page_charge_only' ? 0 : calculation.rewardAmount,
       claimedPageChargeAmount: requestType === 'reward_only' ? 0 : claimedPageCharge,
       approvedPageChargeAmount: requestType === 'reward_only' ? 0 : calculation.approvedPageCharge,
+      pageChargePaidDate: requestType === 'reward_only' ? undefined : pageChargePaidDate,
       totalClaimedAmount: requestType === 'reward_only' 
         ? calculation.rewardAmount 
         : requestType === 'page_charge_only'
@@ -808,14 +832,87 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
               </div>
 
               <div>
+                <label className="block font-medium text-slate-700 mb-1">ปีของฐานข้อมูล (Database Year)*</label>
+                <input
+                  type="text"
+                  value={databaseYear}
+                  onChange={(e) => setDatabaseYear(e.target.value)}
+                  placeholder="เช่น 2025"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
                 <label className="block font-medium text-slate-700 mb-1">วันที่เผยแพร่ (Published Date)*</label>
                 <input
                   type="date"
                   required
                   value={publishedDate}
-                  onChange={(e) => setPublishedDate(e.target.value)}
+                  onChange={(e) => handlePublishedDateChange(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
+              </div>
+
+              {/* ข้อมูลเล่ม/ฉบับ/วันเดือนปีที่พิมพ์ (สำหรับแสดงในบันทึกข้อความและเอกสารราชการ) */}
+              <div className="sm:col-span-3 bg-slate-100/70 p-3 rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block font-bold text-xs text-slate-800">
+                    ข้อมูลวัน/เดือน/ปีที่พิมพ์ (Vol, No, Month, Year, Pages)
+                  </label>
+                  <span className="text-[11px] text-slate-500">หากช่องใดไม่มีข้อมูล ระบบจะใส่ขีดกลาง (-) ให้อัตโนมัติ</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">Vol. (เล่มที่)</label>
+                    <input
+                      type="text"
+                      value={vol}
+                      onChange={(e) => setVol(e.target.value)}
+                      placeholder="เช่น 29 (ถ้าไม่มีใส่ -)"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">No. (ฉบับที่)</label>
+                    <input
+                      type="text"
+                      value={no}
+                      onChange={(e) => setNo(e.target.value)}
+                      placeholder="เช่น 1 (ถ้าไม่มีใส่ -)"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">Month (เดือน)</label>
+                    <input
+                      type="text"
+                      value={publishMonth}
+                      onChange={(e) => setPublishMonth(e.target.value)}
+                      placeholder="เช่น Jan หรือ ม.ค."
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">Year (ปี ค.ศ.)</label>
+                    <input
+                      type="text"
+                      value={publishYear}
+                      onChange={(e) => setPublishYear(e.target.value)}
+                      placeholder="เช่น 2026"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-[11px] text-slate-600 mb-1">Pages (เลขหน้า)</label>
+                    <input
+                      type="text"
+                      value={pages}
+                      onChange={(e) => setPages(e.target.value)}
+                      placeholder="เช่น 123-130 (ถ้าไม่มีใส่ -)"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
               </div>
 
               {requestType !== 'reward_only' && (
@@ -862,6 +959,26 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
                         className="w-44 px-3 py-1.5 bg-white border border-amber-300 rounded text-xs font-bold text-amber-950 text-right focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono"
                       />
                       <span className="font-semibold text-amber-900">บาท</span>
+                    </div>
+                  </div>
+
+                  {/* วันที่จ่ายค่าเพจชาร์จจริง (สำหรับแสดงในใบรับรองการจ่ายเงิน ข้อ 46) */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-2 pt-2 border-t border-amber-200/60">
+                    <div>
+                      <span className="font-bold text-xs text-amber-950 block">
+                        วันที่จ่ายค่าเพจชาร์จจริง (ตามใบเสร็จรับเงิน/ตัดบัตรเครดิต)
+                      </span>
+                      <span className="text-[11px] text-amber-800">
+                        ดึงไปแสดงในตาราง วัน เดือน ปี ของใบรับรองการจ่ายเงิน (ข้อ 46)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={pageChargePaidDate}
+                        onChange={(e) => setPageChargePaidDate(e.target.value)}
+                        className="w-44 px-3 py-1.5 bg-white border border-amber-300 rounded text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      />
                     </div>
                   </div>
 

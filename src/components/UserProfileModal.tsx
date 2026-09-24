@@ -181,7 +181,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 type="text"
                 value={formData.administrativePosition || ''}
                 onChange={(e) => setFormData({ ...formData, administrativePosition: e.target.value })}
-                placeholder="เช่น รักษาการในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย"
+                placeholder="เช่น ปฏิบัติหน้าที่ในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>

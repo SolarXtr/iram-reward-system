@@ -18,7 +18,15 @@ import {
   Save,
   Check,
   Calendar,
-  Building
+  Building,
+  Info,
+  Maximize2,
+  Minimize2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw
 } from 'lucide-react';
 import { ResearchApplication, UserProfile } from '../types';
 import { bahtText, formatBaht, getTrackingPrefix } from '../data/regulations';
@@ -34,7 +42,11 @@ import {
   generateAllDocsDocx,
   getMemoSubject,
   formatCurrencyBaht,
-  formatThaiDateOfficial
+  formatThaiDateOfficial,
+  formatThaiDateShort,
+  getApplicantSignRoleTitle,
+  formatJournalDatabaseQuartile,
+  formatPublicationVolumeIssue
 } from '../services/docxExportService';
 import { formatInternalDocNo, getDepartmentCode, DEPARTMENT_LIST } from '../data/departmentCodes';
 
@@ -74,6 +86,13 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
 
   const [activeDoc, setActiveDoc] = useState<FormDocType>('checklist');
   const [isExportingDocx, setIsExportingDocx] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [zoomLevel, setZoomLevel] = useState<number>(100);
+
+  const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 10, 150));
+  const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 10, 60));
+  const handleZoomReset = () => setZoomLevel(100);
   const trackingPrefix = getTrackingPrefix(application.fiscalYear);
   const sequenceOnly = application.trackingNo
     ? application.trackingNo.replace(new RegExp(`^${trackingPrefix}-?|^AWP\\d{2}-?`, 'i'), '')
@@ -102,6 +121,31 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
     return application.officialDocDate || '';
   });
 
+  // Publication & Database fields for memo
+  const [databaseYear, setDatabaseYear] = useState<string>(() => {
+    return application.databaseYear || '2025';
+  });
+  const [vol, setVol] = useState<string>(() => {
+    return application.vol || '';
+  });
+  const [no, setNo] = useState<string>(() => {
+    return application.no || '';
+  });
+  const [publishMonth, setPublishMonth] = useState<string>(() => {
+    return application.publishMonth || '';
+  });
+  const [publishYear, setPublishYear] = useState<string>(() => {
+    if (application.publishYear) return application.publishYear;
+    if (application.publishedDate) {
+      const parsedYear = new Date(application.publishedDate).getFullYear();
+      if (!isNaN(parsedYear) && parsedYear > 1900) return parsedYear.toString();
+    }
+    return '2026';
+  });
+  const [pages, setPages] = useState<string>(() => {
+    return application.pages || '';
+  });
+
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
 
   useEffect(() => {
@@ -114,6 +158,15 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
       setDeptCode(application.deptCode || getDepartmentCode(currentUser?.department || application.department));
       setDocRunningNo(application.docRunningNo || '');
       setOfficialDocDate(application.officialDocDate || '');
+      setDatabaseYear(application.databaseYear || '2025');
+      setVol(application.vol || '');
+      setNo(application.no || '');
+      setPublishMonth(application.publishMonth || '');
+      setPublishYear(
+        application.publishYear || 
+        (application.publishedDate ? new Date(application.publishedDate).getFullYear().toString() : '2026')
+      );
+      setPages(application.pages || '');
     }
   }, [application.id, currentUser?.department]);
 
@@ -135,6 +188,12 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
     officialDocDate: isDocReady ? officialDocDate.trim() : undefined,
     isOnlineReviewComplete,
     internalDocNo: previewDocNo,
+    databaseYear: databaseYear.trim(),
+    vol: vol.trim(),
+    no: no.trim(),
+    publishMonth: publishMonth.trim(),
+    publishYear: publishYear.trim(),
+    pages: pages.trim(),
   };
 
   const handleSaveNumbering = () => {
@@ -145,6 +204,12 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
         officialDocDate: officialDocDate.trim(),
         isOnlineReviewComplete,
         internalDocNo: previewDocNo,
+        databaseYear: databaseYear.trim(),
+        vol: vol.trim(),
+        no: no.trim(),
+        publishMonth: publishMonth.trim(),
+        publishYear: publishYear.trim(),
+        pages: pages.trim(),
       });
     }
     setSaveSuccessMsg('บันทึกข้อมูลเรียบร้อยแล้ว');
@@ -169,12 +234,6 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   };
 
   const handlePrint = () => {
-    if (!isDocReady) {
-      alert(!isOnlineReviewComplete 
-        ? 'ไม่สามารถพิมพ์/ดาวน์โหลดได้: ต้องตรวจบันทึกและแก้ไขออนไลน์จนกระทั่ง 100% จึงจะอนุญาตให้ลงเลขลำดับและวันที่ได้' 
-        : 'ไม่สามารถพิมพ์/ดาวน์โหลดได้: ต้องกรอกเลขลำดับ (xxx) และวันที่ให้เรียบร้อยก่อน จึงจะดาวน์โหลดมาลงชื่อได้');
-      return;
-    }
     let docName = 'เอกสารราชการ';
     if (activeDoc === 'checklist') docName = `1_แบบตรวจสอบรายการ_${trackingPrefix}`;
     else if (activeDoc === 'memo_reward') docName = '2_บันทึกข้อความ_ขออนุมัติเงินรางวัล';
@@ -247,7 +306,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
             }
             @page {
               size: A4 portrait;
-              margin: 20mm 20mm 15mm 30mm;
+              margin: ${activeDoc === 'checklist' ? '10mm 15mm 10mm 15mm' : '20mm 20mm 15mm 30mm'};
             }
             html, body {
               background: white !important;
@@ -285,11 +344,41 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               min-height: 0 !important;
               height: auto !important;
             }
+            ${(activeDoc === 'memo_reward' || activeDoc === 'memo_disbursement') ? `
+            #printable-document .memo-print-page {
+              min-height: 260mm !important;
+              height: 260mm !important;
+              display: flex !important;
+              flex-direction: column !important;
+              justify-content: space-between !important;
+              box-sizing: border-box !important;
+            }
+            #printable-document .memo-print-page .version-footer {
+              margin-top: auto !important;
+              padding-top: 0 !important;
+              page-break-inside: avoid !important;
+            }
+            ` : `
             .version-footer {
               margin-top: 4px !important;
               padding-top: 0 !important;
               page-break-inside: avoid !important;
             }
+            `}
+            ${activeDoc === 'checklist' ? `
+            #printable-document .checklist-print-page {
+              min-height: 268mm !important;
+              height: 268mm !important;
+              display: flex !important;
+              flex-direction: column !important;
+              justify-content: space-between !important;
+              box-sizing: border-box !important;
+            }
+            #printable-document .checklist-print-page .checklist-remarks {
+              margin-top: auto !important;
+              padding-top: 4px !important;
+            }
+            ` : ''}
           </style>
         </head>
         <body>
@@ -315,12 +404,6 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   };
 
   const handleDownloadCurrentDocx = async () => {
-    if (!isDocReady) {
-      alert(!isOnlineReviewComplete 
-        ? 'ไม่สามารถดาวน์โหลดได้: ต้องตรวจบันทึกและแก้ไขออนไลน์จนกระทั่ง 100% จึงจะอนุญาตให้ลงเลขลำดับและวันที่ได้' 
-        : 'ไม่สามารถดาวน์โหลดได้: ต้องกรอกเลขลำดับ (xxx) และวันที่ให้เรียบร้อยก่อน จึงจะดาวน์โหลดมาลงชื่อได้');
-      return;
-    }
     try {
       setIsExportingDocx(true);
       if (activeDoc === 'checklist') {
@@ -343,12 +426,6 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   };
 
   const handleDownloadAllDocx = async () => {
-    if (!isDocReady) {
-      alert(!isOnlineReviewComplete 
-        ? 'ไม่สามารถดาวน์โหลดได้: ต้องตรวจบันทึกและแก้ไขออนไลน์จนกระทั่ง 100% จึงจะอนุญาตให้ลงเลขลำดับและวันที่ได้' 
-        : 'ไม่สามารถดาวน์โหลดได้: ต้องกรอกเลขลำดับ (xxx) และวันที่ให้เรียบร้อยก่อน จึงจะดาวน์โหลดมาลงชื่อได้');
-      return;
-    }
     try {
       setIsExportingDocx(true);
       await generateAllDocsDocx(appWithDocDetails);
@@ -361,358 +438,586 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 print:p-0">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[96vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden print:max-h-none print:shadow-none print:border-none print:rounded-none">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center print:p-0 ${
+      isFullscreen 
+        ? 'p-0 w-screen h-screen bg-slate-950' 
+        : 'p-2 sm:p-4 overflow-hidden bg-slate-950/75 backdrop-blur-sm'
+    }`}>
+      <div className={`bg-white flex flex-col shadow-2xl overflow-hidden transition-all duration-200 print:max-h-none print:shadow-none print:border-none print:rounded-none ${
+        isFullscreen 
+          ? 'w-full h-full rounded-none border-none' 
+          : 'w-full max-w-[98vw] 2xl:max-w-[1600px] h-[95vh] rounded-2xl border border-slate-200'
+      }`}>
         
         {/* Modal Top Bar (No Print) */}
-        <div className="bg-slate-900 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-white border-b border-slate-800 no-print">
-          <div>
-            <div className="text-xs text-amber-400 font-semibold uppercase font-prompt flex items-center gap-1.5">
-              <span>ระบบจัดพิมพ์และดาวน์โหลดเอกสาร Word (DOCX) • คณะแพทยศาสตร์ ม.นเรศวร</span>
+        <div className="bg-slate-900 px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3 text-white border-b border-slate-800 shrink-0 no-print">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Toggle Sidebar Button */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
+                isSidebarOpen 
+                  ? 'bg-slate-800 text-slate-200 hover:text-white hover:bg-slate-700 border border-slate-700' 
+                  : 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40'
+              }`}
+              title={isSidebarOpen ? "ซ่อนแผงควบคุมด้านซ้ายเพื่อดูเอกสารพรีวิวแบบเต็มตา" : "แสดงแผงควบคุมด้านซ้าย"}
+            >
+              {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4 text-amber-400" />}
+              <span className="hidden md:inline">{isSidebarOpen ? 'ซ่อนแผงควบคุม' : 'แสดงแผงควบคุม'}</span>
+            </button>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-bold text-white font-prompt truncate">
+                  ระบบจัดพิมพ์และดาวน์โหลดเอกสาร (Word / PDF)
+                </h2>
+                <span className="font-mono text-xs bg-slate-800 px-2 py-0.5 rounded text-amber-300 border border-slate-700 shrink-0 hidden sm:inline-block">
+                  {application.trackingNo}
+                </span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 hidden md:inline-block ${
+                  isDocReady ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                }`}>
+                  {isDocReady ? 'ฉบับสมบูรณ์' : 'ฉบับร่าง'}
+                </span>
+              </div>
             </div>
-            <h2 className="text-base sm:text-lg font-bold text-white font-prompt flex items-center gap-2">
-              <span>จัดชุดเอกสาร 5 รายการตามแบบฟอร์มคณะแพทย์</span>
-              <span className="font-mono text-xs bg-slate-800 px-2.5 py-0.5 rounded text-amber-300 border border-slate-700">
-                {application.trackingNo}
-              </span>
-            </h2>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Download DOCX Button */}
+          {/* Right Action Icons in Top Bar: Zoom Controls + Fullscreen Button + Close Button */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Zoom Controls */}
+            <div className="hidden lg:flex items-center bg-slate-800/90 rounded-lg p-0.5 border border-slate-700 text-slate-300">
+              <button
+                onClick={handleZoomOut}
+                className="p-1.5 hover:text-white hover:bg-slate-700/60 rounded transition-colors cursor-pointer"
+                title="ย่อขนาด (-10%)"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleZoomReset}
+                className="px-2 py-0.5 text-[11px] font-mono hover:text-white transition-colors cursor-pointer"
+                title="รีเซ็ตขนาด 100%"
+              >
+                {zoomLevel}%
+              </button>
+              <button
+                onClick={handleZoomIn}
+                className="p-1.5 hover:text-white hover:bg-slate-700/60 rounded transition-colors cursor-pointer"
+                title="ขยายขนาด (+10%)"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Fullscreen Button */}
             <button
-              onClick={handleDownloadCurrentDocx}
-              disabled={!isDocReady || isExportingDocx}
-              className={`px-3.5 py-2 font-bold rounded-lg text-xs flex items-center gap-1.5 shadow transition-all ${
-                isDocReady && !isExportingDocx
-                  ? 'bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white cursor-pointer'
-                  : 'bg-slate-800 text-slate-400 border border-slate-700 opacity-60 cursor-not-allowed'
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                isFullscreen
+                  ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
               }`}
-              title={isDocReady ? "ดาวน์โหลดแบบฟอร์มเอกสารนี้เป็นไฟล์ Word (.docx)" : "ต้องตรวจบันทึกให้ครบ 100% และกรอกเลข/วันที่ให้เรียบร้อยก่อน"}
+              title={isFullscreen ? "ออกจากโหมดเต็มจอ" : "ขยายเต็มจอ (Fullscreen Mode ⛶)"}
             >
-              {isExportingDocx ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : !isDocReady ? (
-                <Lock className="w-3.5 h-3.5 text-amber-400" />
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-4 h-4 text-amber-400" />
+                  <span className="hidden sm:inline">ย่อจอ</span>
+                </>
               ) : (
-                <FileType className="w-4 h-4 text-blue-200" />
+                <>
+                  <Maximize2 className="w-4 h-4 text-slate-300" />
+                  <span className="hidden sm:inline">เต็มจอ (⛶)</span>
+                </>
               )}
-              <span>โหลด Word (.docx) หน้านี้</span>
             </button>
 
-            {/* Download ALL 5 DOCX */}
-            <button
-              onClick={handleDownloadAllDocx}
-              disabled={!isDocReady || isExportingDocx}
-              className={`px-3 py-2 font-semibold rounded-lg text-xs flex items-center gap-1.5 border transition-all ${
-                isDocReady && !isExportingDocx
-                  ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border-slate-700 cursor-pointer'
-                  : 'bg-slate-900 text-slate-500 border-slate-800 opacity-50 cursor-not-allowed'
-              }`}
-              title={isDocReady ? "ดาวน์โหลดครบทั้ง 5 ไฟล์เป็น .docx พร้อมกัน" : "ต้องตรวจบันทึกให้ครบ 100% และกรอกเลข/วันที่ให้เรียบร้อยก่อน"}
-            >
-              {!isDocReady && <Lock className="w-3.5 h-3.5 text-amber-400" />}
-              <span>โหลดครบ 5 ฟอร์ม (.docx)</span>
-            </button>
-
-            {/* Print / PDF Button */}
-            <button
-              onClick={handlePrint}
-              disabled={!isDocReady}
-              className={`px-3.5 py-2 font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-md transition-all ${
-                isDocReady
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 cursor-pointer'
-                  : 'bg-slate-800 text-slate-400 border border-slate-700 opacity-60 cursor-not-allowed'
-              }`}
-              title={isDocReady ? "สั่งพิมพ์ออกเครื่องพิมพ์ หรือเลือก 'Save as PDF'" : "ต้องตรวจบันทึกให้ครบ 100% และกรอกเลข/วันที่ให้เรียบร้อยก่อน"}
-            >
-              {!isDocReady ? <Lock className="w-3.5 h-3.5 text-amber-400" /> : <Download className="w-4 h-4" />}
-              <span>พิมพ์ / PDF</span>
-            </button>
-
+            {/* Close Button */}
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              title="ปิดหน้าต่าง"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Reordered Document Switcher Tabs (1 to 5) */}
-        <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex flex-wrap gap-1.5 text-xs no-print">
-          <button
-            onClick={() => setActiveDoc('checklist')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-              activeDoc === 'checklist'
-                ? 'bg-blue-700 text-white shadow-sm'
-                : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            <CheckSquare className="w-3.5 h-3.5" />
-            <span>1. Checklist แบบตรวจสอบรายการ ({trackingPrefix})</span>
-          </button>
+        {/* Main Split View Body: Left Sidebar (Controls) + Right Canvas (Paper Preview) */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+          
+          {/* ========================================================= */}
+          {/* LEFT SIDEBAR: แผงควบคุมเอกสาร (30% หรือ ซ่อนได้)             */}
+          {/* ========================================================= */}
+          {isSidebarOpen && (
+            <aside className="w-full lg:w-[340px] xl:w-[380px] 2xl:w-[420px] shrink-0 border-r border-slate-200 bg-slate-50 flex flex-col h-full overflow-y-auto no-print">
+              <div className="p-3.5 sm:p-4 space-y-3.5">
+                
+                {/* 1. ปุ่มดาวน์โหลด Word และปุ่มพิมพ์ (Action Buttons) */}
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider font-prompt">
+                      ดาวน์โหลด & สั่งพิมพ์
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                      isDocReady ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}>
+                      {isDocReady ? 'ฉบับสมบูรณ์' : 'ฉบับร่าง (Draft)'}
+                    </span>
+                  </div>
 
-          <button
-            onClick={() => setActiveDoc('memo_reward')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-              activeDoc === 'memo_reward'
-                ? 'bg-blue-700 text-white shadow-sm'
-                : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            <span>2. บันทึกข้อความขออนุมัติเงินรางวัล</span>
-          </button>
+                  {/* Single Word DOCX */}
+                  <button
+                    onClick={handleDownloadCurrentDocx}
+                    disabled={isExportingDocx}
+                    className={`w-full py-2.5 px-3 font-bold rounded-lg text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer ${
+                      isDocReady && !isExportingDocx
+                        ? 'bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white'
+                        : 'bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-100 border border-slate-700'
+                    }`}
+                    title={isDocReady ? "ดาวน์โหลดแบบฟอร์มเอกสารนี้เป็นไฟล์ Word (.docx) ฉบับสมบูรณ์" : "ดาวน์โหลดแบบฟอร์มเอกสารนี้เป็นไฟล์ Word (.docx) ฉบับร่างเพื่อตรวจทาน"}
+                  >
+                    {isExportingDocx ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isDocReady ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <FileType className="w-4 h-4 text-amber-400" />
+                    )}
+                    <span>{isDocReady ? 'ดาวน์โหลด Word ฉบับสมบูรณ์ (.docx)' : 'ดาวน์โหลด Word (ร่าง) (.docx)'}</span>
+                  </button>
 
-          <button
-            onClick={() => setActiveDoc('memo_disbursement')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-              activeDoc === 'memo_disbursement'
-                ? 'bg-blue-700 text-white shadow-sm'
-                : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>3. บันทึกข้อความขออนุมัติเบิกเงินรางวัล</span>
-          </button>
+                  {/* All 5 DOCX */}
+                  <button
+                    onClick={handleDownloadAllDocx}
+                    disabled={isExportingDocx}
+                    className={`w-full py-2 px-3 font-semibold rounded-lg text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                      isDocReady && !isExportingDocx
+                        ? 'bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-amber-300 border-slate-700 shadow-sm'
+                        : 'bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 border-slate-300'
+                    }`}
+                    title={isDocReady ? "ดาวน์โหลดครบทั้ง 5 ไฟล์เป็น .docx ฉบับสมบูรณ์พร้อมกัน" : "ดาวน์โหลดครบทั้ง 5 ไฟล์เป็น .docx ฉบับร่างพร้อมกัน"}
+                  >
+                    {isDocReady ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Download className="w-3.5 h-3.5 text-slate-500" />}
+                    <span>{isDocReady ? 'โหลดครบ 5 ฟอร์ม (ฉบับสมบูรณ์)' : 'โหลดครบ 5 ฟอร์ม (ร่าง)'}</span>
+                  </button>
 
-          <button
-            onClick={() => setActiveDoc('receipt')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-              activeDoc === 'receipt'
-                ? 'bg-blue-700 text-white shadow-sm'
-                : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            <CreditCard className="w-3.5 h-3.5" />
-            <span>4. ใบสำคัญรับเงิน มหาวิทยาลัยนเรศวร</span>
-          </button>
-
-          <button
-            onClick={() => setActiveDoc('certification')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-              activeDoc === 'certification'
-                ? 'bg-blue-700 text-white shadow-sm'
-                : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            <FileCheck2 className="w-3.5 h-3.5" />
-            <span>5. ใบสำคัญรับรองจ่าย (ใบรับรองการจ่ายเงิน ข้อ 46)</span>
-          </button>
-        </div>
-
-        {/* ONLINE REVIEW & DOCUMENT NUMBERING CONTROL PANEL (No Print) */}
-        <div className="bg-slate-50 border-b border-slate-200 px-6 py-3.5 space-y-3 no-print">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-            
-            {/* Step 1: Online Review 100% Status */}
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg shrink-0 ${isOnlineReviewComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                {isOnlineReviewComplete ? <CheckCircle2 className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs sm:text-sm text-slate-800 font-prompt">
-                    ผลการตรวจบันทึกและแก้ไขออนไลน์:
-                  </span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                    isOnlineReviewComplete ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
-                  }`}>
-                    {isOnlineReviewComplete ? 'ตรวจครบ 100% แล้ว (ปลดล็อคให้ออกเลข)' : 'อยู่ระหว่างตรวจบันทึก (< 100%)'}
-                  </span>
+                  {/* Print / PDF Button */}
+                  <button
+                    onClick={handlePrint}
+                    className={`w-full py-2.5 px-3 font-extrabold rounded-lg text-xs flex items-center justify-center gap-2 shadow transition-all cursor-pointer ${
+                      isDocReady
+                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950'
+                        : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950'
+                    }`}
+                    title={isDocReady ? "สั่งพิมพ์ออกเครื่องพิมพ์ หรือเลือก 'Save as PDF' ฉบับสมบูรณ์" : "สั่งพิมพ์ออกเครื่องพิมพ์ หรือเลือก 'Save as PDF' ฉบับร่าง"}
+                  >
+                    {isDocReady ? <CheckCircle2 className="w-4 h-4 text-slate-950" /> : <Download className="w-4 h-4 text-slate-950" />}
+                    <span>{isDocReady ? 'พิมพ์ / บันทึก PDF (ฉบับสมบูรณ์)' : 'พิมพ์ / บันทึก PDF (ฉบับร่าง)'}</span>
+                  </button>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  {isOnlineReviewComplete 
-                    ? 'ปลดล็อคให้ลงเลขลำดับ (xxx) และวันที่ในหนังสือได้แล้ว กรอกเสร็จจึงจะดาวน์โหลดได้' 
-                    : 'ระบบล็อคการลงเลขลำดับและวันที่ จนกว่าจะตรวจบันทึกและแก้ไขออนไลน์จนกระทั่งครบ 100%'}
-                </p>
-              </div>
-            </div>
 
-            {/* Toggle Review Status Button */}
-            <button
-              onClick={() => setIsOnlineReviewComplete(!isOnlineReviewComplete)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                isOnlineReviewComplete
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
-              }`}
-            >
-              {isOnlineReviewComplete ? (
-                <>
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>สลับสถานะเป็นยังไม่ครบ 100%</span>
-                </>
-              ) : (
-                <>
-                  <Unlock className="w-3.5 h-3.5" />
-                  <span>กดยืนยันตรวจบันทึกครบ 100%</span>
-                </>
-              )}
-            </button>
-          </div>
+                {/* 2. สลับแท็บเอกสาร 1 - 5 (Vertical Switcher) */}
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-1">
+                  <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2 font-prompt flex items-center justify-between">
+                    <span>รายการเอกสาร (1 - 5)</span>
+                    <span className="text-[10px] text-slate-400 font-normal">คลิกเพื่อสลับดู</span>
+                  </div>
 
-          {/* Step 2: Numbering & Date Inputs */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm items-end">
-            
-            {/* Department Code: 10.xx */}
-            <div className="sm:col-span-4">
-              <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                <span>รหัสหน่วยงาน (10.xx)*</span>
-                <span className="text-[10px] text-blue-600 font-normal">ตามประกาศ ๒ ธ.ค. ๖๘ / แก้ไขได้</span>
-              </label>
-              <div className="flex items-center">
-                <span className="px-2 py-1.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
-                  อว 0603.10.
-                </span>
-                <input
-                  type="text"
-                  value={deptCode}
-                  onChange={(e) => setDeptCode(e.target.value)}
-                  placeholder="01(9)"
-                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  list="dept-code-suggestions"
-                  title="รหัสหน่วยงาน อว 0603.10.xx (เช่น 01(9) งานวิจัย, 10 ศัลยศาสตร์, 12 อายุรศาสตร์, 02 กุมารเวชฯ) อ้างอิงประกาศ ๒ ธ.ค. ๒๕๖๘"
-                />
-                <datalist id="dept-code-suggestions">
-                  {DEPARTMENT_LIST.map((d) => (
-                    <option key={d.code} value={d.code}>{d.code} - {d.name}</option>
-                  ))}
-                </datalist>
-              </div>
-            </div>
+                  {[
+                    {
+                      id: 'checklist',
+                      num: '1',
+                      title: 'แบบตรวจสอบรายการ',
+                      sub: `AWP Checklist (${trackingPrefix})`,
+                      icon: CheckSquare,
+                    },
+                    {
+                      id: 'memo_reward',
+                      num: '2',
+                      title: 'บันทึกขออนุมัติเงินรางวัล',
+                      sub: 'ถึง คณบดีคณะแพทยศาสตร์',
+                      icon: Award,
+                    },
+                    {
+                      id: 'memo_disbursement',
+                      num: '3',
+                      title: 'บันทึกขออนุมัติเบิกเงินรางวัล',
+                      sub: 'ถึง อธิการบดีมหาวิทยาลัยนเรศวร',
+                      icon: FileText,
+                    },
+                    {
+                      id: 'receipt',
+                      num: '4',
+                      title: 'ใบสำคัญรับเงิน ม.นเรศวร',
+                      sub: 'หลักฐานการรับเงินรางวัล/ค่าตีพิมพ์',
+                      icon: CreditCard,
+                    },
+                    {
+                      id: 'certification',
+                      num: '5',
+                      title: 'ใบสำคัญรับรองจ่าย (ข้อ 46)',
+                      sub: 'ใบรับรองการจ่ายเงินตามระเบียบ',
+                      icon: FileCheck2,
+                    },
+                  ].map((doc) => {
+                    const Icon = doc.icon;
+                    const isActive = activeDoc === doc.id;
+                    return (
+                      <button
+                        key={doc.id}
+                        onClick={() => setActiveDoc(doc.id as FormDocType)}
+                        className={`w-full text-left p-2.5 rounded-lg text-xs transition-all flex items-start gap-2.5 cursor-pointer border ${
+                          isActive
+                            ? 'bg-blue-50/80 border-blue-500 text-blue-950 font-bold shadow-sm'
+                            : 'bg-white border-transparent hover:bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-md mt-0.5 shrink-0 ${
+                          isActive ? 'bg-blue-700 text-white shadow-sm' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="leading-snug truncate">
+                            {doc.num}. {doc.title}
+                          </div>
+                          <div className={`text-[10px] truncate ${isActive ? 'text-blue-700 font-medium' : 'text-slate-400 font-normal'}`}>
+                            {doc.sub}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
 
-            {/* Running Number: xxx */}
-            <div className="sm:col-span-3">
-              <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                <span>เลขลำดับ (xxx)*</span>
-                {!isOnlineReviewComplete && (
-                  <span className="text-[10px] text-amber-600 flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> ล็อค
-                  </span>
-                )}
-              </label>
-              <div className="flex items-center">
-                <span className="px-2 py-1.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
-                  /
-                </span>
-                <input
-                  type="text"
-                  disabled={!isOnlineReviewComplete}
-                  value={docRunningNo}
-                  onChange={(e) => setDocRunningNo(e.target.value)}
-                  placeholder={isOnlineReviewComplete ? "เช่น 066" : "ต้องตรวจ 100% ก่อน"}
-                  className={`w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold focus:outline-none ${
+                {/* 3. ระบบออกเลขที่หนังสือ & วันที่ (Online Review & Numbering) */}
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider font-prompt">
+                      การตรวจและลงเลขที่
+                    </span>
+                    <button
+                      onClick={() => setIsOnlineReviewComplete(!isOnlineReviewComplete)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                        isOnlineReviewComplete
+                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+                      }`}
+                      title={isOnlineReviewComplete ? "สลับกลับเป็นสถานะแบบร่าง" : "ยืนยันตรวจครบ 100% หรือเจ้าหน้าที่อนุญาตให้ออกเลข"}
+                    >
+                      {isOnlineReviewComplete ? (
+                        <>
+                          <Lock className="w-3 h-3" />
+                          <span>สลับร่าง</span>
+                        </>
+                      ) : (
+                        <>
+                          <Unlock className="w-3 h-3" />
+                          <span>อนุญาต 100%</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Status Indicator */}
+                  <div className={`p-2.5 rounded-lg border text-xs flex items-start gap-2 ${
                     isOnlineReviewComplete 
-                      ? 'bg-white text-slate-900 border-blue-400 focus:ring-1 focus:ring-blue-500' 
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  }`}
-                />
-              </div>
-            </div>
+                      ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950' 
+                      : 'bg-blue-50/80 border-blue-200 text-blue-950'
+                  }`}>
+                    {isOnlineReviewComplete ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    )}
+                    <div className="text-[11px] leading-relaxed">
+                      {isOnlineReviewComplete ? (
+                        <span><strong>ตรวจครบ 100%:</strong> กรุณากรอกเลขลำดับและวันที่ แล้วกดบันทึกเพื่อออกฉบับสมบูรณ์</span>
+                      ) : (
+                        <span><strong>อยู่ระหว่างตรวจ (ฉบับร่าง):</strong> โหลดและพิมพ์ฉบับร่างได้ทันที ช่องกรอกเลขที่จะเปิดเมื่อตรวจครบ 100%</span>
+                      )}
+                    </div>
+                  </div>
 
-            {/* Official Date */}
-            <div className="sm:col-span-3">
-              <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                <span>วันที่ในหนังสือ*</span>
-                {!isOnlineReviewComplete && (
-                  <span className="text-[10px] text-amber-600 flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> ล็อค
-                  </span>
-                )}
-              </label>
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  disabled={!isOnlineReviewComplete}
-                  value={officialDocDate}
-                  onChange={(e) => setOfficialDocDate(e.target.value)}
-                  placeholder={isOnlineReviewComplete ? "เช่น 26 มกราคม 2569" : "ต้องตรวจ 100% ก่อน"}
-                  className={`w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none ${
-                    isOnlineReviewComplete 
-                      ? 'bg-white text-slate-900 border-blue-400 focus:ring-1 focus:ring-blue-500' 
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  }`}
-                />
-                {isOnlineReviewComplete && (
+                  {/* Numbering Form (Enabled if 100%) */}
+                  {isOnlineReviewComplete ? (
+                    <div className="space-y-2.5 pt-1 border-t border-slate-100">
+                      {/* Dept Code */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                          <span>รหัสหน่วยงาน (10.xx)</span>
+                          <span className="text-[10px] text-blue-600 font-normal">แก้ไขได้</span>
+                        </label>
+                        <div className="flex items-center">
+                          <span className="px-2 py-1.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
+                            อว 0603.10.
+                          </span>
+                          <input
+                            type="text"
+                            value={deptCode}
+                            onChange={(e) => setDeptCode(e.target.value)}
+                            placeholder="01(9)"
+                            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            list="dept-code-suggestions"
+                          />
+                          <datalist id="dept-code-suggestions">
+                            {DEPARTMENT_LIST.map((d) => (
+                              <option key={d.code} value={d.code}>{d.code} - {d.name}</option>
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+
+                      {/* Running No */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                          <span>เลขลำดับ (xxx)*</span>
+                          <span className="text-[10px] text-emerald-600 font-normal">จำเป็น</span>
+                        </label>
+                        <div className="flex items-center">
+                          <span className="px-2 py-1.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
+                            /
+                          </span>
+                          <input
+                            type="text"
+                            value={docRunningNo}
+                            onChange={(e) => setDocRunningNo(e.target.value)}
+                            placeholder="เช่น 066"
+                            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Official Date */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                          <span>วันที่ในหนังสือ*</span>
+                          <span className="text-[10px] text-emerald-600 font-normal">จำเป็น</span>
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={officialDocDate}
+                            onChange={(e) => setOfficialDocDate(e.target.value)}
+                            placeholder="เช่น 26 มกราคม 2569"
+                            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSetToday}
+                            className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer"
+                            title="ใส่วันที่ปัจจุบัน"
+                          >
+                            วันนี้
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Save Button */}
+                      <button
+                        type="button"
+                        onClick={handleSaveNumbering}
+                        className="w-full mt-1 px-3 py-1.5 bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>บันทึกเลขที่ & วันที่</span>
+                      </button>
+
+                      {/* Feedback message */}
+                      {saveSuccessMsg && (
+                        <div className="p-2 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
+                          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>{saveSuccessMsg}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-slate-500 font-mono bg-slate-50 p-2 rounded border border-slate-200">
+                      รหัสหน่วยงาน: {deptCode ? `อว 0603.10.${deptCode}` : 'อว 0603.10.xx'}
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. ข้อมูลสิ่งพิมพ์ในบันทึกข้อความ (Publication Details for Memo) */}
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider font-prompt">
+                      ข้อมูลสิ่งพิมพ์ในบันทึก
+                    </span>
+                    <span className="text-[10px] text-blue-600 font-normal">แก้ไข & แสดงผลทันที</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      ปีของฐานข้อมูล (Database Year)
+                    </label>
+                    <input
+                      type="text"
+                      value={databaseYear}
+                      onChange={(e) => setDatabaseYear(e.target.value)}
+                      placeholder="เช่น 2025"
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Vol (เล่มที่)
+                      </label>
+                      <input
+                        type="text"
+                        value={vol}
+                        onChange={(e) => setVol(e.target.value)}
+                        placeholder="เช่น 29 หรือ -"
+                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        No (ฉบับที่)
+                      </label>
+                      <input
+                        type="text"
+                        value={no}
+                        onChange={(e) => setNo(e.target.value)}
+                        placeholder="เช่น 1 หรือ -"
+                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Month (เดือน)
+                      </label>
+                      <input
+                        type="text"
+                        value={publishMonth}
+                        onChange={(e) => setPublishMonth(e.target.value)}
+                        placeholder="เช่น Jan หรือ -"
+                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Year (ปี ค.ศ.)
+                      </label>
+                      <input
+                        type="text"
+                        value={publishYear}
+                        onChange={(e) => setPublishYear(e.target.value)}
+                        placeholder="เช่น 2026"
+                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Pages (เลขหน้า เช่น 123-130 หรือ -)
+                    </label>
+                    <input
+                      type="text"
+                      value={pages}
+                      onChange={(e) => setPages(e.target.value)}
+                      placeholder="เช่น 123-130 หรือ -"
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                    />
+                  </div>
+
+                  {/* Quick Save button for publication fields */}
                   <button
                     type="button"
-                    onClick={handleSetToday}
-                    className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer"
-                    title="ใส่วันที่ปัจจุบัน"
+                    onClick={handleSaveNumbering}
+                    className="w-full mt-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
                   >
-                    วันนี้
+                    <Save className="w-3.5 h-3.5" />
+                    <span>บันทึกข้อมูลสิ่งพิมพ์</span>
                   </button>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* Save Button */}
-            <div className="sm:col-span-2">
+                {/* 5. คำแนะนำการพิมพ์ (Guidance Tip) */}
+                <div className="bg-amber-50/90 p-3 rounded-xl border border-amber-200/80 text-[11px] text-amber-950 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>คำแนะนำการพิมพ์ราชการ</span>
+                  </div>
+                  <p className="text-[10px] leading-relaxed text-amber-900/90">
+                    {activeDoc === 'checklist' ? (
+                      <>
+                        สำหรับแบบตรวจสอบรายการ (Checklist): ขอบกระดาษตั้งค่าเป็น <strong>ซ้าย 1.5 ซม. ขวา 1.5 ซม. บน 1.0 ซม. ล่าง 1.0 ซม.</strong> (พอดี 1 หน้ากระดาษ)
+                      </>
+                    ) : (
+                      <>
+                        ตั้งค่า Margin เป็น <strong>Default</strong> และติ๊กเลือก <strong>Background graphics</strong> เพื่อให้กั้นหน้า 3 ซม. กั้นหลัง 2 ซม. คมชัดตรงตามระเบียบสารบรรณ
+                      </>
+                    )}
+                  </p>
+                </div>
+
+              </div>
+            </aside>
+          )}
+
+          {/* ========================================================= */}
+          {/* RIGHT PREVIEW CANVAS: แสดงกระดาษ A4 พรีวิวขนาดใหญ่ 70%-100%   */}
+          {/* ========================================================= */}
+          <main className="flex-1 h-full bg-slate-300/80 p-3 sm:p-6 lg:p-8 overflow-y-auto flex flex-col items-center justify-start print:p-0 print:m-0 print:bg-white print:overflow-visible relative">
+            
+            {/* Floating button to restore sidebar when hidden */}
+            {!isSidebarOpen && (
               <button
-                type="button"
-                onClick={handleSaveNumbering}
-                className="w-full px-3 py-1.5 bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
+                onClick={() => setIsSidebarOpen(true)}
+                className="absolute top-4 left-4 z-20 bg-slate-900/95 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xl backdrop-blur flex items-center gap-1.5 transition-all no-print cursor-pointer border border-slate-700 hover:border-amber-400"
+                title="เปิดแผงควบคุมด้านซ้าย"
               >
-                <Save className="w-3.5 h-3.5" />
-                <span>บันทึกเลขที่</span>
+                <PanelLeftOpen className="w-4 h-4 text-amber-400" />
+                <span>แสดงแผงควบคุม</span>
               </button>
-            </div>
-          </div>
+            )}
 
-          {/* Feedback message */}
-          {saveSuccessMsg && (
-            <div className="p-2 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
-              <Check className="w-4 h-4 text-emerald-600" />
-              <span>{saveSuccessMsg}</span>
-            </div>
-          )}
+            {/* Dynamic @page margins based on active document */}
+            <style>{`
+              @media print {
+                @page {
+                  size: A4 portrait;
+                  margin: ${activeDoc === 'checklist' ? '10mm 15mm 10mm 15mm' : '20mm 20mm 15mm 30mm'} !important;
+                }
+                ${(activeDoc === 'memo_reward' || activeDoc === 'memo_disbursement') ? `
+                #printable-document .memo-print-page {
+                  min-height: 257mm !important;
+                  height: 257mm !important;
+                  display: flex !important;
+                  flex-direction: column !important;
+                  justify-content: space-between !important;
+                  box-sizing: border-box !important;
+                }
+                #printable-document .memo-print-page .version-footer {
+                  margin-top: auto !important;
+                  padding-top: 0 !important;
+                }
+                ` : ''}
+              }
+            `}</style>
 
-          {/* Notice Banner */}
-          {!isDocReady ? (
-            <div className="p-2.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl text-xs flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>
-                  {!isOnlineReviewComplete
-                    ? '🔒 ล็อคการดาวน์โหลด: ต้องตรวจบันทึกและแก้ไขออนไลน์จนกระทั่ง 100% จึงจะอนุญาตให้ลงเลขลำดับและวันที่ได้'
-                    : '⚠️ ล็อคการดาวน์โหลด: กรุณากรอกเลขลำดับ (xxx) และวันที่ในหนังสือให้เรียบร้อย จึงจะดาวน์โหลดมาลงชื่อได้'}
-                </span>
-              </div>
-              <span className="text-[10px] bg-amber-200/80 px-2 py-0.5 rounded font-semibold text-amber-950 shrink-0">
-                ยังไม่สามารถดาวน์โหลดได้
-              </span>
-            </div>
-          ) : (
-            <div className="p-2.5 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>
-                  ✅ ตรวจครบ 100% และลงเลขที่ <strong>อว 0603.10.{deptCode}/{docRunningNo}</strong> วันที่ <strong>{officialDocDate}</strong> เรียบร้อยแล้ว พร้อมดาวน์โหลดเพื่อลงนาม
-                </span>
-              </div>
-              <span className="text-[10px] bg-emerald-200 px-2 py-0.5 rounded font-semibold text-emerald-950 shrink-0">
-                ปลดล็อคการดาวน์โหลดแล้ว
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Guidance Tip Bar (No Print) */}
-        <div className="bg-amber-50/80 px-6 py-2 border-b border-amber-200/60 text-[11px] text-amber-900 flex items-center justify-between no-print">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>
-              💡 <strong>คำแนะนำการพิมพ์:</strong> ตั้งค่า Margin เป็น <strong>Default</strong> และติ๊กเลือก <strong>Background graphics</strong> เพื่อให้กั้นหน้า 3 ซม. กั้นหลัง 2 ซม. คมชัดตรงตามระเบียบงานสารบรรณ
-            </span>
-          </div>
-          <span className="font-mono text-slate-500 text-[10px]">A4 Portrait • กั้นหน้า 3cm กั้นหลัง 2cm • TH Sarabun PSK 16pt</span>
-        </div>
-
-        {/* Printable Paper Area */}
-        <div className="overflow-y-auto p-4 sm:p-8 bg-slate-50 print:p-0 print:m-0 print:bg-white print:overflow-visible flex-1" id="printable-document">
-          <div className="bg-white shadow-md print:shadow-none pt-[20mm] pr-[20mm] pb-[20mm] pl-[30mm] max-w-[210mm] mx-auto min-h-[297mm] print:min-h-0 print:h-auto print:max-w-none print:w-full text-black font-sarabun text-[15pt] leading-normal border border-slate-200 print:border-none print:p-0">
+            {/* Paper Preview Sheet A4 */}
+            <div 
+              id="printable-document" 
+              style={{
+                transform: zoomLevel !== 100 ? `scale(${zoomLevel / 100})` : undefined,
+                transformOrigin: 'top center',
+                transition: 'transform 0.15s ease-out'
+              }}
+              className={`bg-white shadow-2xl print:shadow-none max-w-[210mm] w-full min-h-[297mm] print:min-h-0 print:h-auto print:max-w-none print:w-full text-black font-sarabun text-[15pt] leading-normal border border-slate-300 print:border-none print:p-0 my-2 ${
+                activeDoc === 'checklist'
+                  ? 'pt-[10mm] pb-[10mm] pl-[15mm] pr-[15mm]'
+                  : 'pt-[20mm] pb-[20mm] pl-[30mm] pr-[20mm]'
+              }`}
+            >
             
             {/* ========================================================= */}
             {/* 1. CHECKLIST (แบบตรวจสอบรายการ AWP)                       */}
@@ -742,9 +1047,10 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               const isTCI2 = q.includes('TCI 2') || (application.journalScope === 'national' && q.includes('2'));
 
               return (
-                <div className="text-[11pt] leading-tight">
-                  {/* Header ตาราง 3 คอลัมน์ ขอบล่างเส้นเดี่ยว ตรงตามแม่แบบ */}
-                  <div className="grid grid-cols-12 items-center border-b border-black pb-0.5 mb-0.5">
+                <div className="checklist-print-page text-[14pt] leading-tight flex flex-col justify-between min-h-[268mm]">
+                  <div>
+                    {/* Header ตาราง 3 คอลัมน์ ขอบล่างเส้นเดี่ยว ตรงตามแม่แบบ */}
+                  <div className="grid grid-cols-12 items-center border-b border-black pb-1 mb-1.5">
                     {/* Col 1: Logo */}
                     <div className="col-span-2 flex justify-center items-center">
                       <img 
@@ -753,58 +1059,58 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         className="w-16 h-16 object-contain"
                       />
                     </div>
-                    {/* Col 2: Title ตัดเป็น 3 บรรทัด ตัวหนา 13pt ไม่ขีดเส้นใต้ */}
-                    <div className="col-span-7 flex flex-col justify-center items-center text-center font-bold px-1 text-[13pt] leading-tight">
+                    {/* Col 2: Title ตัดเป็น 3 บรรทัด ตัวหนา 14pt ไม่ขีดเส้นใต้ จัดกึ่งกลาง */}
+                    <div className="col-span-8 flex flex-col justify-center items-center text-center font-bold px-1 text-[14pt] leading-snug">
                       <div>แบบตรวจสอบรายการขอรับทุนสนับสนุนค่าตีพิมพ์</div>
                       <div>รางวัลตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติและระดับชาติ</div>
                       <div>คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</div>
                     </div>
                     {/* Col 3: Tracking No. ตัวหนา ในกล่องข้อความพอดีกับข้อความ */}
-                    <div className="col-span-3 flex justify-center items-center">
-                      <div className="border border-black px-1.5 py-0.5 font-bold text-[11pt] tracking-wide inline-block">
+                    <div className="col-span-2 flex justify-center items-center">
+                      <div className="border border-black px-2 py-0.5 font-bold text-[12pt] tracking-wide inline-block">
                         {application.trackingNo}
                       </div>
                     </div>
                   </div>
 
                   {/* ตาราง 1: หัวข้อ และ รายละเอียด */}
-                  <table className="w-full border-collapse border border-black text-[11pt] mb-0.5">
+                  <table className="w-full border-collapse border border-black text-[13pt] mb-1">
                     <tbody>
                       <tr className="font-bold bg-slate-50/50">
-                        <td className="border border-black px-1.5 py-0 text-center w-[25%]">หัวข้อ</td>
-                        <td className="border border-black px-1.5 py-0 text-center" colSpan={2}>รายละเอียด</td>
+                        <td className="border border-black px-2 py-0.5 text-center w-[25%]">หัวข้อ</td>
+                        <td className="border border-black px-2 py-0.5 text-center" colSpan={2}>รายละเอียด</td>
                       </tr>
                       <tr>
-                        <td className="border border-black px-1.5 py-0 font-bold">1. ชื่อผู้ขอรับทุน</td>
-                        <td className="border border-black px-1.5 py-0" colSpan={2}>{application.applicantName}</td>
+                        <td className="border border-black px-2 py-0.5 font-bold">1. ชื่อผู้ขอรับทุน</td>
+                        <td className="border border-black px-2 py-0.5" colSpan={2}>{application.applicantName}</td>
                       </tr>
                       <tr>
-                        <td className="border border-black px-1.5 py-0 font-bold">&nbsp;&nbsp;&nbsp;&nbsp;หน่วยงานที่สังกัด</td>
-                        <td className="border border-black px-1.5 py-0" colSpan={2}>{application.department} คณะแพทยศาสตร์</td>
+                        <td className="border border-black px-2 py-0.5 font-bold">&nbsp;&nbsp;&nbsp;&nbsp;หน่วยงานที่สังกัด</td>
+                        <td className="border border-black px-2 py-0.5" colSpan={2}>{application.department} คณะแพทยศาสตร์</td>
                       </tr>
                       <tr>
-                        <td className="border border-black px-1.5 py-0 font-bold">2. ประเภททุนสนับสนุน</td>
-                        <td className="border border-black px-1.5 py-0" colSpan={2}>
+                        <td className="border border-black px-2 py-0.5 font-bold">2. ประเภททุนสนับสนุน</td>
+                        <td className="border border-black px-2 py-0.5" colSpan={2}>
                           {isReward && <span className="mr-4">☑ รางวัลตีพิมพ์</span>}
                           {isPage && <span>☑ ค่าตีพิมพ์</span>}
                           {!isReward && !isPage && <span>-</span>}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black px-1.5 py-0 font-bold">3. ชื่อบทความ</td>
-                        <td className="border border-black px-1.5 py-0 italic" colSpan={2}>{application.articleTitle}</td>
+                        <td className="border border-black px-2 py-0.5 font-bold">3. ชื่อบทความ</td>
+                        <td className="border border-black px-2 py-0.5 italic" colSpan={2}>{application.articleTitle}</td>
                       </tr>
                       <tr>
-                        <td className="border border-black px-1.5 py-0 font-bold">&nbsp;&nbsp;&nbsp;&nbsp;ประเภทบทความ</td>
-                        <td className="border border-black px-1.5 py-0" colSpan={2}>
+                        <td className="border border-black px-2 py-0.5 font-bold">&nbsp;&nbsp;&nbsp;&nbsp;ประเภทบทความ</td>
+                        <td className="border border-black px-2 py-0.5" colSpan={2}>
                           {isResearch && <div>☑ 1) บทความวิชาการ (Research Article, Review Article, หรือ Guidelines)</div>}
                           {isOther && <div>☑ 2) บทความวิชาการอื่น ๆ (เช่น Case report, Case series, Clinical picture, Clinical note, Technical note)</div>}
                           {!isResearch && !isOther && <div>-</div>}
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black px-1.5 py-0 font-bold">4. การมีส่วนร่วม</td>
-                        <td className="border border-black px-1.5 py-0" colSpan={2}>
+                        <td className="border border-black px-2 py-0.5 font-bold">4. การมีส่วนร่วม</td>
+                        <td className="border border-black px-2 py-0.5" colSpan={2}>
                           {isFirst && <div>☑ 1) ผู้เขียนชื่อแรก (First Author)</div>}
                           {isCorr && <div>☑ 1) ผู้เขียนชื่อหลัก (Corresponding Author)</div>}
                           {isCo && <div>☑ 2) ผู้ร่วมเขียน (Co-author)</div>}
@@ -812,12 +1118,12 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black px-1.5 py-0 font-bold">5. ชื่อวารสาร</td>
-                        <td className="border border-black px-1.5 py-0" colSpan={2}>{application.journalName}</td>
+                        <td className="border border-black px-2 py-0.5 font-bold">5. ชื่อวารสาร</td>
+                        <td className="border border-black px-2 py-0.5" colSpan={2}>{application.journalName}</td>
                       </tr>
                       <tr>
-                        <td className="border border-black px-1.5 py-0 font-bold">6. ประเภทฐานข้อมูล</td>
-                        <td className="border border-black px-1.5 py-0" colSpan={2}>
+                        <td className="border border-black px-2 py-0.5 font-bold">6. ประเภทฐานข้อมูล</td>
+                        <td className="border border-black px-2 py-0.5" colSpan={2}>
                           {application.journalScope === 'national' ? (
                             <div>
                               <span className="font-bold mr-2">ระดับชาติ</span>
@@ -840,7 +1146,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-black px-1.5 py-0" colSpan={3}>
+                        <td className="border border-black px-2 py-0.5" colSpan={3}>
                           7. บทความที่ขอรับรางวัลตีพิมพ์เผยแพร่แล้ว ไม่เกิน 24 เดือน และไม่เป็นส่วนหนึ่งในการขอจบการศึกษาเพื่อปริญญา
                         </td>
                       </tr>
@@ -848,31 +1154,32 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                   </table>
 
                   {/* Header ตาราง 2 */}
-                  <div className="font-bold text-[11pt] mb-0.5 pl-1">
+                  <div className="font-bold text-[13pt] mb-0.5 pl-1">
                     เอกสารประกอบการรับทุนสนับสนุนค่าตีพิมพ์/เบิกเงินรางวัลตีพิมพ์
                   </div>
 
-                  {/* ตาราง 2: รายการ 13 ข้อ + ลายเซ็นขวามือ */}
-                  <table className="w-full border-collapse border border-black text-[11pt] mb-0.5">
+                  {/* ตาราง 2: รายการ 13 ข้อ + ลายเซ็นขวามือ ชิดด้านล่าง */}
+                  <table className="w-full border-collapse border border-black text-[12pt] mb-1">
                     <thead>
                       <tr className="font-bold bg-slate-50/50">
-                        <th className="border border-black px-1 py-0 text-center" colSpan={2}>รายการ</th>
-                        <th className="border border-black w-[12%] px-0.5 py-0 text-center leading-tight text-[10pt]">/ = มี<br />X = ไม่มี</th>
-                        <th className="w-[22%] border-t-0 border-r-0 border-b-0"></th>
+                        <th className="border border-black px-1.5 py-0.5 text-center" colSpan={2}>รายการ</th>
+                        <th className="border border-black px-1 py-0.5 text-center leading-tight text-[11pt]" colSpan={2}>
+                          / = มี&nbsp;&nbsp;&nbsp;&nbsp;X = ไม่มี
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {/* แถวที่ 1 (เงินรางวัล ข้อ 1) */}
                       <tr>
-                        <td className="border border-black px-0.5 py-0 text-center font-bold align-middle w-[10%]" rowSpan={9}>
+                        <td className="border border-black px-1 py-0.5 text-center font-bold align-middle w-[10%]" rowSpan={9}>
                           เงินรางวัล
                         </td>
-                        <td className="border border-black px-1.5 py-0 w-[58%]">1. บันทึกข้อความขอรับทุนสนับสนุนค่าตีพิมพ์ รางวัลตีพิมพ์</td>
-                        <td className="border border-black px-0.5 py-0 text-center font-bold w-[12%]">
+                        <td className="border border-black px-2 py-0.5 w-[56%]">1. บันทึกข้อความขอรับทุนสนับสนุนค่าตีพิมพ์ รางวัลตีพิมพ์</td>
+                        <td className="border border-black px-1 py-0.5 text-center font-bold w-[12%]">
                           {isReward ? '/' : 'X'}
                         </td>
-                        <td className="border-0 px-1 py-0.5 text-center align-top w-[22%]" rowSpan={13}>
-                          <div className="pt-0.5 text-[10pt] leading-relaxed">
+                        <td className="border-0 px-2 py-1 text-center align-bottom w-[24%]" rowSpan={13}>
+                          <div className="text-[11pt] leading-relaxed pb-1">
                             <div>....................................................</div>
                             <div>({application.applicantName})</div>
                             <div className="font-bold">ผู้ขอรับทุน/รางวัลตีพิมพ์</div>
@@ -893,8 +1200,8 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         '9. สำเนาประกาศหลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์',
                       ].map((item, idx) => (
                         <tr key={idx + 2}>
-                          <td className="border border-black px-1.5 py-0">{item}</td>
-                          <td className="border border-black px-0.5 py-0 text-center font-bold">
+                          <td className="border border-black px-2 py-0.5">{item}</td>
+                          <td className="border border-black px-1 py-0.5 text-center font-bold">
                             {isReward ? '/' : 'X'}
                           </td>
                         </tr>
@@ -905,16 +1212,16 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         '10. เอกสารแสดงการตอบรับตีพิมพ์จากวารสาร',
                         '11. ใบเรียกเก็บเงินค่าตีพิมพ์จากวารสารที่ระบุข้อมูลเชื่อมโยงกับหลักฐานในข้อ 10.',
                         '12. หลักฐานการจ่ายเงินหรือใบเสร็จรับเงินสกุลเงินบาท',
-                        '13. ใบรับรองการจ่ายเงินค่า page change',
+                        '13. ใบรับรองการจ่ายเงินค่า page charge',
                       ].map((item, idx) => (
                         <tr key={idx + 10}>
                           {idx === 0 && (
-                            <td className="border border-black px-0.5 py-0 text-center font-bold align-middle w-[10%]" rowSpan={4}>
+                            <td className="border border-black px-1 py-0.5 text-center font-bold align-middle w-[10%]" rowSpan={4}>
                               ค่าตีพิมพ์
                             </td>
                           )}
-                          <td className="border border-black px-1.5 py-0">{item}</td>
-                          <td className="border border-black px-0.5 py-0 text-center font-bold">
+                          <td className="border border-black px-2 py-0.5">{item}</td>
+                          <td className="border border-black px-1 py-0.5 text-center font-bold">
                             {isPage ? '/' : 'X'}
                           </td>
                         </tr>
@@ -922,25 +1229,26 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     </tbody>
                   </table>
 
-                  {/* ท้ายหน้า: ข้อความรับรอง (10 เคาะ ช่องไฟปกติ ไม่ใช้ justify) + ลายเซ็นผู้ประสานงาน */}
-                  <div className="text-[11pt] leading-snug space-y-0">
-                    <div>
+                  {/* ท้ายหน้า: ข้อความรับรอง (10 เคาะ เต็มบรรทัดไม่ถ่าง) + ลายเซ็นผู้ประสานงาน จัดกึ่งกลางชิดขวา */}
+                  <div className="text-[12pt] leading-normal space-y-1">
+                    <div className="text-justify [text-align-last:left] break-words">
                       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ตรวจสอบความถูกต้องครบถ้วนของเอกสารตามเกณฑ์การรับทุนสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติและระดับชาติ คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร และปรับปรุงข้อมูลในฐานข้อมูลเรียบร้อยแล้ว
                     </div>
-                    <div className="flex justify-end pr-4">
-                      <div className="text-center text-[10pt] leading-relaxed">
+                    <div className="flex justify-end pr-2 pt-0.5">
+                      <div className="text-center text-[11pt] leading-relaxed">
                         <div>.............................................................. ผู้ประสานงาน</div>
                         <div>(..........…….…………………………………………)</div>
                         <div>วันที่ ....................................................</div>
                       </div>
                     </div>
+                  </div>
+                </div>
 
-                    {/* ข้อความหมายเหตุ 3 บรรทัด */}
-                    <div className="text-[8pt] text-slate-700 leading-tight pt-0.5 border-t border-slate-300 space-y-0">
-                      <div>* ประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ (ประกาศ ณ วันที่ 27 พฤษภาคม 2567)</div>
-                      <div>** ปรับปรุงล่าสุด Version3.10 / 10 ก.ย. 69</div>
-                      <div>*** สำหรับตรวจเช็คความครบถ้วนของเอกสารและความถูกต้องของข้อมูลเท่านั้น</div>
-                    </div>
+                {/* ข้อความหมายเหตุ 3 บรรทัด ใส่ในท้ายกระดาษ ชิดซ้าย */}
+                <div className="checklist-remarks text-[9.5pt] text-slate-700 leading-tight pt-1 border-t border-slate-300 space-y-0.5 text-left mt-auto">
+                    <div>* ประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ (ประกาศ ณ วันที่ 27 พฤษภาคม 2567)</div>
+                    <div>** ปรับปรุงล่าสุด Version3.10 / 10 ก.ย. 69</div>
+                    <div>*** สำหรับตรวจเช็คความครบถ้วนของเอกสารและความถูกต้องของข้อมูลเท่านั้น</div>
                   </div>
                 </div>
               );
@@ -963,7 +1271,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               const articleTypeText = application.articleType === 'research_article' ? '1)Research Article' : '2)บทความวิชาการอื่นๆ';
 
               return (
-                <div className="text-[15pt] leading-[1.2] text-black tracking-normal flex flex-col justify-between min-h-[225mm] print:min-h-0 print:block">
+                <div className="memo-print-page text-[15pt] leading-[1.2] text-black tracking-normal flex flex-col justify-between min-h-[257mm]">
                   <div>
                     {/* Header: Garuda 1.5 cm left, บันทึกข้อความ 28pt bold center across page */}
                     <div className="grid grid-cols-12 items-end mb-1.5">
@@ -1033,11 +1341,11 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       </div>
                       <div>
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">ชื่อวารสาร : </span>
-                        <span>{application.journalName} จากฐานข้อมูล {application.database || 'Scopus'} จัดอยู่ใน Quartile {application.quartile || '-'}</span>
+                        <span>{formatJournalDatabaseQuartile(appWithDocDetails)}</span>
                       </div>
                       <div>
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="font-bold">วัน/เดือน/ปีที่พิมพ์ : </span>
-                        <span>{application.volumeIssue || 'Vol...... No...... Month.......... Year..........'}</span>
+                        <span>{formatPublicationVolumeIssue(appWithDocDetails)}</span>
                       </div>
                       {application.doi && (
                         <div>
@@ -1083,7 +1391,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       <div className="text-center leading-snug">
                         <div>ลงชื่อ.............................................................</div>
                         <div>({application.applicantName})</div>
-                        <div>ผู้ขอรับรางวัล</div>
+                        <div>{getApplicantSignRoleTitle(appWithDocDetails)}</div>
                       </div>
                     </div>
 
@@ -1133,7 +1441,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               const formattedDate = formatThaiDateOfficial(application.createdAt);
 
               return (
-                <div className="text-[15pt] leading-[1.2] text-black tracking-normal flex flex-col justify-between min-h-[225mm] print:min-h-0 print:block">
+                <div className="memo-print-page text-[15.5pt] text-black tracking-normal flex flex-col justify-between min-h-[257mm]">
                   <div>
                     {/* Header: Garuda 1.5 cm left, บันทึกข้อความ 28pt bold center across page */}
                     <div className="grid grid-cols-12 items-end mb-1.5">
@@ -1190,13 +1498,13 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       เรียน&nbsp;&nbsp;&nbsp;คณบดีคณะแพทยศาสตร์
                     </div>
 
-                    {/* Reference text (เคาะ 10, space before = 0/ after = 0) */}
-                    <p className="text-left break-words my-0 py-0" style={{ marginTop: 0, marginBottom: 0 }}>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ตามที่ ข้าพเจ้า {application.applicantName} ตำแหน่ง {application.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา{application.department || ''} คณะแพทยศาสตร์ ได้ยื่นเรื่อง {memoApprovalSubject} บทความวิจัยเรื่อง “{application.articleTitle}” นั้น
+                    {/* Reference text (อ้างถึงหนังสือคณะแพทยศาสตร์... เคาะ 10, space before = 0/ after = 0, ระยะบรรทัด 1.25 เพื่อไม่ให้อึดอัด) */}
+                    <p className="text-left break-words my-0 py-0 leading-[1.25]" style={{ marginTop: 0, marginBottom: 0 }}>
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;อ้างถึงหนังสือคณะแพทยศาสตร์ ที่ {previewDocNo} ลงวันที่ {previewDate} เรื่อง {memoApprovalSubject} บทความวิจัยเรื่อง “{application.articleTitle}” นั้น
                     </p>
 
-                    {/* Request details (เคาะ 10, space before = 0/ after = 0) */}
-                    <p className="text-left break-words my-0 py-0" style={{ marginTop: 0, marginBottom: 0 }}>
+                    {/* Request details (เคาะ 10, space before = 0/ after = 0, ระยะบรรทัด 1.25 เพื่อไม่ให้อึดอัด) */}
+                    <p className="text-left break-words my-0 py-0 leading-[1.25]" style={{ marginTop: 0, marginBottom: 0 }}>
                       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ในการนี้ ข้าพเจ้าจึงขออนุมัติเบิกเงิน{isPage ? `ค่าตีพิมพ์ตามเกณฑ์ข้อ 9 จำนวนเงิน ${formatCurrencyBaht(pageChargeAmount)} (${bahtText(pageChargeAmount)}) ` : ''}{isReward && isPage ? 'และ' : ''}{isReward ? `รางวัลตีพิมพ์ตามเกณฑ์ข้อ 8 เงินรางวัล ${formatCurrencyBaht(rewardAmount)} (${bahtText(rewardAmount)})` : ''} รวมเป็นเงินทั้งสิ้น {formatCurrencyBaht(totalAmount)} ({bahtText(totalAmount)}) รายละเอียดตามเอกสารแนบท้าย
                     </p>
 
@@ -1209,16 +1517,16 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     {/* หมายเหตุ: ตัดข้อความส่วนของหัวหน้างานวิจัยและรองคณบดีออก 100% ตามที่ผู้ใช้ร้องขอ */}
                     <div className="grid grid-cols-2 avoid-break" style={{ marginTop: '6pt', marginBottom: '6pt' }}>
                       <div></div>
-                      <div className="text-center leading-snug">
+                      <div className="text-center leading-snug space-y-1">
                         <div>ลงชื่อ.............................................................</div>
                         <div>({application.applicantName})</div>
-                        <div>ผู้ขอรับรางวัล</div>
+                        <div>{getApplicantSignRoleTitle(appWithDocDetails)}</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Version Footer (ท้ายกระดาษชิดกั้นหลัง) */}
-                  <div className="version-footer mt-auto pt-1 text-right text-[9pt] text-slate-500 print:mt-2">
+                  <div className="version-footer mt-auto pt-1 text-right text-[9pt] text-slate-500">
                     Version 4.0.0.25Sep2026
                   </div>
                 </div>
@@ -1227,138 +1535,213 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
 
 
             {/* ========================================================= */}
-            {/* 4. ใบสำคัญรับเงิน มหาวิทยาลัยนเรศวร (ตามแบบฟอร์ม 4)       */}
+            {/* 4. ใบสำคัญรับเงิน มหาวิทยาลัยนเรศวร (ตามแบบฟอร์ม 4 & media_1790149942514.png) */}
             {/* ========================================================= */}
             {activeDoc === 'receipt' && (
-              <div className="space-y-4 text-justify leading-relaxed">
-                <div className="text-center space-y-1">
-                  <div className="font-bold text-xl sm:text-2xl">ใบสำคัญรับเงิน</div>
-                  <div className="font-bold text-lg">มหาวิทยาลัยนเรศวร</div>
-                  <div className="text-right text-sm pt-2">
-                    วันที่............เดือน................................พ.ศ. {application.fiscalYear}
+              <div className="space-y-3 leading-relaxed text-[15pt]">
+                <div className="text-center space-y-0.5">
+                  <div className="font-bold text-2xl">ใบสำคัญรับเงิน</div>
+                  <div className="font-bold text-lg text-right">มหาวิทยาลัยนเรศวร</div>
+                  <div className="text-right text-[15pt]">
+                    วันที่............เดือน................................พ.ศ. .........
                   </div>
                 </div>
 
-                <div className="indent-8 text-base leading-relaxed pt-2">
-                  ข้าพเจ้า <strong>{application.applicantName}</strong> ตำแหน่ง {application.academicPosition || 'อาจารย์'} ที่อยู่ คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร ตำบลท่าโพธิ์ อำเภอเมือง จังหวัดพิษณุโลก ได้รับเงินจากมหาวิทยาลัยนเรศวร ดังรายการต่อไปนี้
+                <div className="text-left break-words leading-relaxed pt-1">
+                  ข้าพเจ้า <span className="font-bold">{application.applicantName}</span> ที่อยู่คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร
+                  <br />
+                  ตำบล ท่าโพธิ์&nbsp;&nbsp;อำเภอ เมือง&nbsp;&nbsp;จังหวัด พิษณุโลก
+                  <br />
+                  ได้รับเงินจากมหาวิทยาลัยนเรศวร ดังรายการต่อไปนี้
                 </div>
 
-                <table className="w-full border border-black border-collapse text-xs sm:text-sm mt-3">
+                <table className="w-full border border-black border-collapse text-[14pt] mt-2">
                   <thead>
-                    <tr className="bg-slate-100 font-bold">
-                      <th className="border border-black p-2 text-center w-12">ที่</th>
-                      <th className="border border-black p-2 text-left">รายการ</th>
-                      <th className="border border-black p-2 text-center w-20">จำนวน</th>
-                      <th className="border border-black p-2 text-right w-28">หน่วยละ</th>
-                      <th className="border border-black p-2 text-right w-28">จำนวนเงิน</th>
+                    <tr className="bg-slate-50/50 font-bold">
+                      <th className="border border-black p-1 text-center w-12">ที่</th>
+                      <th className="border border-black p-1 text-center">รายการ</th>
+                      <th className="border border-black p-1 text-center w-20">จำนวน</th>
+                      <th className="border border-black p-1 text-center w-28">หน่วยละ</th>
+                      <th className="border border-black p-1 text-center w-28">จำนวนเงิน</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pageChargeAmount > 0 && (
                       <tr>
-                        <td className="border border-black p-2 text-center">1</td>
-                        <td className="border border-black p-2">
-                          เงินสนับสนุนค่าตีพิมพ์บทความ เรื่อง {application.articleTitle}
+                        <td className="border-l border-r border-black px-2 py-1.5 text-center align-top">1</td>
+                        <td className="border-r border-black px-4 py-1.5 align-top">
+                          <div>เงินสนับสนุนค่าตีพิมพ์บทความ</div>
+                          <div>เรื่อง {application.articleTitle}</div>
                         </td>
-                        <td className="border border-black p-2 text-center">1</td>
-                        <td className="border border-black p-2 text-right">{formatAmountDisplay(pageChargeAmount)}</td>
-                        <td className="border border-black p-2 text-right">{formatAmountDisplay(pageChargeAmount)}</td>
+                        <td className="border-r border-black px-2 py-1.5 text-center align-top">1</td>
+                        <td className="border-r border-black px-3 py-1.5 text-right align-top">{formatAmountDisplay(pageChargeAmount)}</td>
+                        <td className="border-r border-black px-3 py-1.5 text-right align-top">{formatAmountDisplay(pageChargeAmount)}</td>
                       </tr>
                     )}
                     {rewardAmount > 0 && (
                       <tr>
-                        <td className="border border-black p-2 text-center">{pageChargeAmount > 0 ? 2 : 1}</td>
-                        <td className="border border-black p-2">
-                          เงินรางวัลตีพิมพ์บทความ เรื่อง {application.articleTitle} ({application.journalName})
+                        <td className="border-l border-r border-black px-2 py-1.5 text-center align-top">{pageChargeAmount > 0 ? 2 : 1}</td>
+                        <td className="border-r border-black px-4 py-1.5 align-top">
+                          <div>เงินรางวัลตีพิมพ์บทความ</div>
+                          <div>เรื่อง {application.articleTitle}</div>
                         </td>
-                        <td className="border border-black p-2 text-center">1</td>
-                        <td className="border border-black p-2 text-right">{formatAmountDisplay(rewardAmount)}</td>
-                        <td className="border border-black p-2 text-right">{formatAmountDisplay(rewardAmount)}</td>
+                        <td className="border-r border-black px-2 py-1.5 text-center align-top">1</td>
+                        <td className="border-r border-black px-3 py-1.5 text-right align-top">{formatAmountDisplay(rewardAmount)}</td>
+                        <td className="border-r border-black px-3 py-1.5 text-right align-top">{formatAmountDisplay(rewardAmount)}</td>
                       </tr>
                     )}
-                    <tr className="bg-slate-50 font-bold">
-                      <td colSpan={4} className="border border-black p-2 text-right">รวมเงินทั้งสิ้น</td>
-                      <td className="border border-black p-2 text-right font-mono">{formatAmountDisplay(totalAmount)}</td>
+                    {/* แถวว่าง 5 แถว ต่อจากรายการสุดท้ายก่อนแถวสรุปรวมเงิน เพื่อรักษาความสูงตาราง (มีเส้นแนวตั้ง ไม่มีเส้นแนวนอน) */}
+                    {[1, 2, 3, 4, 5].map((idx) => (
+                      <tr key={`empty-row-${idx}`} className="h-6">
+                        <td className="border-l border-r border-black px-2 py-1">&nbsp;</td>
+                        <td className="border-r border-black px-4 py-1">&nbsp;</td>
+                        <td className="border-r border-black px-2 py-1">&nbsp;</td>
+                        <td className="border-r border-black px-3 py-1">&nbsp;</td>
+                        <td className="border-r border-black px-3 py-1">&nbsp;</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-slate-50/50 font-bold">
+                      <td colSpan={4} className="border-t border-b border-l border-r border-black px-3 py-1 text-center">รวม</td>
+                      <td className="border-t border-b border-r border-black px-3 py-1 text-right">{formatAmountDisplay(totalAmount)}</td>
                     </tr>
                   </tbody>
                 </table>
 
-                <div className="font-bold text-right pt-2 text-base">
-                  จำนวนเงิน (ตัวอักษร): {bahtText(totalAmount)}
+                <div className="font-normal text-left pt-1 text-[15pt]">
+                  จำนวนเงิน&nbsp;&nbsp;<span className="font-bold">{bahtText(totalAmount)}</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-8 pt-10 text-center avoid-break">
-                  <div>
-                    <div>ลงชื่อ..........................................................ผู้รับเงิน</div>
-                    <div className="font-semibold mt-1">({application.applicantName})</div>
-                    <div className="text-xs text-slate-600">ผู้ขอรับทุน / รางวัล</div>
-                  </div>
-
-                  <div>
-                    <div>ลงชื่อ..........................................................ผู้จ่ายเงิน</div>
-                    <div className="font-semibold mt-1">(หน่วยการเงินและบัญชี คณะแพทยศาสตร์)</div>
-                    <div className="text-xs text-slate-600">ผู้จ่ายเงิน</div>
+                {/* ส่วนลงนาม 2 ฝ่าย จัดกึ่งกลางชิดขวา */}
+                <div className="flex justify-end pt-6 avoid-break">
+                  <div className="w-80 text-center space-y-6 text-[14pt]">
+                    <div>
+                      <div>ลงชื่อ..........................................................ผู้รับเงิน</div>
+                      <div className="mt-1">({application.applicantName})</div>
+                    </div>
+                    <div>
+                      <div>ลงชื่อ..........................................................ผู้จ่ายเงิน</div>
+                      <div className="mt-1">(........................................................)</div>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
             {/* ========================================================= */}
-            {/* 5. ใบสำคัญรับรองจ่าย (ใบรับรองการจ่ายเงิน ข้อ 46)        */}
+            {/* 5. ใบสำคัญรับรองจ่าย (ใบรับรองการจ่ายเงิน ข้อ 46 & media_1790149973030.png) */}
             {/* ========================================================= */}
-            {activeDoc === 'certification' && (
-              <div className="space-y-4 text-justify leading-relaxed">
-                <div className="text-center space-y-1">
-                  <div className="font-bold text-xl sm:text-2xl">ใบรับรองการจ่ายเงิน</div>
-                  <div className="font-bold text-lg">ส่วนราชการ มหาวิทยาลัยนเรศวร</div>
-                  <div className="text-xs text-slate-600">(ตามระเบียบกระทรวงการคลัง ว่าด้วยการเบิกเงินจากคลังฯ พ.ศ. 2562 ข้อ 46)</div>
+            {activeDoc === 'certification' && (() => {
+              const certAmt = application.claimedPageChargeAmount || application.approvedPageChargeAmount || pageChargeAmount || 0;
+              const isOver70k = certAmt > 70000;
+              const part1 = Math.min(certAmt, 30000);
+              const part2 = Math.min(Math.max(0, certAmt - 30000), 40000);
+              const bahtPart = Math.floor(certAmt).toLocaleString('th-TH');
+              const satangNum = Math.round((certAmt % 1) * 100);
+              const satangPart = satangNum === 0 ? '-' : satangNum.toString().padStart(2, '0');
+              const paidDateShort = formatThaiDateShort(application.pageChargePaidDate || application.publishedDate || application.createdAt) || '29 ต.ค. 68';
+
+              return (
+                <div className="space-y-3 leading-relaxed text-[15pt]">
+                  <div className="text-center space-y-0.5">
+                    <div className="font-bold text-2xl">ใบรับรองการจ่ายเงิน</div>
+                    <div className="font-bold text-lg">ส่วนราชการ มหาวิทยาลัยนเรศวร</div>
+                  </div>
+
+                  <table className="w-full border border-black border-collapse text-[13.5pt] mt-2">
+                    <thead>
+                      <tr className="bg-slate-50/50 font-bold">
+                        <th className="border border-black p-1 text-center w-[18%]">วัน เดือน ปี</th>
+                        <th className="border border-black p-1 text-center w-[52%]">รายละเอียดการจ่าย</th>
+                        <th className="border border-black p-1 text-center w-[20%]" colSpan={2}>จำนวนเงิน</th>
+                        <th className="border border-black p-1 text-center w-[10%]">หมายเหตุ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="border border-black p-2 text-center align-top font-sarabun">
+                          {paidDateShort}
+                        </td>
+                        <td className="border border-black p-2 align-top text-left break-words">
+                          <div className="font-medium">ค่าตีพิมพ์ เรื่อง {application.articleTitle}</div>
+                          
+                          {/* รายละเอียดการแบ่งจ่ายตามเงื่อนไข เกิน 70,000 หรือ ไม่เกิน 70,000 */}
+                          <div className="mt-3 space-y-1 text-[12.5pt]">
+                            {isOver70k ? (
+                              <>
+                                <div className="font-semibold text-slate-900">
+                                  ขอเบิกจ่ายเพียง 70,000.00 (เจ็ดหมื่นบาทถ้วน)
+                                </div>
+                                <div className="leading-snug">
+                                  - ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน 30,000.00 (สามหมื่นบาทถ้วน)
+                                </div>
+                                <div className="leading-snug">
+                                  - ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน 40,000.00 (สี่หมื่นบาทถ้วน)
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="leading-snug">
+                                  - ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน {formatAmountDisplay(part1)} ({bahtText(part1)})
+                                </div>
+                                {part2 > 0 && (
+                                  <div className="leading-snug">
+                                    - ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน {formatAmountDisplay(part2)} ({bahtText(part2)})
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="border border-black p-2 text-right align-top w-[14%] font-mono">
+                          {bahtPart}
+                        </td>
+                        <td className="border border-black p-2 text-center align-top w-[6%] font-mono">
+                          {satangPart}
+                        </td>
+                        <td className="border border-black p-2 text-center align-top">
+                          {/* หมายเหตุ: ไม่ต้องระบุ จ่ายจริง (เว้นว่างไว้) */}
+                        </td>
+                      </tr>
+                      <tr className="bg-slate-50/50 font-bold">
+                        <td colSpan={2} className="border border-black p-1 text-center">
+                          รวมทั้งสิ้น
+                        </td>
+                        <td className="border border-black p-1 text-right font-mono">
+                          {bahtPart}
+                        </td>
+                        <td className="border border-black p-1 text-center font-mono">
+                          {satangPart}
+                        </td>
+                        <td className="border border-black p-1"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div className="font-normal text-left pt-1 text-[15pt]">
+                    รวมทั้งสิ้น (ตัวอักษร)&nbsp;&nbsp;&nbsp;<span className="font-bold underline">{bahtText(certAmt)}</span>
+                  </div>
+
+                  {/* ข้อความรับรองตามระเบียบกระทรวงการคลัง (ช่องไฟปกติ ไม่ใช้ justify) */}
+                  <div className="pt-3 text-left break-words leading-relaxed text-[15pt]">
+                    ข้าพเจ้า <span className="font-bold underline">{application.applicantName}</span>&nbsp;&nbsp;ตำแหน่ง&nbsp;&nbsp;<span className="underline">{application.academicPosition || 'อาจารย์แพทย์'}</span>
+                    <br />
+                    สังกัด <span className="underline">{application.department} คณะแพทยศาสตร์</span> ขอรับรองว่า รายจ่ายข้างต้นนี้ ข้าพเจ้าได้จ่ายเงินไปโดยได้รับใบเสร็จรับเงินซึ่งมีรายการไม่ครบถ้วนตามหลักฐานการจ่ายเงินในข้อ 46 หรือซึ่งตามลักษณะไม่อาจเรียกใบเสร็จรับเงินจากผู้รับเงินได้ ซึ่งเป็นไปตามระเบียบกระทรวงการคลัง ว่าด้วยการเบิกเงินจากคลัง การรับเงิน การจ่ายเงิน การเก็บรักษาเงิน และการนำเงินส่งคลัง พ.ศ. 2562
+                  </div>
+
+                  {/* ส่วนลงนาม จัดกึ่งกลางชิดขวา */}
+                  <div className="flex justify-end pt-6 avoid-break">
+                    <div className="w-80 text-center space-y-2 text-[14pt]">
+                      <div>(ลงชื่อ).......................................................................</div>
+                      <div>({application.applicantName})</div>
+                      <div>วันที่ ...................................................................</div>
+                    </div>
+                  </div>
                 </div>
+              );
+            })()}
 
-                <table className="w-full border border-black border-collapse text-xs sm:text-sm mt-3">
-                  <thead>
-                    <tr className="bg-slate-100 font-bold">
-                      <th className="border border-black p-2 text-center w-28">วัน เดือน ปี</th>
-                      <th className="border border-black p-2 text-left">รายละเอียดการจ่าย</th>
-                      <th className="border border-black p-2 text-right w-28">จำนวนเงิน</th>
-                      <th className="border border-black p-2 text-center w-24">หมายเหตุ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border border-black p-2 text-center">{application.publishedDate || application.createdAt}</td>
-                      <td className="border border-black p-2 space-y-1">
-                        <div className="font-medium">ค่าสนับสนุนการตีพิมพ์ / รางวัลตีพิมพ์บทความวิจัย</div>
-                        <div className="text-xs text-slate-700 italic">เรื่อง {application.articleTitle}</div>
-                        <div className="text-xs font-semibold text-slate-800">
-                          วารสาร {application.journalName} (Quartile: {application.quartile})
-                        </div>
-                      </td>
-                      <td className="border border-black p-2 text-right font-mono">{formatAmountDisplay(totalAmount)}</td>
-                      <td className="border border-black p-2 text-center">จ่ายจริง</td>
-                    </tr>
-                    <tr className="bg-slate-50 font-bold">
-                      <td colSpan={2} className="border border-black p-2 text-right">
-                        รวมทั้งสิ้น ({bahtText(totalAmount)})
-                      </td>
-                      <td className="border border-black p-2 text-right font-mono">{formatAmountDisplay(totalAmount)}</td>
-                      <td className="border border-black p-2"></td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <div className="indent-8 text-base leading-relaxed pt-3 text-justify">
-                  ข้าพเจ้า <strong>{application.applicantName}</strong> ตำแหน่ง {application.academicPosition || 'อาจารย์'} สังกัด {application.department} คณะแพทยศาสตร์ ขอรับรองว่า รายจ่ายข้างต้นนี้ ข้าพเจ้าได้จ่ายเงินไปโดยได้รับใบเสร็จรับเงินซึ่งมีรายการไม่ครบถ้วนตามหลักฐานการจ่ายเงินในข้อ 46 หรือซึ่งตามลักษณะไม่อาจเรียกใบเสร็จรับเงินจากผู้รับเงินได้ ซึ่งเป็นไปตามระเบียบกระทรวงการคลัง ว่าด้วยการเบิกเงินจากคลัง พ.ศ. 2562
-                </div>
-
-                <div className="pt-10 text-center max-w-xs ml-auto avoid-break">
-                  <div>ลงชื่อ..........................................................</div>
-                  <div className="font-semibold mt-1">({application.applicantName})</div>
-                  <div className="text-sm text-slate-600">ผู้รับรอง</div>
-                </div>
-              </div>
-            )}
-
-          </div>
+            </div>
+          </main>
         </div>
       </div>
     </div>

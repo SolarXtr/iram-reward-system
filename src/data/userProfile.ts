@@ -4,14 +4,14 @@ export const USER_PROFILE_STORAGE_KEY = 'med_nu_current_user_profile_v2';
 
 /**
  * Default authenticated profile for the currently logged-in user
- * นายทินกรณ์ หาญณรงค์ (เจ้าหน้าที่วิจัย / รักษาการในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย)
+ * นายทินกรณ์ หาญณรงค์ (เจ้าหน้าที่วิจัย / ปฏิบัติหน้าที่ในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย)
  * สถานะ: เจ้าหน้าที่วิจัย, ผู้ประสานงาน, และผู้ดูแลระบบ
  */
 export const DEFAULT_LOGGED_IN_USER: UserProfile = {
   id: 'user-tinnakornh',
   name: 'นายทินกรณ์ หาญณรงค์',
   academicPosition: 'เจ้าหน้าที่วิจัย',
-  administrativePosition: 'รักษาการในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย',
+  administrativePosition: 'ปฏิบัติหน้าที่ในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย',
   department: 'งานวิจัย คณะแพทยศาสตร์',
   phone: '5588',
   email: 'tinnakornh@nu.ac.th',
@@ -74,8 +74,13 @@ export function getStoredUserProfile(): UserProfile {
     const saved = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Auto-migrate if old profile name is detected or missing administrativePosition
-      if (parsed.name === 'ดร.ทินกร หอมดี' || parsed.email === 'tinnakornh@nu.ac.th' || !parsed.administrativePosition) {
+      // Auto-migrate if old profile name is detected or old administrativePosition
+      if (
+        parsed.name === 'ดร.ทินกร หอมดี' || 
+        parsed.email === 'tinnakornh@nu.ac.th' || 
+        !parsed.administrativePosition ||
+        parsed.administrativePosition.includes('รักษาการ')
+      ) {
         const migrated: UserProfile = {
           ...DEFAULT_LOGGED_IN_USER,
           ...parsed,

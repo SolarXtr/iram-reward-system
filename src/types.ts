@@ -106,6 +106,12 @@ export interface ResearchApplication {
   issn?: string;
   doi?: string;
   volumeIssue?: string; // Vol. 18 No. 1
+  databaseYear?: string; // ปีของฐานข้อมูล เช่น '2025'
+  vol?: string; // เล่มที่ เช่น '18' หรือ '-'
+  no?: string; // ฉบับที่ เช่น '1' หรือ '-'
+  publishMonth?: string; // เดือน เช่น 'January' หรือ '-'
+  publishYear?: string; // ปี ค.ศ. เช่น '2026'
+  pages?: string; // หน้า/เลขหน้า เช่น '123-130' หรือ '-'
   publishedDate: string; // วันที่ตีพิมพ์
   acceptedDate?: string;
   within24Months: boolean;
@@ -118,6 +124,7 @@ export interface ResearchApplication {
   approvedPageChargeAmount: number; // ค่าตีพิมพ์ที่คณะสนับสนุนตามเกณฑ์
   totalClaimedAmount: number; // รวมเงินที่ขอเบิก
   actualPaidAmount?: number; // ยอดเงินที่โอนจริง
+  pageChargePaidDate?: string; // วันที่จ่ายค่าเพจชาร์จจริง (สำหรับแสดงในใบรับรองการจ่ายเงิน ข้อ 46)
 
   // Government & Financial References
   internalDocNo?: string; // เลขที่หนังสือ อว 0603.10.10/066
