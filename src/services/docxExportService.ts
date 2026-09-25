@@ -1207,7 +1207,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           children: [
             createThaiTextRun({ text: 'ส่วนราชการ  ', font: FONT_NAME, size: 40, bold: true }),
             createThaiTextRun({ 
-              text: `คณะแพทยศาสตร์  ภาควิชา${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, 
+              text: `คณะแพทยศาสตร์  ${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, 
               font: FONT_NAME, 
               size: FONT_SIZE_META,
               underline: { type: UnderlineType.DOTTED },
@@ -1322,7 +1322,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
           spacing: { line: LINE_SPACING_BODY, before: 0, after: 0 },
           children: [
             createThaiTextRun({
-              text: addThaiWordBreaks(`          ข้าพเจ้า ${app.applicantName} ตำแหน่ง ${app.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา${app.department || ''} คณะแพทยศาสตร์ มีความประสงค์${subject} ตามประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ ประกาศ ณ วันที่ 27 พฤษภาคม 2567 ซึ่งมีรายละเอียดดังนี้`),
+              text: addThaiWordBreaks(`          ข้าพเจ้า ${app.applicantName} ตำแหน่ง ${app.academicPosition || 'อาจารย์แพทย์'} สังกัด ${app.department || ''} คณะแพทยศาสตร์ มีความประสงค์${subject} ตามประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ ประกาศ ณ วันที่ 27 พฤษภาคม 2567 ซึ่งมีรายละเอียดดังนี้`),
               font: FONT_NAME,
               size: FONT_SIZE_CONTENT,
             }),
@@ -1620,7 +1620,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
           children: [
             createThaiTextRun({ text: 'ส่วนราชการ  ', font: FONT_NAME, size: 40, bold: true }),
             createThaiTextRun({ 
-              text: `คณะแพทยศาสตร์  ภาควิชา${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, 
+              text: `คณะแพทยศาสตร์  ${app.department || ''}  โทร. ${app.phone || 'ภายในคณะ'}`, 
               font: FONT_NAME, 
               size: FONT_SIZE_META,
               underline: { type: UnderlineType.DOTTED },
@@ -1905,8 +1905,8 @@ export async function generateReceiptDocx(app: ResearchApplication) {
                   }),
                 ]
               : []),
-            // แถวว่าง 5 แถว ตามข้อกำหนด (มีเส้นแนวตั้ง ไม่มีเส้นแนวนอน)
-            ...[1, 2, 3, 4, 5].map(() => new TableRow({
+            // แถวว่าง: 5 แถวเมื่อมี 1 รายการ, 1 แถวเมื่อมี 2 รายการ (เพื่อไม่ให้เกิน 1 หน้า A4)
+            ...[...Array((pageAmt > 0 ? 1 : 0) + (rewardAmt > 0 ? 1 : 0) >= 2 ? 1 : 5)].map(() => new TableRow({
               children: [
                 new TableCell({ borders: CELL_BORDERS_VERTICAL_BODY, children: [new Paragraph({ text: '' })] }),
                 new TableCell({ borders: CELL_BORDERS_VERTICAL_BODY, children: [new Paragraph({ text: '' })] }),
@@ -2033,30 +2033,71 @@ export async function generateCertificationDocx(app: ResearchApplication) {
                 new TableCell({
                   borders: CELL_BORDERS_ALL,
                   children: [
-                    new Paragraph({ children: [createThaiTextRun({ text: `ค่าตีพิมพ์ เรื่อง ${app.articleTitle}`, font: FONT_NAME, size: FONT_SIZE_TABLE })] }),
+                    new Paragraph({ 
+                      indent: { left: 120 },
+                      children: [createThaiTextRun({ text: `ค่าตีพิมพ์ ${app.articleTitle}`, font: FONT_NAME, size: FONT_SIZE_TABLE })] 
+                    }),
                     new Paragraph({ text: '' }),
                     ...(isOver70k ? [
-                      new Paragraph({ children: [createThaiTextRun({ text: 'ขอเบิกจ่ายเพียง 70,000.00 (เจ็ดหมื่นบาทถ้วน)', font: FONT_NAME, size: FONT_SIZE_TABLE_SM, bold: true })] }),
-                      new Paragraph({ children: [createThaiTextRun({ text: '- ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน 30,000.00 (สามหมื่นบาทถ้วน)', font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] }),
-                      new Paragraph({ children: [createThaiTextRun({ text: '- ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน 40,000.00 (สี่หมื่นบาทถ้วน)', font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] }),
+                      new Paragraph({ 
+                        alignment: AlignmentType.THAI_DISTRIBUTE,
+                        indent: { left: 120 },
+                        children: [createThaiTextRun({ text: 'ขอเบิกจ่ายเพียง 70,000.00 (เจ็ดหมื่นบาทถ้วน)', font: FONT_NAME, size: FONT_SIZE_TABLE_SM, bold: true })] 
+                      }),
+                      new Paragraph({ 
+                        alignment: AlignmentType.THAI_DISTRIBUTE,
+                        indent: { left: 120 },
+                        children: [createThaiTextRun({ text: '- ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน 30,000.00 (สามหมื่นบาทถ้วน)', font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
+                      }),
+                      new Paragraph({ 
+                        alignment: AlignmentType.THAI_DISTRIBUTE,
+                        indent: { left: 120 },
+                        children: [createThaiTextRun({ text: '- ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน 40,000.00 (สี่หมื่นบาทถ้วน)', font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
+                      }),
                     ] : [
-                      new Paragraph({ children: [createThaiTextRun({ text: `- ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน ${formatCurrencyBaht(part1)} (${bahtText(part1)})`, font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] }),
+                      new Paragraph({ 
+                        alignment: AlignmentType.THAI_DISTRIBUTE,
+                        indent: { left: 120 },
+                        children: [createThaiTextRun({ text: `- ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน ${formatCurrencyBaht(part1)} (${bahtText(part1)})`, font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
+                      }),
                       ...(part2 > 0 ? [
-                        new Paragraph({ children: [createThaiTextRun({ text: `- ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน ${formatCurrencyBaht(part2)} (${bahtText(part2)})`, font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] }),
+                        new Paragraph({ 
+                          alignment: AlignmentType.THAI_DISTRIBUTE,
+                          indent: { left: 120 },
+                          children: [createThaiTextRun({ text: `- ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน ${formatCurrencyBaht(part2)} (${bahtText(part2)})`, font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
+                        }),
                       ] : []),
                     ]),
                   ],
                 }),
-                new TableCell({ borders: CELL_BORDERS_ALL, width: { size: 14, type: WidthType.PERCENTAGE }, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [createThaiTextRun({ text: bahtPart, font: FONT_NAME, size: FONT_SIZE_TABLE })] })] }),
-                new TableCell({ borders: CELL_BORDERS_ALL, width: { size: 6, type: WidthType.PERCENTAGE }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [createThaiTextRun({ text: satangPart, font: FONT_NAME, size: FONT_SIZE_TABLE })] })] }),
+                new TableCell({ 
+                  borders: CELL_BORDERS_ALL, 
+                  width: { size: 14, type: WidthType.PERCENTAGE }, 
+                  margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                  children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [createThaiTextRun({ text: bahtPart, font: FONT_NAME, size: FONT_SIZE_TABLE })] })] 
+                }),
+                new TableCell({ 
+                  borders: CELL_BORDERS_ALL, 
+                  width: { size: 6, type: WidthType.PERCENTAGE }, 
+                  margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                  children: [new Paragraph({ alignment: AlignmentType.LEFT, children: [createThaiTextRun({ text: satangPart, font: FONT_NAME, size: FONT_SIZE_TABLE })] })] 
+                }),
                 new TableCell({ borders: CELL_BORDERS_ALL, children: [new Paragraph({ text: '' })] }),
               ],
             }),
             new TableRow({
               children: [
                 new TableCell({ columnSpan: 2, borders: CELL_BORDERS_ALL, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [createThaiTextRun({ text: 'รวมทั้งสิ้น', font: FONT_NAME, size: FONT_SIZE_TABLE, bold: true })] })] }),
-                new TableCell({ borders: CELL_BORDERS_ALL, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [createThaiTextRun({ text: bahtPart, font: FONT_NAME, size: FONT_SIZE_TABLE, bold: true })] })] }),
-                new TableCell({ borders: CELL_BORDERS_ALL, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [createThaiTextRun({ text: satangPart, font: FONT_NAME, size: FONT_SIZE_TABLE, bold: true })] })] }),
+                new TableCell({ 
+                  borders: CELL_BORDERS_ALL, 
+                  margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                  children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [createThaiTextRun({ text: bahtPart, font: FONT_NAME, size: FONT_SIZE_TABLE, bold: true })] })] 
+                }),
+                new TableCell({ 
+                  borders: CELL_BORDERS_ALL, 
+                  margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                  children: [new Paragraph({ alignment: AlignmentType.LEFT, children: [createThaiTextRun({ text: satangPart, font: FONT_NAME, size: FONT_SIZE_TABLE, bold: true })] })] 
+                }),
                 new TableCell({ borders: CELL_BORDERS_ALL, children: [new Paragraph({ text: '' })] }),
               ],
             }),
@@ -2072,9 +2113,9 @@ export async function generateCertificationDocx(app: ResearchApplication) {
           ],
         }),
 
-        // ข้อความรับรองตามระเบียบกระทรวงการคลัง (เว้นวรรคปกติ ไม่ใช้ justify เพื่อไม่ให้คำถ่าง)
+        // ข้อความรับรองตามระเบียบกระทรวงการคลัง (THAI_DISTRIBUTE จัดเต็มบรรทัดโดยไม่ถ่างตัวอักษร)
         new Paragraph({
-          alignment: AlignmentType.LEFT,
+          alignment: AlignmentType.THAI_DISTRIBUTE,
           spacing: { after: 180 },
           children: [
             createThaiTextRun({ text: 'ข้าพเจ้า ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),

@@ -1294,7 +1294,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       <div className="flex items-baseline w-full my-0 py-0">
                         <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ส่วนราชการ</span>
                         <div className="flex-1 border-b border-dotted border-black pb-0 leading-[1.0] overflow-hidden text-ellipsis whitespace-nowrap text-[16pt]">
-                          คณะแพทยศาสตร์ ภาควิชา{application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
+                          คณะแพทยศาสตร์ {application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
                         </div>
                       </div>
 
@@ -1330,7 +1330,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
 
                     {/* Body Paragraph 1 (เคาะ 10, space before = 0/ after = 0) */}
                     <p className="text-left break-words my-0 py-0" style={{ marginTop: 0, marginBottom: 0 }}>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ข้าพเจ้า {application.applicantName} ตำแหน่ง {application.academicPosition || 'อาจารย์แพทย์'} สังกัด ภาควิชา{application.department || ''} คณะแพทยศาสตร์ มีความประสงค์{subject} ตามประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ ประกาศ ณ วันที่ 27 พฤษภาคม 2567 ซึ่งมีรายละเอียดดังนี้
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ข้าพเจ้า {application.applicantName} ตำแหน่ง {application.academicPosition || 'อาจารย์แพทย์'} สังกัด {application.department || ''} คณะแพทยศาสตร์ มีความประสงค์{subject} ตามประกาศมหาวิทยาลัยนเรศวร เรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ ประกาศ ณ วันที่ 27 พฤษภาคม 2567 ซึ่งมีรายละเอียดดังนี้
                     </p>
 
                     {/* Article Details (เคาะ 10, space before = 0/ after = 0) */}
@@ -1386,9 +1386,9 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     </div>
 
                     {/* Applicant Signature Block (จัดชิดกั้นหลัง กึ่งกลางบล็อก, space before = 6/ after = 6) */}
-                    <div className="grid grid-cols-2 avoid-break" style={{ marginTop: '6pt', marginBottom: '6pt' }}>
+                    <div className="grid grid-cols-2 avoid-break" style={{ marginTop: '4pt', marginBottom: '2pt' }}>
                       <div></div>
-                      <div className="text-center leading-snug">
+                      <div className="text-center leading-tight">
                         <div>ลงชื่อ.............................................................</div>
                         <div>({application.applicantName})</div>
                         <div>{getApplicantSignRoleTitle(appWithDocDetails)}</div>
@@ -1398,20 +1398,20 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     {/* Approvers Section (ด้านล่างซ้าย จัดกึ่งกลางในบล็อก, 14.5 pt) */}
                     <div className="avoid-break grid grid-cols-12 text-[14.5pt]">
                       <div className="col-span-8">
-                        <div className="leading-snug" style={{ marginTop: '6pt', marginBottom: '6pt' }}>
+                        <div className="leading-tight" style={{ marginTop: '4pt', marginBottom: '2pt' }}>
                           <div className="font-bold">เรียน  คณบดีคณะแพทยศาสตร์</div>
                           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ขอเบิกจ่ายจาก งบประมาณรายได้ปี ........................</div>
                           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ</div>
                         </div>
 
-                        <div className="text-center leading-snug" style={{ marginTop: '6pt' }}>
+                        <div className="text-center leading-tight" style={{ marginTop: '4pt' }}>
                           <div>ลงชื่อ....................................................</div>
                           <div>(นางสาวปรารถนา เอนกปัญญากุล)</div>
                           <div>รักษาการในตำแหน่งหัวหน้างานวิจัย</div>
                           <div>วันที่......../........./...........</div>
                         </div>
 
-                        <div className="text-center leading-snug" style={{ marginTop: '12pt' }}>
+                        <div className="text-center leading-tight" style={{ marginTop: '6pt' }}>
                           <div>ลงชื่อ....................................................</div>
                           <div>(รองศาสตราจารย์ นายแพทย์อาทิตย์ เหล่าเรืองธนา)</div>
                           <div>รองคณบดีฝ่ายวิจัยและถ่ายทอดเทคโนโลยี</div>
@@ -1464,7 +1464,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       <div className="flex items-baseline w-full my-0 py-0">
                         <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ส่วนราชการ</span>
                         <div className="flex-1 border-b border-dotted border-black pb-0 leading-[1.0] overflow-hidden text-ellipsis whitespace-nowrap text-[16pt]">
-                          คณะแพทยศาสตร์ ภาควิชา{application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
+                          คณะแพทยศาสตร์ {application.department || ''} โทร. {application.phone || 'ภายในคณะ'}
                         </div>
                       </div>
 
@@ -1590,8 +1590,8 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <td className="border-r border-black px-3 py-1.5 text-right align-top">{formatAmountDisplay(rewardAmount)}</td>
                       </tr>
                     )}
-                    {/* แถวว่าง 5 แถว ต่อจากรายการสุดท้ายก่อนแถวสรุปรวมเงิน เพื่อรักษาความสูงตาราง (มีเส้นแนวตั้ง ไม่มีเส้นแนวนอน) */}
-                    {[1, 2, 3, 4, 5].map((idx) => (
+                    {/* แถวว่าง: 5 แถวเมื่อมี 1 รายการ, 1 แถวเมื่อมี 2 รายการ (ไม่ให้เกิน 1 หน้า A4) */}
+                    {[...Array((pageChargeAmount > 0 ? 1 : 0) + (rewardAmount > 0 ? 1 : 0) >= 2 ? 1 : 5)].map((_, idx) => (
                       <tr key={`empty-row-${idx}`} className="h-6">
                         <td className="border-l border-r border-black px-2 py-1">&nbsp;</td>
                         <td className="border-r border-black px-4 py-1">&nbsp;</td>
@@ -1662,29 +1662,29 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                           {paidDateShort}
                         </td>
                         <td className="border border-black p-2 align-top text-left break-words">
-                          <div className="font-medium">ค่าตีพิมพ์ เรื่อง {application.articleTitle}</div>
+                          <div className="pl-1 font-medium">ค่าตีพิมพ์ {application.articleTitle}</div>
                           
                           {/* รายละเอียดการแบ่งจ่ายตามเงื่อนไข เกิน 70,000 หรือ ไม่เกิน 70,000 */}
                           <div className="mt-3 space-y-1 text-[12.5pt]">
                             {isOver70k ? (
                               <>
-                                <div className="font-semibold text-slate-900">
+                                <div className="pl-1 font-semibold text-slate-900 text-justify">
                                   ขอเบิกจ่ายเพียง 70,000.00 (เจ็ดหมื่นบาทถ้วน)
                                 </div>
-                                <div className="leading-snug">
+                                <div className="pl-1 leading-snug text-justify">
                                   - ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน 30,000.00 (สามหมื่นบาทถ้วน)
                                 </div>
-                                <div className="leading-snug">
+                                <div className="pl-1 leading-snug text-justify">
                                   - ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน 40,000.00 (สี่หมื่นบาทถ้วน)
                                 </div>
                               </>
                             ) : (
                               <>
-                                <div className="leading-snug">
+                                <div className="pl-1 leading-snug text-justify">
                                   - ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน {formatAmountDisplay(part1)} ({bahtText(part1)})
                                 </div>
                                 {part2 > 0 && (
-                                  <div className="leading-snug">
+                                  <div className="pl-1 leading-snug text-justify">
                                     - ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน {formatAmountDisplay(part2)} ({bahtText(part2)})
                                   </div>
                                 )}
@@ -1692,10 +1692,10 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                             )}
                           </div>
                         </td>
-                        <td className="border border-black p-2 text-right align-top w-[14%] font-mono">
+                        <td className="border border-black pr-1 pl-1 text-right align-top w-[14%]">
                           {bahtPart}
                         </td>
-                        <td className="border border-black p-2 text-center align-top w-[6%] font-mono">
+                        <td className="border border-black pr-1 pl-1 text-left align-top w-[6%]">
                           {satangPart}
                         </td>
                         <td className="border border-black p-2 text-center align-top">
@@ -1706,10 +1706,10 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <td colSpan={2} className="border border-black p-1 text-center">
                           รวมทั้งสิ้น
                         </td>
-                        <td className="border border-black p-1 text-right font-mono">
+                        <td className="border border-black pr-1 pl-1 text-right">
                           {bahtPart}
                         </td>
-                        <td className="border border-black p-1 text-center font-mono">
+                        <td className="border border-black pr-1 pl-1 text-left">
                           {satangPart}
                         </td>
                         <td className="border border-black p-1"></td>
@@ -1721,8 +1721,8 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     รวมทั้งสิ้น (ตัวอักษร)&nbsp;&nbsp;&nbsp;<span className="font-bold underline">{bahtText(certAmt)}</span>
                   </div>
 
-                  {/* ข้อความรับรองตามระเบียบกระทรวงการคลัง (ช่องไฟปกติ ไม่ใช้ justify) */}
-                  <div className="pt-3 text-left break-words leading-relaxed text-[15pt]">
+                  {/* ข้อความรับรองตามระเบียบกระทรวงการคลัง (text-justify เต็มบรรทัด ไม่ถ่างตัวอักษร) */}
+                  <div className="pt-3 text-justify break-words leading-relaxed text-[15pt]">
                     ข้าพเจ้า <span className="font-bold underline">{application.applicantName}</span>&nbsp;&nbsp;ตำแหน่ง&nbsp;&nbsp;<span className="underline">{application.academicPosition || 'อาจารย์แพทย์'}</span>
                     <br />
                     สังกัด <span className="underline">{application.department} คณะแพทยศาสตร์</span> ขอรับรองว่า รายจ่ายข้างต้นนี้ ข้าพเจ้าได้จ่ายเงินไปโดยได้รับใบเสร็จรับเงินซึ่งมีรายการไม่ครบถ้วนตามหลักฐานการจ่ายเงินในข้อ 46 หรือซึ่งตามลักษณะไม่อาจเรียกใบเสร็จรับเงินจากผู้รับเงินได้ ซึ่งเป็นไปตามระเบียบกระทรวงการคลัง ว่าด้วยการเบิกเงินจากคลัง การรับเงิน การจ่ายเงิน การเก็บรักษาเงิน และการนำเงินส่งคลัง พ.ศ. 2562
