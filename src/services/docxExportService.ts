@@ -2032,39 +2032,35 @@ export async function generateCertificationDocx(app: ResearchApplication) {
                 new TableCell({ borders: CELL_BORDERS_ALL, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [createThaiTextRun({ text: paidDateShort, font: FONT_NAME, size: FONT_SIZE_TABLE })] })] }),
                 new TableCell({
                   borders: CELL_BORDERS_ALL,
+                  width: { size: 52, type: WidthType.PERCENTAGE },
+                  margins: { top: 80, bottom: 80, left: 140, right: 280 },
                   children: [
                     new Paragraph({ 
-                      indent: { left: 120 },
-                      children: [createThaiTextRun({ text: `ค่าตีพิมพ์ ${app.articleTitle}`, font: FONT_NAME, size: FONT_SIZE_TABLE })] 
+                      children: [createThaiTextRun({ text: addThaiWordBreaks(`ค่าตีพิมพ์ ${app.articleTitle}`), font: FONT_NAME, size: FONT_SIZE_TABLE })] 
                     }),
                     new Paragraph({ text: '' }),
                     ...(isOver70k ? [
                       new Paragraph({ 
-                        alignment: AlignmentType.THAI_DISTRIBUTE,
-                        indent: { left: 120 },
-                        children: [createThaiTextRun({ text: 'ขอเบิกจ่ายเพียง 70,000.00 (เจ็ดหมื่นบาทถ้วน)', font: FONT_NAME, size: FONT_SIZE_TABLE_SM, bold: true })] 
+                        alignment: AlignmentType.LEFT,
+                        children: [createThaiTextRun({ text: addThaiWordBreaks('ขอเบิกจ่ายเพียง 70,000.00 (เจ็ดหมื่นบาทถ้วน)'), font: FONT_NAME, size: FONT_SIZE_TABLE_SM, bold: true })] 
                       }),
                       new Paragraph({ 
-                        alignment: AlignmentType.THAI_DISTRIBUTE,
-                        indent: { left: 120 },
-                        children: [createThaiTextRun({ text: '- ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน 30,000.00 (สามหมื่นบาทถ้วน)', font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
+                        alignment: AlignmentType.LEFT,
+                        children: [createThaiTextRun({ text: addThaiWordBreaks('- ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน 30,000.00 (สามหมื่นบาทถ้วน)'), font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
                       }),
                       new Paragraph({ 
-                        alignment: AlignmentType.THAI_DISTRIBUTE,
-                        indent: { left: 120 },
-                        children: [createThaiTextRun({ text: '- ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน 40,000.00 (สี่หมื่นบาทถ้วน)', font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
+                        alignment: AlignmentType.LEFT,
+                        children: [createThaiTextRun({ text: addThaiWordBreaks('- ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน 40,000.00 (สี่หมื่นบาทถ้วน)'), font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
                       }),
                     ] : [
                       new Paragraph({ 
-                        alignment: AlignmentType.THAI_DISTRIBUTE,
-                        indent: { left: 120 },
-                        children: [createThaiTextRun({ text: `- ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน ${formatCurrencyBaht(part1)} (${bahtText(part1)})`, font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
+                        alignment: AlignmentType.LEFT,
+                        children: [createThaiTextRun({ text: addThaiWordBreaks(`- ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน ${formatCurrencyBaht(part1)} (${bahtText(part1)})`), font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
                       }),
                       ...(part2 > 0 ? [
                         new Paragraph({ 
-                          alignment: AlignmentType.THAI_DISTRIBUTE,
-                          indent: { left: 120 },
-                          children: [createThaiTextRun({ text: `- ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน ${formatCurrencyBaht(part2)} (${bahtText(part2)})`, font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
+                          alignment: AlignmentType.LEFT,
+                          children: [createThaiTextRun({ text: addThaiWordBreaks(`- ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน ${formatCurrencyBaht(part2)} (${bahtText(part2)})`), font: FONT_NAME, size: FONT_SIZE_TABLE_SM })] 
                         }),
                       ] : []),
                     ]),
@@ -2113,16 +2109,21 @@ export async function generateCertificationDocx(app: ResearchApplication) {
           ],
         }),
 
-        // ข้อความรับรองตามระเบียบกระทรวงการคลัง (THAI_DISTRIBUTE จัดเต็มบรรทัดโดยไม่ถ่างตัวอักษร)
+        // ข้อความรับรองตามระเบียบกระทรวงการคลัง (JUSTIFIED จัดเต็มบรรทัด พร้อม addThaiWordBreaks เพื่อไม่ให้ตัวอักษรถ่าง และไม่ใช้ break เพื่อไม่ให้บรรทัดแรกถ่าง)
         new Paragraph({
-          alignment: AlignmentType.THAI_DISTRIBUTE,
+          alignment: AlignmentType.JUSTIFIED,
           spacing: { after: 180 },
           children: [
             createThaiTextRun({ text: 'ข้าพเจ้า ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
             createThaiTextRun({ text: app.applicantName, font: FONT_NAME, size: FONT_SIZE_CONTENT, bold: true, underline: { type: UnderlineType.SINGLE } }),
             createThaiTextRun({ text: '  ตำแหน่ง  ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
             createThaiTextRun({ text: app.academicPosition || 'อาจารย์แพทย์', font: FONT_NAME, size: FONT_SIZE_CONTENT, underline: { type: UnderlineType.SINGLE } }),
-            createThaiTextRun({ text: `สังกัด ${app.department} คณะแพทยศาสตร์ ขอรับรองว่า รายจ่ายข้างต้นนี้ ข้าพเจ้าได้จ่ายเงินไปโดยได้รับใบเสร็จรับเงินซึ่งมีรายการไม่ครบถ้วนตามหลักฐานการจ่ายเงินในข้อ 46 หรือซึ่งตามลักษณะไม่อาจเรียกใบเสร็จรับเงินจากผู้รับเงินได้ ซึ่งเป็นไปตามระเบียบกระทรวงการคลัง ว่าด้วยการเบิกเงินจากคลัง การรับเงิน การจ่ายเงิน การเก็บรักษาเงิน และการนำเงินส่งคลัง พ.ศ. 2562`, font: FONT_NAME, size: FONT_SIZE_CONTENT, break: 1 }),
+            createThaiTextRun({ text: '  ', font: FONT_NAME, size: FONT_SIZE_CONTENT }),
+            createThaiTextRun({
+              text: addThaiWordBreaks(`สังกัด ${app.department} คณะแพทยศาสตร์ ขอรับรองว่า รายจ่ายข้างต้นนี้ ข้าพเจ้าได้จ่ายเงินไปโดยได้รับใบเสร็จรับเงินซึ่งมีรายการไม่ครบถ้วนตามหลักฐานการจ่ายเงินในข้อ 46 หรือซึ่งตามลักษณะไม่อาจเรียกใบเสร็จรับเงินจากผู้รับเงินได้ ซึ่งเป็นไปตามระเบียบกระทรวงการคลัง ว่าด้วยการเบิกเงินจากคลัง การรับเงิน การจ่ายเงิน การเก็บรักษาเงิน และการนำเงินส่งคลัง พ.ศ. 2562`),
+              font: FONT_NAME,
+              size: FONT_SIZE_CONTENT,
+            }),
           ],
         }),
 

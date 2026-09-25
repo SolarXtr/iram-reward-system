@@ -1661,30 +1661,30 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <td className="border border-black p-2 text-center align-top font-sarabun">
                           {paidDateShort}
                         </td>
-                        <td className="border border-black p-2 align-top text-left break-words">
+                        <td className="border border-black pt-2 pb-2 pl-3 pr-4 align-top text-left break-words">
                           <div className="pl-1 font-medium">ค่าตีพิมพ์ {application.articleTitle}</div>
                           
                           {/* รายละเอียดการแบ่งจ่ายตามเงื่อนไข เกิน 70,000 หรือ ไม่เกิน 70,000 */}
                           <div className="mt-3 space-y-1 text-[12.5pt]">
                             {isOver70k ? (
                               <>
-                                <div className="pl-1 font-semibold text-slate-900 text-justify">
+                                <div className="pl-1 font-semibold text-slate-900 text-left">
                                   ขอเบิกจ่ายเพียง 70,000.00 (เจ็ดหมื่นบาทถ้วน)
                                 </div>
-                                <div className="pl-1 leading-snug text-justify">
+                                <div className="pl-1 leading-snug text-left">
                                   - ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน 30,000.00 (สามหมื่นบาทถ้วน)
                                 </div>
-                                <div className="pl-1 leading-snug text-justify">
+                                <div className="pl-1 leading-snug text-left">
                                   - ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน 40,000.00 (สี่หมื่นบาทถ้วน)
                                 </div>
                               </>
                             ) : (
                               <>
-                                <div className="pl-1 leading-snug text-justify">
+                                <div className="pl-1 leading-snug text-left">
                                   - ฉบับจริงใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ จำนวนเงิน {formatAmountDisplay(part1)} ({bahtText(part1)})
                                 </div>
                                 {part2 > 0 && (
-                                  <div className="pl-1 leading-snug text-justify">
+                                  <div className="pl-1 leading-snug text-left">
                                     - ฉบับสำเนาใช้เบิกจ่ายตามประกาศมหาวิทยาลัยนเรศวรเรื่อง หลักเกณฑ์การสนับสนุนค่าตีพิมพ์ และรางวัลการตีพิมพ์บทความในวารสารวิชาการระดับนานาชาติ และระดับชาติ คณะแพทยศาสตร์ จำนวนเงิน {formatAmountDisplay(part2)} ({bahtText(part2)})
                                   </div>
                                 )}
@@ -1723,9 +1723,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
 
                   {/* ข้อความรับรองตามระเบียบกระทรวงการคลัง (text-justify เต็มบรรทัด ไม่ถ่างตัวอักษร) */}
                   <div className="pt-3 text-justify break-words leading-relaxed text-[15pt]">
-                    ข้าพเจ้า <span className="font-bold underline">{application.applicantName}</span>&nbsp;&nbsp;ตำแหน่ง&nbsp;&nbsp;<span className="underline">{application.academicPosition || 'อาจารย์แพทย์'}</span>
-                    <br />
-                    สังกัด <span className="underline">{application.department} คณะแพทยศาสตร์</span> ขอรับรองว่า รายจ่ายข้างต้นนี้ ข้าพเจ้าได้จ่ายเงินไปโดยได้รับใบเสร็จรับเงินซึ่งมีรายการไม่ครบถ้วนตามหลักฐานการจ่ายเงินในข้อ 46 หรือซึ่งตามลักษณะไม่อาจเรียกใบเสร็จรับเงินจากผู้รับเงินได้ ซึ่งเป็นไปตามระเบียบกระทรวงการคลัง ว่าด้วยการเบิกเงินจากคลัง การรับเงิน การจ่ายเงิน การเก็บรักษาเงิน และการนำเงินส่งคลัง พ.ศ. 2562
+                    ข้าพเจ้า <span className="font-bold underline">{application.applicantName}</span>&nbsp;&nbsp;ตำแหน่ง&nbsp;&nbsp;<span className="underline">{application.academicPosition || 'อาจารย์แพทย์'}</span>&nbsp;&nbsp;สังกัด&nbsp;&nbsp;<span className="underline">{application.department} คณะแพทยศาสตร์</span> ขอรับรองว่า รายจ่ายข้างต้นนี้ ข้าพเจ้าได้จ่ายเงินไปโดยได้รับใบเสร็จรับเงินซึ่งมีรายการไม่ครบถ้วนตามหลักฐานการจ่ายเงินในข้อ 46 หรือซึ่งตามลักษณะไม่อาจเรียกใบเสร็จรับเงินจากผู้รับเงินได้ ซึ่งเป็นไปตามระเบียบกระทรวงการคลัง ว่าด้วยการเบิกเงินจากคลัง การรับเงิน การจ่ายเงิน การเก็บรักษาเงิน และการนำเงินส่งคลัง พ.ศ. 2562
                   </div>
 
                   {/* ส่วนลงนาม จัดกึ่งกลางชิดขวา */}
