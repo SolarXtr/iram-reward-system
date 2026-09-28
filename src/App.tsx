@@ -182,6 +182,13 @@ export default function App() {
     showToast(`สลับเข้าใช้งานบัญชี ${user.name} (${user.email}) สิทธิ์: ${user.role} สำเร็จ`);
   };
 
+  const handleRoleChange = (newRole: UserRole) => {
+    setCurrentRole(newRole);
+    if (newRole !== 'admin' && activeTab === 'user_management') {
+      setActiveTab('dashboard');
+    }
+  };
+
   // 1. Submit New Application (Local State + Real Google Sheets Sync)
   const handleCreateSubmission = (appInput: Partial<ResearchApplication>) => {
     const finalId = appInput.id || `app-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -454,7 +461,7 @@ export default function App() {
       {/* Universal Header */}
       <Header
         currentRole={currentRole}
-        setCurrentRole={setCurrentRole}
+        setCurrentRole={handleRoleChange}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenNewSubmission={() => setIsSubmissionModalOpen(true)}
@@ -529,7 +536,7 @@ export default function App() {
         )}
 
         {/* Tab 6: Admin User Management Console */}
-        {activeTab === 'user_management' && (
+        {activeTab === 'user_management' && currentRole === 'admin' ? (
           <UserManagementView
             users={registeredUsers}
             currentLoggedInUser={currentUser}
@@ -538,8 +545,27 @@ export default function App() {
             onDeleteUser={handleDeleteRegisteredUser}
             onSwitchUser={handleSwitchUserFromConsole}
             onShowAlert={showToast}
+            onBackToDashboard={() => setActiveTab('dashboard')}
           />
-        )}
+        ) : activeTab === 'user_management' ? (
+          <div className="bg-white rounded-2xl p-8 border border-rose-200 text-center max-w-lg mx-auto my-12 shadow-lg animate-in fade-in duration-150">
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Bell className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 font-prompt">
+              สิทธิ์การเข้าถึงไม่เพียงพอ (Access Denied)
+            </h3>
+            <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+              หน้าจอนี้สงวนไว้สำหรับผู้ดูแลระบบ (Admin) เท่านั้น กรุณาสลับบทบาทเป็นผู้ดูแลระบบและยืนยันตัวตน
+            </p>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors"
+            >
+              กลับสู่หน้าหลัก (Dashboard)
+            </button>
+          </div>
+        ) : null}
 
 
 

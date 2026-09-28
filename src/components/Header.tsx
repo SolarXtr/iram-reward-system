@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   User,
   Database,
-  Users
+  Users,
+  Lock
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 
@@ -55,6 +56,11 @@ export const Header: React.FC<HeaderProps> = ({
   googleUser,
   onGoogleSignIn,
 }) => {
+  const userRoles: UserRole[] = currentUser?.roles && currentUser.roles.length > 0 
+    ? currentUser.roles 
+    : (currentUser?.role ? [currentUser.role] : ['researcher']);
+  const isProfileAdmin = userRoles.includes('admin') || currentUser?.role === 'admin';
+
   return (
     <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-lg">
       {/* Top Banner / Identity Bar */}
@@ -147,10 +153,13 @@ export const Header: React.FC<HeaderProps> = ({
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
                   currentRole === 'admin'
                     ? 'bg-purple-600 text-white font-medium shadow-sm'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    : isProfileAdmin
+                    ? 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    : 'text-purple-300/70 hover:text-purple-200 hover:bg-slate-700/40'
                 }`}
-                title="มุมมองผู้ดูแลระบบ (Admin - ตรวจสอบและจัดการได้ทุกขั้นตอน)"
+                title={isProfileAdmin ? "มุมมองผู้ดูแลระบบ (Admin - ตรวจสอบและจัดการได้ทุกขั้นตอน)" : "เข้าสู่ระบบในฐานะผู้ดูแลระบบ (ต้องยืนยันรหัสผ่าน Admin Security Passcode)"}
               >
+                {!isProfileAdmin && <Lock className="w-3 h-3 text-purple-400" />}
                 <span>ผู้ดูแลระบบ</span>
               </button>
             </div>

@@ -29,7 +29,8 @@ import {
   Award, 
   Layers, 
   X, 
-  AlertCircle 
+  AlertCircle,
+  LogOut
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 
@@ -41,6 +42,7 @@ interface UserManagementViewProps {
   onDeleteUser: (userId: string) => void;
   onSwitchUser: (user: UserProfile) => void;
   onShowAlert?: (msg: string) => void;
+  onBackToDashboard?: () => void;
 }
 
 const ROLE_CONFIG: Record<UserRole, { label: string; badgeClass: string; icon: React.ElementType; desc: string }> = {
@@ -84,7 +86,20 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   onDeleteUser,
   onSwitchUser,
   onShowAlert,
+  onBackToDashboard,
 }) => {
+  // Admin Session Authentication State
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('med_nu_admin_session_v1') === 'unlocked';
+    } catch {
+      return false;
+    }
+  });
+  const [passcodeInput, setPasscodeInput] = useState('');
+  const [passcodeError, setPasscodeError] = useState('');
+  const [showPasscode, setShowPasscode] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
@@ -138,45 +153,163 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     };
   }, [users]);
 
-  // Filtered users
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      // Role filter
-      if (roleFilter !== 'all') {
-        const matchesPrimary = user.role === roleFilter;
-        const matchesSecondary = user.roles?.includes(roleFilter as UserRole);
-        if (!matchesPrimary && !matchesSecondary) return false;
+  // Handle Admin Unlock
+  const handleUnlockAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = passcodeInput.trim();
+    // Valid admin passcodes for verification
+    const validCodes = ['5588', 'iram@admin', 'iram2026', 'mednu2567', 'admin@mednu'];
+    if (validCodes.includes(clean)) {
+      try {
+        sessionStorage.setItem('med_nu_admin_session_v1', 'unlocked');
+      } catch (err) {
+        console.warn(err);
       }
+      setIsAdminUnlocked(true);
+      setPasscodeError('');
+      if (onShowAlert) {
+        onShowAlert('ยืนยันตัวตนผู้ดูแลระบบ (Admin) เรียบร้อยแล้ว');
+      }
+    } else {
+      setPasscodeError('รหัสผ่านผู้ดูแลระบบไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง');
+    }
+  };
 
-      // Department filter
-      if (departmentFilter !== 'all' && user.department !== departmentFilter) {
+  // Handle Admin Lock
+  const handleLockAdmin = () => {
+    try {
+      sessionStorage.removeItem('med_nu_admin_session_v1');
+    } catch (err) {
+      console.warn(err);
+    }
+    setIsAdminUnlocked(false);
+    setPasscodeInput('');
+    setPasscodeError('');
+    if (onShowAlert) {
+      onShowAlert('ล็อกหน้าจอผู้ดูแลระบบเรียบร้อยแล้ว');
+    }
+  };
+
+  // If Admin session is NOT unlocked, show Admin Authentication Screen
+  if (!isAdminUnlocked) {
+    return (
+      <div className="max-w-md mx-auto my-12 animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 p-6 text-white text-center border-b border-purple-800/40">
+            <div className="w-14 h-14 rounded-2xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center mx-auto mb-3 shadow-inner">
+              <ShieldAlert className="w-7 h-7 text-purple-300" />
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 inline-block mb-1">
+              PDPA Security Gate
+            </span>
+            <h3 className="text-lg font-bold font-prompt text-white">
+              ระบบจัดการผู้ใช้งาน (User Management)
+            </h3>
+            <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+              จำเป็นต้องเข้าสู่ระบบในฐานะผู้ดูแลระบบ (Admin) เพื่อเข้าถึงทะเบียนผู้ใช้งานและข้อมูลอ่อนไหวตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleUnlockAdmin} className="p-6 space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                รหัสผ่านผู้ดูแลระบบ (Admin Security Passcode)
+              </label>
+              <div className="relative">
+                <input
+                  type={showPasscode ? 'text' : 'password'}
+                  required
+                  autoFocus
+                  value={passcodeInput}
+                  onChange={(e) => {
+                    setPasscodeInput(e.target.value);
+                    if (passcodeError) setPasscodeError('');
+                  }}
+                  placeholder="กรอกรหัสผ่านผู้ดูแลระบบ..."
+                  className="w-full pl-3 pr-10 py-2.5 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasscode(!showPasscode)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showPasscode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {passcodeError && (
+                <p className="text-xs text-rose-600 mt-1.5 flex items-center gap-1 font-medium">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  {passcodeError}
+                </p>
+              )}
+              <div className="mt-2.5 p-2.5 rounded-lg bg-purple-50/70 border border-purple-200/60 text-[11px] text-purple-800 leading-relaxed">
+                💡 <strong>รหัสผ่านสำหรับทดสอบระบบ:</strong> <code className="bg-purple-100 px-1 py-0.5 rounded font-mono font-bold text-purple-900">5588</code> หรือ <code className="bg-purple-100 px-1 py-0.5 rounded font-mono font-bold text-purple-900">iram@admin</code>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/30 transition-all active:scale-[0.99]"
+              >
+                ยืนยันตัวตนและเข้าสู่ระบบ Admin
+              </button>
+
+              {onBackToDashboard && (
+                <button
+                  type="button"
+                  onClick={onBackToDashboard}
+                  className="w-full py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-medium transition-colors"
+                >
+                  ยกเลิก / กลับสู่หน้าหลัก
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Filtered users
+  const filteredUsers = users.filter((user) => {
+    // Role filter
+    if (roleFilter !== 'all') {
+      const matchesPrimary = user.role === roleFilter;
+      const matchesSecondary = user.roles?.includes(roleFilter as UserRole);
+      if (!matchesPrimary && !matchesSecondary) return false;
+    }
+
+    // Department filter
+    if (departmentFilter !== 'all' && user.department !== departmentFilter) {
+      return false;
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      const userStatus = user.status || 'active';
+      if (userStatus !== statusFilter) return false;
+    }
+
+    // Search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesName = user.name?.toLowerCase().includes(q);
+      const matchesEmail = user.email?.toLowerCase().includes(q);
+      const matchesDept = user.department?.toLowerCase().includes(q);
+      const matchesAca = user.academicPosition?.toLowerCase().includes(q);
+      const matchesAdmin = user.administrativePosition?.toLowerCase().includes(q);
+      const matchesBank = user.bankAccountNo?.replace(/-/g, '').includes(q.replace(/-/g, ''));
+      const matchesIdCard = user.idCardNo?.replace(/-/g, '').includes(q.replace(/-/g, ''));
+      if (!matchesName && !matchesEmail && !matchesDept && !matchesAca && !matchesAdmin && !matchesBank && !matchesIdCard) {
         return false;
       }
+    }
 
-      // Status filter
-      if (statusFilter !== 'all') {
-        const userStatus = user.status || 'active';
-        if (userStatus !== statusFilter) return false;
-      }
-
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesName = user.name?.toLowerCase().includes(q);
-        const matchesEmail = user.email?.toLowerCase().includes(q);
-        const matchesDept = user.department?.toLowerCase().includes(q);
-        const matchesAca = user.academicPosition?.toLowerCase().includes(q);
-        const matchesAdmin = user.administrativePosition?.toLowerCase().includes(q);
-        const matchesBank = user.bankAccountNo?.replace(/-/g, '').includes(q.replace(/-/g, ''));
-        const matchesIdCard = user.idCardNo?.replace(/-/g, '').includes(q.replace(/-/g, ''));
-        if (!matchesName && !matchesEmail && !matchesDept && !matchesAca && !matchesAdmin && !matchesBank && !matchesIdCard) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [users, roleFilter, departmentFilter, statusFilter, searchQuery]);
+    return true;
+  });
 
   // Open modal for Create
   const handleOpenCreateModal = () => {
@@ -316,8 +449,9 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
                   Admin Console
                 </span>
-                <span className="text-xs text-slate-400 font-mono">
-                  PDPA Compliant (พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562)
+                <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Admin Authenticated
                 </span>
               </div>
               <h2 className="text-2xl font-bold font-prompt text-white tracking-tight mt-1">
@@ -350,6 +484,15 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
             >
               <UserPlus className="w-4 h-4" />
               <span>เพิ่มผู้ใช้งานใหม่</span>
+            </button>
+
+            <button
+              onClick={handleLockAdmin}
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-800/90 hover:bg-rose-950 text-slate-300 hover:text-rose-300 rounded-xl text-xs font-medium border border-slate-700/80 hover:border-rose-700/60 transition-colors"
+              title="ล็อกหน้าจอผู้ดูแลระบบเพื่อความปลอดภัย"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">ล็อกหน้าจอ</span>
             </button>
           </div>
         </div>
@@ -583,7 +726,6 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 </tr>
               ) : (
                 filteredUsers.map((user) => {
-                  const RoleIcon = ROLE_CONFIG[user.role]?.icon || Users;
                   const isCurrent = currentLoggedInUser.id === user.id || currentLoggedInUser.email.toLowerCase() === user.email.toLowerCase();
                   const isSuspended = user.status === 'suspended';
 
