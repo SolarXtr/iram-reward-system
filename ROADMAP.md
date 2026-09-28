@@ -13,9 +13,10 @@ gantt
     section Phase 1 (Core & Web)
     ระบบประเมินเกณฑ์และฟอร์มยื่นคำขอ   :done, 2026-08, 2026-09
     Cloudflare Pages CI/CD             :done, 2026-09, 2026-09
-    section Phase 2 (Doc Engine)
+    section Phase 2 (Doc Engine & RBAC)
     ระบบสร้างเอกสารราชการ 5 ชุด (Word & PDF) :done, 2026-09, 2026-09
-    ปรับแต่งรูปแบบฟอร์มตามระเบียบสารบรรณ    :done, 2026-09, 2026-09
+    ระบบจัดการสิทธิ์และหน้าจอตามบทบาท (RBAC)  :done, 2026-09, 2026-09
+    ระบบ NU Account Gatekeeper & Public Mode :done, 2026-09, 2026-09
     section Phase 3 (Integration & API)
     ระบบเชื่อมต่อ Scopus & Researcher API :active, 2026-10, 2026-11
     Cloudflare D1 & Worker Backend      :2026-10, 2026-11
@@ -47,6 +48,13 @@ gantt
 - [x] **PDPA Security Gate & Sensitive Data Masking:** ล็อกหน้าจอ Admin ด้วยรหัสผ่านความปลอดภัย และระบบซ่อนเลขบัญชี/บัตรประชาชน
 - [x] **Route Guard:** ป้องกันหน้าจอค้างข้ามบทบาท สลับกลับสู่แดชบอร์ดอัตโนมัติเมื่อเปลี่ยนสิทธิ์
 
+### ✅ Phase 2.6: NU Account Gatekeeper & Public vs Private Dashboard (เสร็จสมบูรณ์ v1.2.0)
+- [x] **Zero Information Leakage:** ซ่อนรายชื่ออาจารย์ ตารางคำขอ ยอดเงินส่วนบุคคล และเลข AWP 100% สำหรับผู้เยี่ยมชมทั่วไป (Guest Mode)
+- [x] **Public Header & Dashboard:** แสดงเฉพาะสถิติภาพรวม Quartile, สรุปยอดเงินรวมทั้งคณะ, และประกาศมหาวิทยาลัยนเรศวร พ.ศ. 2567
+- [x] **NU Google Workspace Integration:** ตรวจสอบอีเมลโดเมน `@nu.ac.th` พร้อม Auto-provisioning สร้างสิทธิ์นักวิจัยให้อัตโนมัติเมื่อเข้าสู่ระบบครั้งแรก
+- [x] **Quick Demo Switcher:** อำนวยความสะดวกในการตรวจประเมินระบบ สามารถสลับเข้าใช้งาน 5 บทบาทได้ทันที
+- [x] **Secure Session & Logout:** จัดการสถานะการเข้าสู่ระบบอย่างปลอดภัย และมีปุ่มออกจากระบบ (Logout) คืนสู่ Guest Mode ทันที
+
 ### 🔄 Phase 3: Integration, Data Pipeline & API Sync (ระยะถัดไป)
 - [x] **Backend Database (Cloudflare D1 & Worker):** เชื่อมต่อฐานข้อมูล `iram-db` และ Worker API สำหรับบันทึกคำขอรับทุน
 - [ ] **Scopus Automation Fetcher:** เชื่อมต่อระบบดึงข้อมูลผลงานตีพิมพ์จาก Scopus อัตโนมัติด้วย DOI
@@ -56,7 +64,7 @@ gantt
 ---
 
 ## 💾 ข้อมูลการแบคอัพ (Backup Metadata)
-- **Tag:** `v1.1.0`
+- **Tag:** `v1.2.0`
 - **Release Date:** 28 กันยายน 2569
-- **Stable Deployment:** [https://iram-reward-system.pages.dev](https://iram-reward-system.pages.dev)
-- **Git Commit:** `4e52024` (feat(ui): role-based header cleanup and strict tab permission filtering)
+- **Repository:** `https://github.com/SolarXtr/iram-reward-system.git`
+- **Production URL:** `https://iram-reward-system.pages.dev`

@@ -11,16 +11,22 @@ import { OfficialPrintModal } from './components/OfficialPrintModal';
 import { PaymentVerificationModal } from './components/PaymentVerificationModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { UserManagementView } from './components/UserManagementView';
+import { LoginModal } from './components/LoginModal';
 import { INITIAL_APPLICATIONS, OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
 import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, ResearchApplication, UserProfile, WorkflowStepId } from './types';
 import { generateNextTrackingNo } from './data/regulations';
 import { 
-  getStoredUserProfile, 
+  DEFAULT_LOGGED_IN_USER,
   saveStoredUserProfile,
   getStoredUsersRegistry,
   upsertRegisteredUser,
   deleteRegisteredUser
 } from './data/userProfile';
+import { 
+  getCurrentAuthUser, 
+  setCurrentAuthUser, 
+  logoutNuUser 
+} from './services/authService';
 import { 
   LINE_BOT_CONFIG, 
   createLineRecordFromApp, 
@@ -75,21 +81,30 @@ export default function App() {
     }
   }, [applications]);
 
+  // Active authenticated user profile (null = Guest Mode)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getCurrentAuthUser());
+  const isGuest = !currentUser;
+
   // Current active navigation role & view
-  const [currentRole, setCurrentRole] = useState<UserRole>('researcher');
+  const [currentRole, setCurrentRole] = useState<UserRole>(() => currentUser?.role || 'researcher');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Active logged-in user profile (PDPA compliant)
-  const [currentUser, setCurrentUser] = useState<UserProfile>(() => getStoredUserProfile());
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-
   // Modals state
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
   const [timelineApp, setTimelineApp] = useState<ResearchApplication | null>(null);
   const [printApp, setPrintApp] = useState<ResearchApplication | null>(null);
   const [paymentApp, setPaymentApp] = useState<ResearchApplication | null>(null);
   const [isLoadingD1, setIsLoadingD1] = useState(false);
+
+  // Enforce Guest Mode to remain on dashboard tab
+  useEffect(() => {
+    if (!currentUser && activeTab !== 'dashboard') {
+      setActiveTab('dashboard');
+    }
+  }, [currentUser, activeTab]);
 
   // Load applications from Cloudflare D1 on mount
   useEffect(() => {
@@ -147,6 +162,7 @@ export default function App() {
   const handleSaveProfile = (updated: UserProfile) => {
     saveStoredUserProfile(updated);
     setCurrentUser(updated);
+    setCurrentAuthUser(updated);
     const nextUsers = upsertRegisteredUser(updated);
     setRegisteredUsers(nextUsers);
     showToast('บันทึกข้อมูลโปรไฟล์ตั้งต้นและมาตรการคุ้มครองข้อมูล PDPA เรียบร้อยแล้ว');
@@ -155,8 +171,9 @@ export default function App() {
   const handleUpdateRegisteredUser = (updatedUser: UserProfile) => {
     const nextUsers = upsertRegisteredUser(updatedUser);
     setRegisteredUsers(nextUsers);
-    if (currentUser.id === updatedUser.id || currentUser.email.toLowerCase() === updatedUser.email.toLowerCase()) {
+    if (currentUser && (currentUser.id === updatedUser.id || currentUser.email.toLowerCase() === updatedUser.email.toLowerCase())) {
       setCurrentUser(updatedUser);
+      setCurrentAuthUser(updatedUser);
       saveStoredUserProfile(updatedUser);
     }
     showToast(`อัปเดตข้อมูลผู้ใช้งาน ${updatedUser.name} เรียบร้อยแล้ว`);
@@ -177,12 +194,48 @@ export default function App() {
 
   const handleSwitchUserFromConsole = (user: UserProfile) => {
     setCurrentUser(user);
+    setCurrentAuthUser(user);
     saveStoredUserProfile(user);
     setCurrentRole(user.role);
     showToast(`สลับเข้าใช้งานบัญชี ${user.name} (${user.email}) สิทธิ์: ${user.role} สำเร็จ`);
   };
 
+  const handleLoginSuccess = (user: UserProfile) => {
+    setCurrentUser(user);
+    setCurrentAuthUser(user);
+    setCurrentRole(user.role);
+    setActiveTab('dashboard');
+    showToast(`ยินดีต้อนรับ ${user.name} (${user.email}) เข้าสู่ระบบในสิทธิ์: ${user.role}`);
+  };
+
+  const handleLogout = async () => {
+    await logoutNuUser();
+    setCurrentUser(null);
+    setCurrentRole('researcher');
+    setActiveTab('dashboard');
+    showToast('ออกจากระบบเรียบร้อยแล้ว เข้าสู่โหมดผู้เยี่ยมชมทั่วไป (Guest Mode)');
+  };
+
+  const handleOpenNewSubmission = () => {
+    if (!currentUser) {
+      setIsLoginModalOpen(true);
+      showToast('กรุณาเข้าสู่ระบบด้วย NU Account (@nu.ac.th) ก่อนยื่นคำขอรับทุน');
+      return;
+    }
+    setIsSubmissionModalOpen(true);
+  };
+
+  const handleTabChange = (tab: ActiveTab) => {
+    if (!currentUser && tab !== 'dashboard') {
+      setIsLoginModalOpen(true);
+      showToast('กรุณาเข้าสู่ระบบด้วย NU Account (@nu.ac.th) เพื่อเข้าใช้งานเมนูนี้');
+      return;
+    }
+    setActiveTab(tab);
+  };
+
   const handleRoleChange = (newRole: UserRole) => {
+    if (!currentUser) return;
     setCurrentRole(newRole);
     const roleAllowedTabs: Record<UserRole, ActiveTab[]> = {
       researcher: ['dashboard', 'table', 'calendar'],
@@ -199,6 +252,7 @@ export default function App() {
 
   // 1. Submit New Application (Local State + Real Google Sheets Sync)
   const handleCreateSubmission = (appInput: Partial<ResearchApplication>) => {
+    const activeUser = currentUser || DEFAULT_LOGGED_IN_USER;
     const finalId = appInput.id || `app-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const appFiscalYear = appInput.fiscalYear || 2570;
     const finalTrackingNo = appInput.trackingNo || generateNextTrackingNo(
@@ -208,14 +262,14 @@ export default function App() {
     const today = new Date().toISOString().split('T')[0];
 
     const finalApp: ResearchApplication = {
-      applicantName: currentUser.name,
-      academicPosition: currentUser.academicPosition,
-      department: currentUser.department,
-      phone: currentUser.phone,
-      email: currentUser.email,
+      applicantName: activeUser.name,
+      academicPosition: activeUser.academicPosition,
+      department: activeUser.department,
+      phone: activeUser.phone,
+      email: activeUser.email,
       bankName: 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร',
-      bankAccountNo: currentUser.bankAccountNo || '',
-      idCardNo: currentUser.idCardNo || '',
+      bankAccountNo: activeUser.bankAccountNo || '',
+      idCardNo: activeUser.idCardNo || '',
       pdpaConsentAccepted: true,
       pdpaConsentDate: today,
       requestType: 'both',
@@ -288,7 +342,6 @@ export default function App() {
     );
     showToast(`อัปเดตสถานะโครงการเป็น "${newStatus}" (ขั้นตอนที่ ${nextStep}) เรียบร้อย`);
 
-    // Direct Sheets API sync for status update
     // Cloudflare D1 sync for status update
     updateRewardApplicationInD1(id, {
       status: newStatus,
@@ -304,7 +357,7 @@ export default function App() {
         triggerLineMilestoneNotification({ 
           ...target, 
           status: 'paid', 
-          currentStep: nextStep,
+          currentStep: nextStep, 
           disbursementVoucherNo: target.disbursementVoucherNo || 'ฎีกา 3606/70'
         }, 'payment_transferred');
       } else if (newStatus === 'staff_verified') {
@@ -360,38 +413,30 @@ export default function App() {
         else if (nextStep >= 9 && nextStep <= 10) newStatus = 'finance_processing';
         else if (nextStep >= 11) newStatus = 'paid';
 
-        const updatedTimeline = app.timeline?.map((step) => {
-          if (step.stepNumber === app.currentStep) {
-            return {
-              ...step,
-              status: 'completed' as const,
-              completedAt: new Date().toISOString().split('T')[0],
-              notes: note || step.notes,
-            };
+        const updatedTimeline = app.timeline.map((step) => {
+          if (step.stepNumber < nextStep) {
+            return { ...step, status: 'completed' as const, completedAt: step.completedAt || new Date().toISOString().split('T')[0] };
           }
           if (step.stepNumber === nextStep) {
-            return {
-              ...step,
-              status: 'in_progress' as const,
-            };
+            return { ...step, status: 'in_progress' as const, notes: note || step.notes };
           }
-          return step;
+          return { ...step, status: 'pending' as const };
         });
+
+        const isNowPaid = nextStep >= 11;
 
         return {
           ...app,
           currentStep: nextStep,
           status: newStatus,
-          timeline: updatedTimeline,
+          paymentStatus: isNowPaid ? 'transferred' : app.paymentStatus,
+          paymentDate: isNowPaid && !app.paymentDate ? new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : app.paymentDate,
+          disbursementVoucherNo: isNowPaid && !app.disbursementVoucherNo ? `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70` : app.disbursementVoucherNo,
           updatedAt: new Date().toISOString().split('T')[0],
+          timeline: updatedTimeline,
         };
       })
     );
-
-    // Update the currently viewed app in the modal
-    if (timelineApp && timelineApp.id === id) {
-      setTimelineApp((prev) => (prev ? { ...prev, currentStep: nextStep } : null));
-    }
 
     // Cloudflare D1 sync
     if (target) {
@@ -438,6 +483,7 @@ export default function App() {
 
   // Data isolation for researcher: strictly restrict to own applications 100%
   const isAppOwnedByUser = (app: ResearchApplication) => {
+    if (!currentUser) return false;
     if (currentUser.email && app.email && app.email.toLowerCase() === currentUser.email.toLowerCase()) return true;
     if (currentUser.name && app.applicantName && app.applicantName.toLowerCase().includes(currentUser.name.toLowerCase())) return true;
     return false;
@@ -471,12 +517,20 @@ export default function App() {
         currentRole={currentRole}
         setCurrentRole={handleRoleChange}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenNewSubmission={() => setIsSubmissionModalOpen(true)}
+        setActiveTab={handleTabChange}
+        onOpenNewSubmission={handleOpenNewSubmission}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         currentUser={currentUser}
-        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenProfile={() => {
+          if (!currentUser) {
+            setIsLoginModalOpen(true);
+          } else {
+            setIsProfileModalOpen(true);
+          }
+        }}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Main Workspace Canvas */}
@@ -497,12 +551,14 @@ export default function App() {
             onViewApplication={(app) => setTimelineApp(app)}
             onPrintApplication={(app) => setPrintApp(app)}
             onVerifyPayment={(app) => setPaymentApp(app)}
-            onOpenNewSubmission={() => setIsSubmissionModalOpen(true)}
+            onOpenNewSubmission={handleOpenNewSubmission}
+            currentUser={currentUser}
+            onOpenLoginModal={() => setIsLoginModalOpen(true)}
           />
         )}
 
         {/* Tab 2: Interactive Drag-and-Drop Kanban Board (Coordinator and Admin ONLY) */}
-        {activeTab === 'kanban' && (currentRole === 'coordinator' || currentRole === 'admin') && (
+        {activeTab === 'kanban' && (currentRole === 'coordinator' || currentRole === 'admin') && !isGuest && (
           <KanbanBoard
             applications={displayApplications}
             onUpdateStatus={handleUpdateStatus}
@@ -515,26 +571,26 @@ export default function App() {
         )}
 
         {/* Tab 3: Editable Table Grid for Personal Work */}
-        {activeTab === 'table' && (
+        {activeTab === 'table' && !isGuest && (
           <TableView
             applications={displayApplications}
             onSaveRow={handleSaveTableRow}
             onViewApplication={(app) => setTimelineApp(app)}
             onPrintApplication={(app) => setPrintApp(app)}
             onVerifyPayment={(app) => setPaymentApp(app)}
-            currentUserEmail={currentUser.email}
-            currentUserName={currentUser.name}
+            currentUserEmail={currentUser?.email || ''}
+            currentUserName={currentUser?.name || ''}
             currentRole={currentRole}
           />
         )}
 
         {/* Tab 4: Google Calendar View */}
-        {activeTab === 'calendar' && (
+        {activeTab === 'calendar' && !isGuest && (
           <CalendarView applications={roleScopedApplications} />
         )}
 
         {/* Tab 5: LINE OA Notification Center (Coordinator and Admin ONLY) */}
-        {activeTab === 'line_oa' && (currentRole === 'coordinator' || currentRole === 'admin') && (
+        {activeTab === 'line_oa' && (currentRole === 'coordinator' || currentRole === 'admin') && !isGuest && (
           <LineNotificationModal
             applications={applications}
             onSendNotification={handleSendLineNotification}
@@ -544,10 +600,10 @@ export default function App() {
         )}
 
         {/* Tab 6: Admin User Management Console */}
-        {activeTab === 'user_management' && currentRole === 'admin' ? (
+        {activeTab === 'user_management' && currentRole === 'admin' && !isGuest ? (
           <UserManagementView
             users={registeredUsers}
-            currentLoggedInUser={currentUser}
+            currentLoggedInUser={currentUser || DEFAULT_LOGGED_IN_USER}
             onUpdateUser={handleUpdateRegisteredUser}
             onCreateUser={handleCreateRegisteredUser}
             onDeleteUser={handleDeleteRegisteredUser}
@@ -575,8 +631,6 @@ export default function App() {
           </div>
         ) : null}
 
-
-
       </main>
 
       {/* Footer */}
@@ -602,7 +656,7 @@ export default function App() {
           onClose={() => setIsSubmissionModalOpen(false)}
           onSubmit={handleCreateSubmission}
           existingApplications={applications}
-          currentUser={currentUser}
+          currentUser={currentUser || DEFAULT_LOGGED_IN_USER}
         />
       )}
 
@@ -622,7 +676,7 @@ export default function App() {
       <OfficialPrintModal
         isOpen={!!printApp}
         application={printApp}
-        currentUser={currentUser}
+        currentUser={currentUser || DEFAULT_LOGGED_IN_USER}
         currentRole={currentRole}
         onClose={() => setPrintApp(null)}
         onSaveDocDetails={handleUpdateDocDetails}
@@ -641,20 +695,26 @@ export default function App() {
       />
 
       {/* MODAL 5: User Profile & PDPA Settings Modal */}
-      {isProfileModalOpen && (
+      {isProfileModalOpen && currentUser && (
         <UserProfileModal
           currentUser={currentUser}
           onClose={() => setIsProfileModalOpen(false)}
           onSaveProfile={handleSaveProfile}
           onSwitchUser={(user) => {
             setCurrentUser(user);
+            setCurrentAuthUser(user);
             setCurrentRole(user.role);
             showToast(`สลับเข้าใช้งานบัญชี ${user.name} (${user.email}) เรียบร้อยแล้ว`);
           }}
         />
       )}
 
-      {/* Cloudflare D1 Sync Active */}
+      {/* MODAL 6: NU Account Login Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
 
     </div>
   );

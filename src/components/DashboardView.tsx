@@ -13,9 +13,13 @@ import {
   Send, 
   DollarSign, 
   Building, 
-  Layers
+  Layers,
+  Lock,
+  LogIn,
+  UserCheck,
+  ExternalLink
 } from 'lucide-react';
-import { ResearchApplication } from '../types';
+import { ResearchApplication, UserProfile } from '../types';
 import { formatBaht } from '../data/regulations';
 
 interface DashboardViewProps {
@@ -24,6 +28,8 @@ interface DashboardViewProps {
   onPrintApplication: (app: ResearchApplication) => void;
   onVerifyPayment: (app: ResearchApplication) => void;
   onOpenNewSubmission: () => void;
+  currentUser?: UserProfile | null;
+  onOpenLoginModal?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -32,8 +38,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onPrintApplication,
   onVerifyPayment,
   onOpenNewSubmission,
+  currentUser,
+  onOpenLoginModal,
 }) => {
-  // Aggregate statistics
+  const isGuest = !currentUser;
+
+  // Aggregate statistics for entire faculty
   const totalApplications = applications.length;
   const totalApprovedAmount = applications.reduce((acc, a) => acc + (a.totalClaimedAmount || 0), 0);
   const totalPaidAmount = applications
@@ -59,6 +69,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const q4Count = applications.filter((a) => a.quartile === 'Q4').length;
   const tciCount = applications.filter((a) => a.quartile === 'TCI_1' || a.quartile === 'TCI_2').length;
 
+  // Filtered applications based on logged-in role
+  const isResearcher = currentUser?.role === 'researcher';
+  const displayedApplications = React.useMemo(() => {
+    if (isGuest) return [];
+    if (isResearcher && currentUser) {
+      const userLastName = currentUser.name.trim().split(' ').pop()?.toLowerCase() || '';
+      return applications.filter((a) => {
+        const matchesEmail = a.applicantEmail && currentUser.email && a.applicantEmail.toLowerCase() === currentUser.email.toLowerCase();
+        const matchesName = userLastName && a.applicantName && a.applicantName.toLowerCase().includes(userLastName);
+        return matchesEmail || matchesName;
+      });
+    }
+    return applications;
+  }, [applications, isGuest, isResearcher, currentUser]);
+
+  // Researcher personal quota calculation
+  const personalClaimedTotal = React.useMemo(() => {
+    if (!isResearcher) return 0;
+    return displayedApplications.reduce((acc, a) => acc + (a.totalClaimedAmount || 0), 0);
+  }, [displayedApplications, isResearcher]);
+  const personalRemainingQuota = Math.max(0, 150000 - personalClaimedTotal);
+
   return (
     <div className="space-y-6">
       {/* Top Banner with University Identity & Official Scope */}
@@ -70,46 +102,74 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>ประกาศมหาวิทยาลัยนเรศวร (ลงวันที่ 27 พฤษภาคม 2567)</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-prompt">
-              แดชบอร์ดติดตามเงินรางวัลและค่าตีพิมพ์ คณะแพทยศาสตร์
+              {isGuest 
+                ? 'ระบบขอรับเงินรางวัลและค่าตีพิมพ์ คณะแพทยศาสตร์' 
+                : isResearcher 
+                  ? `แดชบอร์ดคำขอทุนของ ${currentUser?.name || 'อาจารย์'}` 
+                  : 'แดชบอร์ดติดตามเงินรางวัลและค่าตีพิมพ์ คณะแพทยศาสตร์'}
             </h2>
             <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-              ติดตามขั้นตอนการขอรับเงินรางวัลและค่าตีพิมพ์บทความวิจัยระดับนานาชาติและระดับชาติ 
-              ตรวจสอบเอกสารตามเกณฑ์ AWP (AWP69, AWP70 และปีงบถัดไป) และกำกับขั้นตอนการโอนเงินเข้าบัญชีอย่างโปร่งใส
+              {isGuest ? (
+                'ยินดีต้อนรับสู่ระบบข้อมูลสาธารณะ ติดตามสถิติการส่งเสริมการตีพิมพ์ผลงานวิจัยระดับนานาชาติและระดับชาติตามประกาศคณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร'
+              ) : (
+                'ติดตามขั้นตอนการขอรับเงินรางวัลและค่าตีพิมพ์บทความวิจัยระดับนานาชาติและระดับชาติ ตรวจสอบเอกสารตามเกณฑ์ AWP และกำกับขั้นตอนการโอนเงินเข้าบัญชีอย่างโปร่งใส'
+              )}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button
-              onClick={onOpenNewSubmission}
-              className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-2"
-            >
-              <TrendingUp className="w-4 h-4 text-slate-950" />
-              <span>ยื่นคำขอรับทุนใหม่</span>
-            </button>
+            {isGuest ? (
+              <button
+                onClick={onOpenLoginModal}
+                className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 font-prompt active:scale-95"
+              >
+                <LogIn className="w-4 h-4 text-slate-950" />
+                <span>เข้าสู่ระบบด้วย NU Account</span>
+              </button>
+            ) : (
+              (currentUser?.role === 'researcher' || currentUser?.role === 'coordinator' || currentUser?.role === 'admin') && (
+                <button
+                  onClick={onOpenNewSubmission}
+                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 active:scale-95"
+                >
+                  <TrendingUp className="w-4 h-4 text-slate-950" />
+                  <span>ยื่นคำขอรับทุนใหม่</span>
+                </button>
+              )
+            )}
+
             <div className="bg-slate-800/80 backdrop-blur px-4 py-2.5 rounded-xl border border-slate-700/80 text-xs">
-              <span className="text-slate-400 block">เพดานสิทธิ์ต่อคน/ปีงบประมาณ:</span>
-              <span className="font-bold text-amber-300 text-sm">150,000 บาท</span>
+              <span className="text-slate-400 block">
+                {isResearcher ? 'วงเงินคงเหลือของท่าน (150k):' : 'เพดานสิทธิ์ต่อคน/ปีงบประมาณ:'}
+              </span>
+              <span className="font-bold text-amber-300 text-sm">
+                {isResearcher ? `${formatBaht(personalRemainingQuota)} บาท` : '150,000 บาท'}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards: Aggregate Statistics (Safe for Public) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Approved Amount */}
         <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">งบประมาณอนุมัติรวม</span>
+            <span className="text-xs font-medium text-slate-500">
+              {isResearcher ? 'ยอดคำขอของฉันรวม' : 'งบประมาณอนุมัติรวม'}
+            </span>
             <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
               <Banknote className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold text-slate-900 tracking-tight font-prompt">
-              {formatBaht(totalApprovedAmount)}
+              {formatBaht(isResearcher ? personalClaimedTotal : totalApprovedAmount)}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-              <span>ทั้งหมด {totalApplications} โครงการ</span>
+              <span>
+                {isResearcher ? `จำนวน ${displayedApplications.length} เรื่อง` : `ทั้งหมด ${totalApplications} โครงการ`}
+              </span>
             </div>
           </div>
         </div>
@@ -331,136 +391,199 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Recent Applications Table List */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 font-prompt">
-              รายการคำขอรับเงินรางวัลและค่าตีพิมพ์ล่าสุด
-            </h3>
-            <p className="text-xs text-slate-500">
-              คลิกเพื่อดูไทม์ไลน์ 12 ขั้นตอน, ปริ้นเอกสารราชการ, หรือตรวจสอบสถานะเงินโอน
-            </p>
+      {/* GUEST MODE: Zero Information Leakage Section (Replaces Recent Applications Table) */}
+      {isGuest ? (
+        <div className="space-y-4">
+          {/* Call-to-Action for NU Researchers */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200/80 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-md shrink-0">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm sm:text-base font-bold text-slate-900 font-prompt">
+                  สำหรับคณาจารย์และนักวิจัย คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร
+                </h4>
+                <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                  เข้าสู่ระบบด้วยบัญชี @nu.ac.th เพื่อยื่นคำขอรับรางวัล, ตรวจสอบเพดานวงเงิน 150,000 บาท/ปีงบประมาณ, และดาวน์โหลดเอกสาร
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onOpenLoginModal}
+              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-xs shadow-md transition-all flex items-center gap-2 whitespace-nowrap active:scale-95 shrink-0"
+            >
+              <LogIn className="w-4 h-4 text-amber-400" />
+              <span>เข้าสู่ระบบด้วย NU Account</span>
+            </button>
           </div>
-          <span className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1 rounded-full">
-            แสดง {applications.length} รายการ
-          </span>
+
+          {/* Privacy & Zero Info Leakage Alert Box */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-8 text-center space-y-4">
+            <div className="w-14 h-14 bg-amber-50 rounded-2xl border border-amber-200/70 text-amber-700 flex items-center justify-center mx-auto shadow-sm">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div className="max-w-md mx-auto space-y-2">
+              <h3 className="text-base font-bold text-slate-900 font-prompt">
+                ตารางรายการคำขอและสถานะเงินโอนส่วนบุคคลถูกจำกัดการเข้าถึง
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA) รายชื่ออาจารย์ผู้ขอรับรางวัล รายละเอียดบทความ และยอดเงินรางวัลรายบุคคล จะแสดงเฉพาะผู้ใช้งานที่ยืนยันตัวตนด้วยบัญชีมหาวิทยาลัยนเรศวร (@nu.ac.th) แล้วเท่านั้น
+              </p>
+            </div>
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={onOpenLoginModal}
+                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-xs shadow-md transition-all flex items-center gap-2"
+              >
+                <LogIn className="w-4 h-4 text-amber-400" />
+                <span>เข้าสู่ระบบเพื่อดูรายการคำขอ</span>
+              </button>
+            </div>
+          </div>
         </div>
+      ) : (
+        /* AUTHENTICATED MODE: Role-Specific Applications Table */
+        <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 font-prompt">
+                {isResearcher ? 'รายการคำขอรับเงินรางวัลและค่าตีพิมพ์ของฉัน' : 'รายการคำขอรับเงินรางวัลและค่าตีพิมพ์ล่าสุด'}
+              </h3>
+              <p className="text-xs text-slate-500">
+                {isResearcher 
+                  ? 'คลิกเพื่อดูไทม์ไลน์ 12 ขั้นตอน และปริ้นแบบฟอร์มขอรับรางวัล AWP69 ของท่าน' 
+                  : 'คลิกเพื่อดูไทม์ไลน์ 12 ขั้นตอน, ปริ้นเอกสารราชการ, หรือตรวจสอบสถานะเงินโอน'}
+              </p>
+            </div>
+            <span className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1 rounded-full">
+              แสดง {displayedApplications.length} รายการ
+            </span>
+          </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider">
-              <tr>
-                <th className="px-4 py-3 text-left">เลขที่ติดตาม (AWP)</th>
-                <th className="px-4 py-3 text-left">นักวิจัย / ภาควิชา</th>
-                <th className="px-4 py-3 text-left">บทความ / วารสาร</th>
-                <th className="px-4 py-3 text-left">Quartile / ฐาน</th>
-                <th className="px-4 py-3 text-right">ยอดเงินรวม</th>
-                <th className="px-4 py-3 text-center">สถานะโครงการ</th>
-                <th className="px-4 py-3 text-center">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 bg-white">
-              {applications.map((app, idx) => {
-                const isPaid = app.status === 'paid';
-                const rowKey = app.id || `dash-app-${app.trackingNo || 'row'}-${idx}`;
-                return (
-                  <tr key={rowKey} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded border border-slate-200">
-                        {app.trackingNo}
-                      </span>
-                      <span className="block text-[10px] text-slate-500 mt-1">
-                        <span className="font-medium text-amber-800 bg-amber-50 px-1 rounded mr-1">ปี {app.fiscalYear}</span>
-                        <span>{app.createdAt}</span>
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-900">{app.applicantName}</div>
-                      <div className="text-slate-500 text-[11px]">{app.department}</div>
-                    </td>
-
-                    <td className="px-4 py-3 max-w-xs">
-                      <div className="font-medium text-slate-800 line-clamp-1" title={app.articleTitle}>
-                        {app.articleTitle}
-                      </div>
-                      <div className="text-[11px] text-slate-500 line-clamp-1 italic">
-                        {app.journalName}
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                        {app.quartile === 'Q1_Tier1' ? 'Q1 Tier 1' : app.quartile}
-                      </span>
-                      <span className="block text-[10px] text-slate-500 mt-0.5">{app.database}</span>
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="font-bold text-slate-900 font-prompt">
-                        {formatBaht(app.totalClaimedAmount)}
-                      </div>
-                      <div className="text-[10px] text-slate-500">
-                        รางวัล: {formatBaht(app.claimedRewardAmount)}
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
-                      {isPaid ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>โอนเงินแล้ว</span>
-                        </span>
-                      ) : app.status === 'dean_approved' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-                          <span>คณบดีอนุมัติแล้ว</span>
-                        </span>
-                      ) : app.status === 'staff_verified' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                          <span>จนท. ตรวจสอบแล้ว</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                          <span>ขั้นตอนที่ {app.currentStep}/12</span>
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => onViewApplication(app)}
-                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="ดูไทม์ไลน์ 12 ขั้นตอน"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onPrintApplication(app)}
-                          className="p-1.5 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                          title="ปริ้นแบบฟอร์มราชการ (AWP69 / บันทึกข้อความ)"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
-                        {isPaid && (
-                          <button
-                            onClick={() => onVerifyPayment(app)}
-                            className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
-                            title="ตรวจสอบสลิปโอนเงิน / เลขฎีกา"
-                          >
-                            <Banknote className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          {displayedApplications.length === 0 ? (
+            <div className="p-12 text-center text-slate-500">
+              <CheckCircle2 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-medium">ยังไม่มีรายการคำขอของท่านในระบบ</p>
+              <p className="text-xs text-slate-400 mt-1">กดปุ่ม "ยื่นคำขอรับทุนใหม่" ด้านบนเพื่อเริ่มต้นกรอกข้อมูล</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-xs">
+                <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider">
+                  <tr>
+                    <th className="px-4 py-3 text-left">เลขที่ติดตาม (AWP)</th>
+                    <th className="px-4 py-3 text-left">นักวิจัย / ภาควิชา</th>
+                    <th className="px-4 py-3 text-left">บทความ / วารสาร</th>
+                    <th className="px-4 py-3 text-left">Quartile / ฐาน</th>
+                    <th className="px-4 py-3 text-right">ยอดเงินรวม</th>
+                    <th className="px-4 py-3 text-center">สถานะโครงการ</th>
+                    <th className="px-4 py-3 text-center">จัดการ</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {displayedApplications.map((app, idx) => {
+                    const isPaid = app.status === 'paid';
+                    const rowKey = app.id || `dash-app-${app.trackingNo || 'row'}-${idx}`;
+                    return (
+                      <tr key={rowKey} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                            {app.trackingNo}
+                          </span>
+                          <span className="block text-[10px] text-slate-500 mt-1">
+                            <span className="font-medium text-amber-800 bg-amber-50 px-1 rounded mr-1">ปี {app.fiscalYear}</span>
+                            <span>{app.createdAt}</span>
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-slate-900">{app.applicantName}</div>
+                          <div className="text-slate-500 text-[11px]">{app.department}</div>
+                        </td>
+
+                        <td className="px-4 py-3 max-w-xs">
+                          <div className="font-medium text-slate-800 line-clamp-1" title={app.articleTitle}>
+                            {app.articleTitle}
+                          </div>
+                          <div className="text-[11px] text-slate-500 line-clamp-1 italic">
+                            {app.journalName}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            {app.quartile === 'Q1_Tier1' ? 'Q1 Tier 1' : app.quartile}
+                          </span>
+                          <span className="block text-[10px] text-slate-500 mt-0.5">{app.database}</span>
+                        </td>
+
+                        <td className="px-4 py-3 whitespace-nowrap text-right">
+                          <div className="font-bold text-slate-900 font-prompt">
+                            {formatBaht(app.totalClaimedAmount)}
+                          </div>
+                          <div className="text-[10px] text-slate-500">
+                            รางวัล: {formatBaht(app.claimedRewardAmount)}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          {isPaid ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>โอนเงินแล้ว</span>
+                            </span>
+                          ) : app.status === 'dean_approved' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                              <span>คณบดีอนุมัติแล้ว</span>
+                            </span>
+                          ) : app.status === 'staff_verified' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                              <span>จนท. ตรวจสอบแล้ว</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                              <span>ขั้นตอนที่ {app.currentStep}/12</span>
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => onViewApplication(app)}
+                              className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="ดูไทม์ไลน์ 12 ขั้นตอน"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => onPrintApplication(app)}
+                              className="p-1.5 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                              title="ปริ้นแบบฟอร์มราชการ (AWP69 / บันทึกข้อความ)"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
+                            {isPaid && (
+                              <button
+                                onClick={() => onVerifyPayment(app)}
+                                className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                                title="ตรวจสอบสลิปโอนเงิน / เลขฎีกา"
+                              >
+                                <Banknote className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 };
