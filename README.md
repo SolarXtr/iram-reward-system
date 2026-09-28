@@ -23,7 +23,20 @@
 
 3. **รหัสสารบรรณและข้อมูลภาควิชาอัตโนมัติ:**
    - ผูกรหัสหนังสือราชการคณะแพทยศาสตร์ ม.นเรศวร ตามประกาศล่าสุด (อว 0603.10.xx)
-   - ดึงข้อมูลสังกัดภาควิชาและตำแหน่งทางวิชาการอัตโนมัติ
+    - ดึงข้อมูลสังกัดภาควิชาและตำแหน่งทางวิชาการอัตโนมัติ
+
+4. **ระบบกำหนดสิทธิ์และมุมมองตามบทบาท (Role-Based Access Control & Minimalism):**
+   - แบ่งแยกสิทธิ์และหน้าจอการทำงานชัดเจน 5 บทบาท: นักวิจัย (Researcher), เจ้าหน้าที่วิจัย (Coordinator), งานการเงิน (Finance), ผู้บริหาร (Executive), และผู้ดูแลระบบ (Admin)
+   - ปรับแต่งหน้าจอให้แสดงเฉพาะข้อมูลและเมนูที่จำเป็นสำหรับแต่ละบทบาท (Role-based Header & Navigation Cleanup)
+   - นักวิจัยเห็นเฉพาะงานของตนเอง 100% พร้อมแดชบอร์ดวงเงินสะสมเทียบกับเพดาน 150,000 บาท
+   - เจ้าหน้าที่วิจัยควบคุมกระบวนการผ่าน Kanban Board 12 ขั้นตอน SLA และระบบแจ้งเตือน LINE OA
+   - งานการเงินบันทึกเลขฎีกา วันที่โอนเงิน และหลักฐานการโอนเงิน (Transfer Slip) โดยซ่อนปุ่มยื่นคำขอเพื่อป้องกันความสับสน
+
+5. **ศูนย์ควบคุมและจัดการผู้ใช้งาน (Admin User Management Console & PDPA Security):**
+   - ทะเบียนผู้ใช้งานรวมศูนย์ (`User Registry Service`) พร้อมสถิติจำนวนผู้ใช้ตามบทบาท
+   - ค้นหาและกรองผู้ใช้ตามบทบาทและภาควิชา พร้อมระบบ Quick Role Selector
+   - **PDPA Security Gate:** ล็อกหน้าจอด้านหลัง Admin Passcode ป้องกันการเข้าถึงข้อมูลโดยไม่ได้รับอนุญาต
+   - ระบบปิดบังข้อมูลอ่อนไหว (Sensitive Data Masking) สำหรับเลขบัญชีธนาคารและเลขประจำตัวประชาชน
 
 ---
 
@@ -31,7 +44,7 @@
 
 - **Frontend:** React 19, TypeScript, Tailwind CSS v4, Vite 6, Lucide React, Framer Motion
 - **Document Engine:** `docx` (v9) สำหรับสร้าง Word .docx ที่จัดหน้าแบบ Saraban ราชการไทย และ Web Print Engine สำหรับ PDF
-- **Backend / Deployment:** Cloudflare Pages (Production: [https://iram-reward-system.pages.dev](https://iram-reward-system.pages.dev))
+- **Backend / Database / Deployment:** Cloudflare Pages & Cloudflare D1 (Production: [https://iram-reward-system.pages.dev](https://iram-reward-system.pages.dev))
 
 ---
 
@@ -54,6 +67,12 @@ npm run build
 ---
 
 ## 📦 เวอร์ชั่นและประวัติการปล่อย (Releases)
+
+- **v1.1.0 (Role-Based Access Control & Admin Console - 28 ก.ย. 2569):**
+  - ติดตั้งหน้าจอจัดการผู้ใช้งาน (User Management Console) สำหรับ Admin
+  - ติดตั้งระบบความปลอดภัย Admin Security Gate & PDPA Masking ป้องกันข้อมูลรั่วไหล
+  - ปรับปรุงโครงสร้าง Header และ Navigation ให้แสดงผลเฉพาะตำแหน่งที่จำเป็นตามสิทธิ์ของแต่ละบทบาท 100%
+  - เพิ่ม Route Guard ป้องกันการค้างของหน้าจอข้ามบทบาท
 
 - **v1.0.0 (Initial Release - 25 ก.ย. 2569):**
   - ระบบยื่นคำขอและประเมินเกณฑ์

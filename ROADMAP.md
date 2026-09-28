@@ -40,15 +40,23 @@ gantt
 - [x] **ใบรับรองการจ่ายเงิน (ข้อ 46):** เว้นระยะขอบขวาของตาราง 1-2 เคาะ จัดขอบเสมอแบบ Justified โดยไม่ถ่างตัวอักษร
 - [x] **Dynamic Rows:** ปรับแถวตารางว่างให้พอดีใน 1 หน้ากระดาษ A4 ไม่ล้นเกิน
 
+### ✅ Phase 2.5: User Roles, RBAC & Admin Console (เสร็จสมบูรณ์ v1.1.0)
+- [x] **5 Distinct User Roles:** รองรับบทบาทนักวิจัย (Researcher), จนท.วิจัย (Coordinator), งานการเงิน (Finance), ผู้บริหาร (Executive), และผู้ดูแลระบบ (Admin)
+- [x] **Role-Based Header & Navigation Cleanup:** จัดระเบียบหน้าจอตามบทบาท ซ่อนเมนูและเครื่องมือที่ไม่เกี่ยวข้อง เช่น Kanban/LINE OA/Admin Console ให้เห็นเฉพาะผู้มีสิทธิ์
+- [x] **User Management Console:** ทะเบียนผู้ใช้งานรวมศูนย์ ค้นหา กรองบทบาท/ภาควิชา และ Quick Role Switcher
+- [x] **PDPA Security Gate & Sensitive Data Masking:** ล็อกหน้าจอ Admin ด้วยรหัสผ่านความปลอดภัย และระบบซ่อนเลขบัญชี/บัตรประชาชน
+- [x] **Route Guard:** ป้องกันหน้าจอค้างข้ามบทบาท สลับกลับสู่แดชบอร์ดอัตโนมัติเมื่อเปลี่ยนสิทธิ์
+
 ### 🔄 Phase 3: Integration, Data Pipeline & API Sync (ระยะถัดไป)
+- [x] **Backend Database (Cloudflare D1 & Worker):** เชื่อมต่อฐานข้อมูล `iram-db` และ Worker API สำหรับบันทึกคำขอรับทุน
 - [ ] **Scopus Automation Fetcher:** เชื่อมต่อระบบดึงข้อมูลผลงานตีพิมพ์จาก Scopus อัตโนมัติด้วย DOI
 - [ ] **Researcher Profile Sync:** ซิงก์ข้อมูลนักวิจัย (ตำแหน่งวิชาการ, ภาควิชา, Scopus Author ID)
-- [ ] **Backend Database (Cloudflare D1 / Workers):** บันทึกและติดตามสถานะคำขอแบบเรียลไทม์
 - [ ] **E-Signature & Tracking:** ระบบลงนามอิเล็กทรอนิกส์และติดตามสถานะการเบิกจ่าย
 
 ---
 
 ## 💾 ข้อมูลการแบคอัพ (Backup Metadata)
-- **Tag:** `v1.0.0`
-- **Release Date:** 25 กันยายน 2569
+- **Tag:** `v1.1.0`
+- **Release Date:** 28 กันยายน 2569
 - **Stable Deployment:** [https://iram-reward-system.pages.dev](https://iram-reward-system.pages.dev)
+- **Git Commit:** `4e52024` (feat(ui): role-based header cleanup and strict tab permission filtering)
