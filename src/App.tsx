@@ -379,8 +379,22 @@ export default function App() {
     showToast(`LINE OA [${LINE_BOT_CONFIG.botBasicId}]: ส่งแจ้งเตือนสำหรับ [${trackingNo}] สำเร็จ!`);
   };
 
+  // Data isolation for researcher: strictly restrict to own applications 100%
+  const isAppOwnedByUser = (app: ResearchApplication) => {
+    if (currentUser.email && app.email && app.email.toLowerCase() === currentUser.email.toLowerCase()) return true;
+    if (currentUser.name && app.applicantName && app.applicantName.toLowerCase().includes(currentUser.name.toLowerCase())) return true;
+    return false;
+  };
+
+  const roleScopedApplications = applications.filter((app) => {
+    if (currentRole === 'researcher') {
+      return isAppOwnedByUser(app);
+    }
+    return true;
+  });
+
   // Global search filtering
-  const displayApplications = applications.filter((app) => {
+  const displayApplications = roleScopedApplications.filter((app) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -453,12 +467,13 @@ export default function App() {
             onVerifyPayment={(app) => setPaymentApp(app)}
             currentUserEmail={currentUser.email}
             currentUserName={currentUser.name}
+            currentRole={currentRole}
           />
         )}
 
         {/* Tab 4: Google Calendar View */}
         {activeTab === 'calendar' && (
-          <CalendarView applications={applications} />
+          <CalendarView applications={roleScopedApplications} />
         )}
 
         {/* Tab 5: LINE OA Notification Center (iRAM-U Services @414jvrca) */}
@@ -519,6 +534,7 @@ export default function App() {
         isOpen={!!printApp}
         application={printApp}
         currentUser={currentUser}
+        currentRole={currentRole}
         onClose={() => setPrintApp(null)}
         onSaveDocDetails={handleUpdateDocDetails}
       />

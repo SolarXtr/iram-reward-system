@@ -14,9 +14,10 @@ import {
   FileSpreadsheet,
   Building2,
   UserCheck,
-  ShieldCheck
+  ShieldCheck,
+  Lock
 } from 'lucide-react';
-import { ApplicationStatus, ResearchApplication } from '../types';
+import { ApplicationStatus, ResearchApplication, UserRole } from '../types';
 import { 
   formatBaht, 
   formatKrungsriAccountNo, 
@@ -33,6 +34,7 @@ interface TableViewProps {
   onVerifyPayment: (app: ResearchApplication) => void;
   currentUserEmail?: string;
   currentUserName?: string;
+  currentRole?: UserRole;
 }
 
 export const TableView: React.FC<TableViewProps> = ({
@@ -43,7 +45,11 @@ export const TableView: React.FC<TableViewProps> = ({
   onVerifyPayment,
   currentUserEmail = 'tinnakornh@nu.ac.th',
   currentUserName = 'นายทินกรณ์ หาญณรงค์',
+  currentRole = 'researcher',
 }) => {
+  const canEditArticle = currentRole === 'coordinator' || currentRole === 'admin';
+  const canEditFinance = currentRole === 'finance' || currentRole === 'admin';
+  const canAnyEdit = currentRole === 'admin' || currentRole === 'coordinator' || currentRole === 'finance';
   const [filterScope, setFilterScope] = useState<'all' | 'my_jobs'>('all');
   const [selectedFiscalYear, setSelectedFiscalYear] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -88,10 +94,10 @@ export const TableView: React.FC<TableViewProps> = ({
 
   // Filtering
   const filteredApps = applications.filter((app) => {
-    if (filterScope === 'my_jobs') {
+    if (currentRole === 'researcher' || filterScope === 'my_jobs') {
       const isMyJob = 
-        (currentUserEmail && app.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
-        (currentUserName && app.applicantName.toLowerCase().includes(currentUserName.toLowerCase()));
+        (currentUserEmail && app.email && app.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
+        (currentUserName && app.applicantName && app.applicantName.toLowerCase().includes(currentUserName.toLowerCase()));
       if (!isMyJob) return false;
     }
 
@@ -179,29 +185,36 @@ export const TableView: React.FC<TableViewProps> = ({
         
         {/* Left: View Filter (My jobs vs All) */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="bg-slate-100 p-1 rounded-lg flex items-center text-xs">
-            <button
-              onClick={() => setFilterScope('all')}
-              className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
-                filterScope === 'all'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              โครงการทั้งหมด ({applications.length})
-            </button>
-            <button
-              onClick={() => setFilterScope('my_jobs')}
-              className={`px-3 py-1.5 rounded-md font-medium transition-colors flex items-center gap-1.5 ${
-                filterScope === 'my_jobs'
-                  ? 'bg-white text-blue-700 shadow-sm font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>งานของตนเอง</span>
-            </button>
-          </div>
+          {currentRole === 'researcher' ? (
+            <div className="bg-blue-50 text-blue-900 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-blue-600" />
+              <span>มุมมองนักวิจัย: โครงการของท่าน ({filteredApps.length} รายการ)</span>
+            </div>
+          ) : (
+            <div className="bg-slate-100 p-1 rounded-lg flex items-center text-xs">
+              <button
+                onClick={() => setFilterScope('all')}
+                className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+                  filterScope === 'all'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                โครงการทั้งหมด ({applications.length})
+              </button>
+              <button
+                onClick={() => setFilterScope('my_jobs')}
+                className={`px-3 py-1.5 rounded-md font-medium transition-colors flex items-center gap-1.5 ${
+                  filterScope === 'my_jobs'
+                    ? 'bg-white text-blue-700 shadow-sm font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>งานของตนเอง</span>
+              </button>
+            </div>
+          )}
 
           {/* Fiscal Year Filter */}
           <select
@@ -319,18 +332,9 @@ export const TableView: React.FC<TableViewProps> = ({
                     <tr key={rowKey} className="hover:bg-slate-50/70 transition-colors">
                       {/* Col 1: Tracking */}
                       <td className="px-3 py-3 whitespace-nowrap">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editForm.trackingNo || ''}
-                            onChange={(e) => setEditForm({ ...editForm, trackingNo: e.target.value })}
-                            className="px-2 py-1 border border-blue-400 rounded text-xs font-mono font-bold w-28"
-                          />
-                        ) : (
-                          <span className="font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-mono">
-                            {app.trackingNo}
-                          </span>
-                        )}
+                        <span className="font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-mono">
+                          {app.trackingNo}
+                        </span>
                         <div className="text-[10px] text-slate-500 mt-0.5">
                           <span className="font-medium text-amber-700 bg-amber-50 px-1 rounded mr-1">ปี {app.fiscalYear}</span>
                           <span>{app.createdAt}</span>
@@ -339,29 +343,54 @@ export const TableView: React.FC<TableViewProps> = ({
 
                       {/* Col 2: Researcher */}
                       <td className="px-3 py-3 whitespace-nowrap">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editForm.applicantName || ''}
-                            onChange={(e) => setEditForm({ ...editForm, applicantName: e.target.value })}
-                            className="px-2 py-1 border border-blue-400 rounded text-xs w-36"
-                          />
+                        {isEditing && canEditArticle ? (
+                          <div className="space-y-1">
+                            <input
+                              type="text"
+                              value={editForm.applicantName || ''}
+                              onChange={(e) => setEditForm({ ...editForm, applicantName: e.target.value })}
+                              placeholder="ชื่อ-สกุล"
+                              className="px-2 py-1 border border-blue-400 rounded text-xs w-36 block"
+                            />
+                            <input
+                              type="text"
+                              value={editForm.department || ''}
+                              onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                              placeholder="ภาควิชา"
+                              className="px-2 py-0.5 border border-slate-300 rounded text-[11px] w-36 block"
+                            />
+                          </div>
                         ) : (
                           <>
                             <div className="font-semibold text-slate-900">{app.applicantName}</div>
                             <div className="text-[11px] text-slate-500">{app.department}</div>
+                            {isEditing && !canEditArticle && (
+                              <span className="text-[9px] text-slate-400 flex items-center gap-0.5 mt-0.5">
+                                <Lock className="w-2.5 h-2.5 text-slate-400" /> เฉพาะผู้ประสานงาน
+                              </span>
+                            )}
                           </>
                         )}
                       </td>
 
                       {/* Col 3: Title */}
                       <td className="px-3 py-3 max-w-xs">
-                        {isEditing ? (
-                          <textarea
-                            value={editForm.articleTitle || ''}
-                            onChange={(e) => setEditForm({ ...editForm, articleTitle: e.target.value })}
-                            className="px-2 py-1 border border-blue-400 rounded text-xs w-full h-14"
-                          />
+                        {isEditing && canEditArticle ? (
+                          <div className="space-y-1">
+                            <textarea
+                              value={editForm.articleTitle || ''}
+                              onChange={(e) => setEditForm({ ...editForm, articleTitle: e.target.value })}
+                              placeholder="ชื่อบทความ"
+                              className="px-2 py-1 border border-blue-400 rounded text-xs w-full h-12"
+                            />
+                            <input
+                              type="text"
+                              value={editForm.journalName || ''}
+                              onChange={(e) => setEditForm({ ...editForm, journalName: e.target.value })}
+                              placeholder="ชื่อวารสาร"
+                              className="px-2 py-0.5 border border-slate-300 rounded text-[11px] w-full"
+                            />
+                          </div>
                         ) : (
                           <>
                             <div className="font-medium text-slate-800 line-clamp-1" title={app.articleTitle}>
@@ -370,16 +399,48 @@ export const TableView: React.FC<TableViewProps> = ({
                             <div className="text-[11px] text-slate-500 italic line-clamp-1">
                               {app.journalName}
                             </div>
+                            {isEditing && !canEditArticle && (
+                              <span className="text-[9px] text-slate-400 flex items-center gap-0.5 mt-0.5">
+                                <Lock className="w-2.5 h-2.5 text-slate-400" /> เฉพาะผู้ประสานงาน
+                              </span>
+                            )}
                           </>
                         )}
                       </td>
 
                       {/* Col 4: Quartile */}
                       <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
-                          {app.quartile === 'Q1_Tier1' ? 'Q1 Tier 1' : app.quartile}
-                        </span>
-                        <div className="text-[10px] text-slate-500 mt-0.5">{app.database}</div>
+                        {isEditing && canEditArticle ? (
+                          <div className="space-y-1">
+                            <select
+                              value={editForm.quartile || app.quartile}
+                              onChange={(e) => setEditForm({ ...editForm, quartile: e.target.value as any })}
+                              className="px-1.5 py-0.5 border border-blue-400 rounded text-xs font-semibold"
+                            >
+                              <option value="Q1_Tier1">Q1 Tier 1</option>
+                              <option value="Q1">Q1</option>
+                              <option value="Q2">Q2</option>
+                              <option value="Q3">Q3</option>
+                              <option value="Q4">Q4</option>
+                              <option value="TCI_1">TCI 1</option>
+                              <option value="TCI_2">TCI 2</option>
+                            </select>
+                            <input
+                              type="text"
+                              value={editForm.database || ''}
+                              onChange={(e) => setEditForm({ ...editForm, database: e.target.value as any })}
+                              placeholder="ฐานข้อมูล เช่น Scopus"
+                              className="px-1.5 py-0.5 border border-slate-300 rounded text-[10px] w-24 block"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
+                              {app.quartile === 'Q1_Tier1' ? 'Q1 Tier 1' : app.quartile}
+                            </span>
+                            <div className="text-[10px] text-slate-500 mt-0.5">{app.database}</div>
+                          </>
+                        )}
                       </td>
 
                       {/* Col 5: Reward Amount */}
@@ -399,7 +460,7 @@ export const TableView: React.FC<TableViewProps> = ({
 
                       {/* Col 8: Bank & Voucher */}
                       <td className="px-3 py-3 whitespace-nowrap">
-                        {isEditing ? (
+                        {isEditing && canEditFinance ? (
                           <div className="space-y-1">
                             <input
                               type="text"
@@ -427,6 +488,11 @@ export const TableView: React.FC<TableViewProps> = ({
                                 {app.disbursementVoucherNo}
                               </span>
                             )}
+                            {isEditing && !canEditFinance && (
+                              <span className="text-[9px] text-slate-400 flex items-center gap-0.5 mt-0.5">
+                                <Lock className="w-2.5 h-2.5 text-slate-400" /> เฉพาะงานการเงิน
+                              </span>
+                            )}
                           </>
                         )}
                       </td>
@@ -439,11 +505,27 @@ export const TableView: React.FC<TableViewProps> = ({
                             onChange={(e) => setEditForm({ ...editForm, status: e.target.value as ApplicationStatus })}
                             className="px-2 py-1 border border-blue-400 rounded text-xs font-medium"
                           >
-                            <option value="submitted">ยื่นคำขอใหม่</option>
-                            <option value="staff_verified">เจ้าหน้าที่ตรวจแล้ว</option>
-                            <option value="dean_approved">คณบดีอนุมัติ</option>
-                            <option value="finance_processing">งานการเงินทำฎีกา</option>
-                            <option value="paid">โอนเงินแล้ว</option>
+                            {currentRole === 'coordinator' ? (
+                              <>
+                                <option value="submitted">ยื่นคำขอใหม่</option>
+                                <option value="staff_verified">เจ้าหน้าที่ตรวจแล้ว</option>
+                                <option value="dean_approved">คณบดีอนุมัติ</option>
+                              </>
+                            ) : currentRole === 'finance' ? (
+                              <>
+                                <option value="dean_approved">คณบดีอนุมัติ</option>
+                                <option value="finance_processing">งานการเงินทำฎีกา</option>
+                                <option value="paid">โอนเงินแล้ว</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="submitted">ยื่นคำขอใหม่</option>
+                                <option value="staff_verified">เจ้าหน้าที่ตรวจแล้ว</option>
+                                <option value="dean_approved">คณบดีอนุมัติ</option>
+                                <option value="finance_processing">งานการเงินทำฎีกา</option>
+                                <option value="paid">โอนเงินแล้ว</option>
+                              </>
+                            )}
                           </select>
                         ) : isPaid ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -486,13 +568,15 @@ export const TableView: React.FC<TableViewProps> = ({
                           </div>
                         ) : (
                           <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => startEdit(app)}
-                              className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded"
-                              title="แก้ไขข้อมูลในตาราง"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
+                            {(canAnyEdit || (currentRole === 'researcher' && app.status === 'draft')) && (
+                              <button
+                                onClick={() => startEdit(app)}
+                                className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                title="แก้ไขข้อมูลในตาราง"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <button
                               onClick={() => onViewApplication(app)}
                               className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded"

@@ -154,8 +154,29 @@ export function formatPublicationVolumeIssue(app: Partial<ResearchApplication>):
 }
 
 
-function createThaiDocument(sections: any[]) {
+function createThaiDocument(sections: any[], isDraftPreview = false) {
   const fontData = getThSarabunFontData();
+  const draftHeader = isDraftPreview ? {
+    default: new Header({
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 120 },
+          children: [
+            new TextRun({
+              text: '--- [ ร่างเอกสาร PREVIEW สำหรับตรวจทาน — ยังไม่ผ่านการออกเลขสารบรรณ ] ---',
+              font: FONT_CONFIG,
+              size: 20, // 10 pt
+              color: '888888',
+              bold: true,
+              italics: true,
+            }),
+          ],
+        }),
+      ],
+    }),
+  } : undefined;
+
   return new Document({
     fonts: [
       {
@@ -195,6 +216,7 @@ function createThaiDocument(sections: any[]) {
     },
     sections: sections.map(sect => ({
       ...sect,
+      headers: sect.headers || (draftHeader ? draftHeader : undefined),
       properties: {
         grid: {
           type: DocumentGridType.DEFAULT,
@@ -439,7 +461,8 @@ function getTemplateChecklistLogoData(): Uint8Array {
 // 1. Checklist: แบบตรวจสอบรายการขอรับทุนสนับสนุนค่าตีพิมพ์ (AWP Checklist)
 // ปรับปรุงตรงตามความต้องการของผู้ใช้และแบบฟอร์ม 100%
 // -------------------------------------------------------------------------
-export async function generateChecklistDocx(app: ResearchApplication) {
+export async function generateChecklistDocx(app: ResearchApplication, isDraftPreview?: boolean) {
+  const isDraft = isDraftPreview !== undefined ? isDraftPreview : !(app.isOnlineReviewComplete && app.docRunningNo);
   const trackingPrefix = getTrackingPrefix(app.fiscalYear);
   const rewardAmt = app.claimedRewardAmount || 0;
   const pageAmt = app.approvedPageChargeAmount || 0;
@@ -1081,9 +1104,10 @@ export async function generateChecklistDocx(app: ResearchApplication) {
         }),
       ],
     },
-  ]);
+  ], isDraft);
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, `1_แบบตรวจสอบรายการ_${app.trackingNo.replace('/', '_')}.docx`);
+  const suffix = isDraft ? '_PREVIEW.docx' : '.docx';
+  saveAs(blob, `1_แบบตรวจสอบรายการ_${app.trackingNo.replace('/', '_')}${suffix}`);
 }
 
 
@@ -1091,7 +1115,7 @@ export async function generateChecklistDocx(app: ResearchApplication) {
 // -------------------------------------------------------------------------
 // 2. บันทึกข้อความขออนุมัติเงินรางวัล (ตามแบบฟอร์ม 2 & Version 4.0.0.25Sep2026)
 // -------------------------------------------------------------------------
-export async function generateMemoRewardDocx(app: ResearchApplication) {
+export async function generateMemoRewardDocx(app: ResearchApplication, isDraftPreview?: boolean) {
   const rewardAmt = app.claimedRewardAmount || 0;
   const pageAmt = app.approvedPageChargeAmount || 0;
   const totalAmt = app.totalClaimedAmount || 0;
@@ -1102,6 +1126,7 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
   const subject = getMemoSubject(app, false);
   const effectiveDeptCode = app.deptCode || getDepartmentCode(app.department);
   const isDocOfficiallyNumbered = Boolean(app.isOnlineReviewComplete && app.docRunningNo);
+  const isDraft = isDraftPreview !== undefined ? isDraftPreview : !isDocOfficiallyNumbered;
   const docNoText = isDocOfficiallyNumbered 
     ? formatInternalDocNo(effectiveDeptCode, app.docRunningNo) 
     : (app.internalDocNo || formatInternalDocNo(effectiveDeptCode, ''));
@@ -1503,16 +1528,17 @@ export async function generateMemoRewardDocx(app: ResearchApplication) {
         }),
       ],
     },
-  ]);
+  ], isDraft);
 
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, `2_บันทึกข้อความ_ขออนุมัติเงินรางวัล_${app.trackingNo.replace('/', '_')}.docx`);
+  const suffix = isDraft ? '_PREVIEW.docx' : '.docx';
+  saveAs(blob, `2_บันทึกข้อความ_ขออนุมัติเงินรางวัล_${app.trackingNo.replace('/', '_')}${suffix}`);
 }
 
 // -------------------------------------------------------------------------
 // 3. บันทึกข้อความขออนุมัติเบิกเงินรางวัล (ตามแบบฟอร์ม 3 & Version 4.0.0.25Sep2026)
 // -------------------------------------------------------------------------
-export async function generateMemoDisbursementDocx(app: ResearchApplication) {
+export async function generateMemoDisbursementDocx(app: ResearchApplication, isDraftPreview?: boolean) {
   const rewardAmt = app.claimedRewardAmount || 0;
   const pageAmt = app.approvedPageChargeAmount || 0;
   const totalAmt = app.totalClaimedAmount || 0;
@@ -1524,6 +1550,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
   const memoApprovalSubject = getMemoSubject(app, false);
   const effectiveDeptCode = app.deptCode || getDepartmentCode(app.department);
   const isDocOfficiallyNumbered = Boolean(app.isOnlineReviewComplete && app.docRunningNo);
+  const isDraft = isDraftPreview !== undefined ? isDraftPreview : !isDocOfficiallyNumbered;
   const docNoText = isDocOfficiallyNumbered 
     ? formatInternalDocNo(effectiveDeptCode, app.docRunningNo) 
     : (app.internalDocNo || formatInternalDocNo(effectiveDeptCode, ''));
@@ -1799,16 +1826,18 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication) {
         }),
       ],
     },
-  ]);
+  ], isDraft);
 
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, `3_บันทึกข้อความ_ขออนุมัติเบิกเงินรางวัล_${app.trackingNo.replace('/', '_')}.docx`);
+  const suffix = isDraft ? '_PREVIEW.docx' : '.docx';
+  saveAs(blob, `3_บันทึกข้อความ_ขออนุมัติเบิกเงินรางวัล_${app.trackingNo.replace('/', '_')}${suffix}`);
 }
 
 // -------------------------------------------------------------------------
 // 4. ใบสำคัญรับเงิน มหาวิทยาลัยนเรศวร (ตามแบบฟอร์ม 4 & media_1790149942514.png)
 // -------------------------------------------------------------------------
-export async function generateReceiptDocx(app: ResearchApplication) {
+export async function generateReceiptDocx(app: ResearchApplication, isDraftPreview?: boolean) {
+  const isDraft = isDraftPreview !== undefined ? isDraftPreview : !(app.isOnlineReviewComplete && app.docRunningNo);
   const rewardAmt = app.claimedRewardAmount || 0;
   const pageAmt = app.approvedPageChargeAmount || 0;
   const totalAmt = app.totalClaimedAmount || 0;
@@ -1973,16 +2002,18 @@ export async function generateReceiptDocx(app: ResearchApplication) {
         }),
       ],
     },
-  ]);
+  ], isDraft);
 
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, `4_ใบสำคัญรับเงิน_${app.trackingNo.replace('/', '_')}.docx`);
+  const suffix = isDraft ? '_PREVIEW.docx' : '.docx';
+  saveAs(blob, `4_ใบสำคัญรับเงิน_${app.trackingNo.replace('/', '_')}${suffix}`);
 }
 
 // -------------------------------------------------------------------------
 // 5. ใบสำคัญรับรองจ่าย (ใบรับรองการจ่ายเงิน page charge ตามข้อ 46 & media_1790149973030.png)
 // -------------------------------------------------------------------------
-export async function generateCertificationDocx(app: ResearchApplication) {
+export async function generateCertificationDocx(app: ResearchApplication, isDraftPreview?: boolean) {
+  const isDraft = isDraftPreview !== undefined ? isDraftPreview : !(app.isOnlineReviewComplete && app.docRunningNo);
   const pageAmt = app.approvedPageChargeAmount || 0;
   const certAmt = app.claimedPageChargeAmount || app.approvedPageChargeAmount || pageAmt || app.totalClaimedAmount || 0;
   const isOver70k = certAmt > 70000;
@@ -2160,19 +2191,21 @@ export async function generateCertificationDocx(app: ResearchApplication) {
         }),
       ],
     },
-  ]);
+  ], isDraft);
 
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, `5_ใบสำคัญรับรองจ่าย_${app.trackingNo.replace('/', '_')}.docx`);
+  const suffix = isDraft ? '_PREVIEW.docx' : '.docx';
+  saveAs(blob, `5_ใบสำคัญรับรองจ่าย_${app.trackingNo.replace('/', '_')}${suffix}`);
 }
 
 // -------------------------------------------------------------------------
 // Download All 5 Documents sequentially
 // -------------------------------------------------------------------------
-export async function generateAllDocsDocx(app: ResearchApplication) {
-  await generateChecklistDocx(app);
-  await generateMemoRewardDocx(app);
-  await generateMemoDisbursementDocx(app);
-  await generateReceiptDocx(app);
-  await generateCertificationDocx(app);
+export async function generateAllDocsDocx(app: ResearchApplication, isDraftPreview?: boolean) {
+  const isDraft = isDraftPreview !== undefined ? isDraftPreview : !(app.isOnlineReviewComplete && app.docRunningNo);
+  await generateChecklistDocx(app, isDraft);
+  await generateMemoRewardDocx(app, isDraft);
+  await generateMemoDisbursementDocx(app, isDraft);
+  await generateReceiptDocx(app, isDraft);
+  await generateCertificationDocx(app, isDraft);
 }

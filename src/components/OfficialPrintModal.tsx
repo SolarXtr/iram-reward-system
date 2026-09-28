@@ -28,7 +28,7 @@ import {
   ZoomOut,
   RotateCcw
 } from 'lucide-react';
-import { ResearchApplication, UserProfile } from '../types';
+import { ResearchApplication, UserProfile, UserRole } from '../types';
 import { bahtText, formatBaht, getTrackingPrefix } from '../data/regulations';
 import { MED_NU_LOGO_URL } from '../services/medNuLogo';
 import { TEMPLATE_CHECKLIST_LOGO_BASE64 } from '../services/templateChecklistLogo';
@@ -53,6 +53,7 @@ import { formatInternalDocNo, getDepartmentCode, DEPARTMENT_LIST } from '../data
 interface OfficialPrintModalProps {
   application: ResearchApplication | null;
   currentUser?: UserProfile;
+  currentRole?: UserRole;
   isOpen: boolean;
   onClose: () => void;
   onSaveDocDetails?: (appId: string, updates: Partial<ResearchApplication>) => void;
@@ -78,11 +79,15 @@ const TEMPLATE_LOGO_DATA_URL = `data:image/png;base64,${TEMPLATE_CHECKLIST_LOGO_
 export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   application,
   currentUser,
+  currentRole,
   isOpen,
   onClose,
   onSaveDocDetails,
 }) => {
   if (!isOpen || !application) return null;
+
+  const activeRole: UserRole = currentRole || currentUser?.role || 'researcher';
+  const isResearcher = activeRole === 'researcher';
 
   const [activeDoc, setActiveDoc] = useState<FormDocType>('checklist');
   const [isExportingDocx, setIsExportingDocx] = useState(false);
@@ -379,10 +384,45 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               padding-top: 4px !important;
             }
             ` : ''}
+            .draft-watermark {
+              position: absolute !important;
+              top: 0 !important;
+              left: 0 !important;
+              right: 0 !important;
+              bottom: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              pointer-events: none !important;
+              z-index: 9999 !important;
+              overflow: hidden !important;
+            }
+            .draft-watermark-box {
+              transform: rotate(-35deg) !important;
+              border: 5px dashed rgba(220, 38, 38, 0.35) !important;
+              border-radius: 20px !important;
+              padding: 20px 40px !important;
+              text-align: center !important;
+              color: rgba(220, 38, 38, 0.25) !important;
+              font-family: 'TH Sarabun New', 'TH Sarabun PSK', sans-serif !important;
+            }
+            .draft-watermark-title {
+              font-size: 40pt !important;
+              font-weight: bold !important;
+              letter-spacing: 4px !important;
+              line-height: 1.1 !important;
+            }
+            .draft-watermark-sub {
+              font-size: 24pt !important;
+              font-weight: normal !important;
+              letter-spacing: 2px !important;
+            }
           </style>
         </head>
         <body>
-          <div id="printable-document">
+          <div id="printable-document" style="position: relative;">
             ${printElement.innerHTML}
           </div>
         </body>
@@ -406,16 +446,17 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   const handleDownloadCurrentDocx = async () => {
     try {
       setIsExportingDocx(true);
+      const isDraft = !isDocReady;
       if (activeDoc === 'checklist') {
-        await generateChecklistDocx(appWithDocDetails);
+        await generateChecklistDocx(appWithDocDetails, isDraft);
       } else if (activeDoc === 'memo_reward') {
-        await generateMemoRewardDocx(appWithDocDetails);
+        await generateMemoRewardDocx(appWithDocDetails, isDraft);
       } else if (activeDoc === 'memo_disbursement') {
-        await generateMemoDisbursementDocx(appWithDocDetails);
+        await generateMemoDisbursementDocx(appWithDocDetails, isDraft);
       } else if (activeDoc === 'receipt') {
-        await generateReceiptDocx(appWithDocDetails);
+        await generateReceiptDocx(appWithDocDetails, isDraft);
       } else if (activeDoc === 'certification') {
-        await generateCertificationDocx(appWithDocDetails);
+        await generateCertificationDocx(appWithDocDetails, isDraft);
       }
     } catch (err) {
       console.error('Failed to export DOCX:', err);
@@ -428,7 +469,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   const handleDownloadAllDocx = async () => {
     try {
       setIsExportingDocx(true);
-      await generateAllDocsDocx(appWithDocDetails);
+      await generateAllDocsDocx(appWithDocDetails, !isDocReady);
     } catch (err) {
       console.error('Failed to export all DOCX:', err);
       alert('เกิดข้อผิดพลาดในการสร้างไฟล์ DOCX ทั้ง 5 ชุด');
@@ -544,6 +585,24 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
           </div>
         </div>
 
+        {/* Researcher Notice Banner (when !isDocReady) */}
+        {isResearcher && !isDocReady && (
+          <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/15 border-b border-amber-300 px-4 py-2.5 flex items-center justify-between gap-3 text-amber-950 no-print shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-1 bg-amber-500 text-white rounded-md shrink-0">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div className="text-xs">
+                <span className="font-bold text-amber-900">แจ้งเตือนสำหรับนักวิจัย (ฉบับร่างสำหรับตรวจทาน - PREVIEW):</span>{' '}
+                <span className="text-amber-800">เอกสารชุดนี้ยังอยู่ระหว่างการตรวจสอบโดยเจ้าหน้าที่ และยังไม่ออกเลขสารบรรณทางการ ท่านสามารถพิมพ์หรือดาวน์โหลด Word เพื่อตรวจทานข้อมูลล่วงหน้าได้</span>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200 text-amber-900 shrink-0 border border-amber-300">
+              ฉบับร่าง PREVIEW
+            </span>
+          </div>
+        )}
+
         {/* Main Split View Body: Left Sidebar (Controls) + Right Canvas (Paper Preview) */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
           
@@ -563,7 +622,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                       isDocReady ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
                     }`}>
-                      {isDocReady ? 'ฉบับสมบูรณ์' : 'ฉบับร่าง (Draft)'}
+                      {isDocReady ? 'ฉบับสมบูรณ์' : 'ฉบับร่าง (PREVIEW)'}
                     </span>
                   </div>
 
@@ -585,7 +644,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     ) : (
                       <FileType className="w-4 h-4 text-amber-400" />
                     )}
-                    <span>{isDocReady ? 'ดาวน์โหลด Word ฉบับสมบูรณ์ (.docx)' : 'ดาวน์โหลด Word (ร่าง) (.docx)'}</span>
+                    <span>{isDocReady ? 'ดาวน์โหลด Word ฉบับสมบูรณ์ (.docx)' : 'ดาวน์โหลดร่าง Word (Preview) (.docx)'}</span>
                   </button>
 
                   {/* All 5 DOCX */}
@@ -600,7 +659,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     title={isDocReady ? "ดาวน์โหลดครบทั้ง 5 ไฟล์เป็น .docx ฉบับสมบูรณ์พร้อมกัน" : "ดาวน์โหลดครบทั้ง 5 ไฟล์เป็น .docx ฉบับร่างพร้อมกัน"}
                   >
                     {isDocReady ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Download className="w-3.5 h-3.5 text-slate-500" />}
-                    <span>{isDocReady ? 'โหลดครบ 5 ฟอร์ม (ฉบับสมบูรณ์)' : 'โหลดครบ 5 ฟอร์ม (ร่าง)'}</span>
+                    <span>{isDocReady ? 'โหลดครบ 5 ฟอร์ม (ฉบับสมบูรณ์)' : 'โหลดครบ 5 ฟอร์ม (ร่าง Preview)'}</span>
                   </button>
 
                   {/* Print / PDF Button */}
@@ -614,7 +673,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     title={isDocReady ? "สั่งพิมพ์ออกเครื่องพิมพ์ หรือเลือก 'Save as PDF' ฉบับสมบูรณ์" : "สั่งพิมพ์ออกเครื่องพิมพ์ หรือเลือก 'Save as PDF' ฉบับร่าง"}
                   >
                     {isDocReady ? <CheckCircle2 className="w-4 h-4 text-slate-950" /> : <Download className="w-4 h-4 text-slate-950" />}
-                    <span>{isDocReady ? 'พิมพ์ / บันทึก PDF (ฉบับสมบูรณ์)' : 'พิมพ์ / บันทึก PDF (ฉบับร่าง)'}</span>
+                    <span>{isDocReady ? 'พิมพ์ / บันทึก PDF (ฉบับสมบูรณ์)' : 'พิมพ์ร่างเอกสาร (Preview PDF)'}</span>
                   </button>
                 </div>
 
@@ -698,27 +757,34 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider font-prompt">
                       การตรวจและลงเลขที่
                     </span>
-                    <button
-                      onClick={() => setIsOnlineReviewComplete(!isOnlineReviewComplete)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                        isOnlineReviewComplete
-                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
-                      }`}
-                      title={isOnlineReviewComplete ? "สลับกลับเป็นสถานะแบบร่าง" : "ยืนยันตรวจครบ 100% หรือเจ้าหน้าที่อนุญาตให้ออกเลข"}
-                    >
-                      {isOnlineReviewComplete ? (
-                        <>
-                          <Lock className="w-3 h-3" />
-                          <span>สลับร่าง</span>
-                        </>
-                      ) : (
-                        <>
-                          <Unlock className="w-3 h-3" />
-                          <span>อนุญาต 100%</span>
-                        </>
-                      )}
-                    </button>
+                    {!isResearcher ? (
+                      <button
+                        onClick={() => setIsOnlineReviewComplete(!isOnlineReviewComplete)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                          isOnlineReviewComplete
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+                            : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+                        }`}
+                        title={isOnlineReviewComplete ? "สลับกลับเป็นสถานะแบบร่าง" : "ยืนยันตรวจครบ 100% หรือเจ้าหน้าที่อนุญาตให้ออกเลข"}
+                      >
+                        {isOnlineReviewComplete ? (
+                          <>
+                            <Lock className="w-3 h-3" />
+                            <span>สลับร่าง</span>
+                          </>
+                        ) : (
+                          <>
+                            <Unlock className="w-3 h-3" />
+                            <span>อนุญาต 100%</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1" title="เฉพาะเจ้าหน้าที่งานวิจัย/แอดมินเท่านั้นที่มีสิทธิ์รับรองการตรวจ 100%">
+                        <Lock className="w-3 h-3 text-slate-400" />
+                        <span>สิทธิ์เฉพาะ จนท.</span>
+                      </span>
+                    )}
                   </div>
 
                   {/* Status Indicator */}
@@ -734,9 +800,9 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     )}
                     <div className="text-[11px] leading-relaxed">
                       {isOnlineReviewComplete ? (
-                        <span><strong>ตรวจครบ 100%:</strong> กรุณากรอกเลขลำดับและวันที่ แล้วกดบันทึกเพื่อออกฉบับสมบูรณ์</span>
+                        <span><strong>ตรวจครบ 100%:</strong> {isResearcher ? 'เจ้าหน้าที่ตรวจสอบครบถ้วนแล้ว พร้อมสำหรับการออกเลขสารบรรณ' : 'กรุณากรอกเลขลำดับและวันที่ แล้วกดบันทึกเพื่อออกฉบับสมบูรณ์'}</span>
                       ) : (
-                        <span><strong>อยู่ระหว่างตรวจ (ฉบับร่าง):</strong> โหลดและพิมพ์ฉบับร่างได้ทันที ช่องกรอกเลขที่จะเปิดเมื่อตรวจครบ 100%</span>
+                        <span><strong>อยู่ระหว่างตรวจ (ฉบับร่าง):</strong> {isResearcher ? 'เอกสารอยู่ระหว่างเจ้าหน้าที่ตรวจสอบ ท่านสามารถพิมพ์หรือโหลดฉบับร่าง (PREVIEW) เพื่อตรวจทานได้' : 'โหลดและพิมพ์ฉบับร่างได้ทันที ช่องกรอกเลขที่จะเปิดเมื่อตรวจครบ 100%'}</span>
                       )}
                     </div>
                   </div>
@@ -748,7 +814,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       <div>
                         <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                           <span>รหัสหน่วยงาน (10.xx)</span>
-                          <span className="text-[10px] text-blue-600 font-normal">แก้ไขได้</span>
+                          {!isResearcher && <span className="text-[10px] text-blue-600 font-normal">แก้ไขได้</span>}
                         </label>
                         <div className="flex items-center">
                           <span className="px-2 py-1.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
@@ -758,15 +824,18 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                             type="text"
                             value={deptCode}
                             onChange={(e) => setDeptCode(e.target.value)}
+                            disabled={isResearcher}
                             placeholder="01(9)"
-                            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            list="dept-code-suggestions"
+                            className={`w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500'}`}
+                            list={!isResearcher ? "dept-code-suggestions" : undefined}
                           />
-                          <datalist id="dept-code-suggestions">
-                            {DEPARTMENT_LIST.map((d) => (
-                              <option key={d.code} value={d.code}>{d.code} - {d.name}</option>
-                            ))}
-                          </datalist>
+                          {!isResearcher && (
+                            <datalist id="dept-code-suggestions">
+                              {DEPARTMENT_LIST.map((d) => (
+                                <option key={d.code} value={d.code}>{d.code} - {d.name}</option>
+                              ))}
+                            </datalist>
+                          )}
                         </div>
                       </div>
 
@@ -774,7 +843,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       <div>
                         <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                           <span>เลขลำดับ (xxx)*</span>
-                          <span className="text-[10px] text-emerald-600 font-normal">จำเป็น</span>
+                          {!isResearcher && <span className="text-[10px] text-emerald-600 font-normal">จำเป็น</span>}
                         </label>
                         <div className="flex items-center">
                           <span className="px-2 py-1.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
@@ -784,8 +853,9 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                             type="text"
                             value={docRunningNo}
                             onChange={(e) => setDocRunningNo(e.target.value)}
+                            disabled={isResearcher}
                             placeholder="เช่น 066"
-                            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className={`w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500'}`}
                           />
                         </div>
                       </div>
@@ -794,36 +864,41 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                       <div>
                         <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                           <span>วันที่ในหนังสือ*</span>
-                          <span className="text-[10px] text-emerald-600 font-normal">จำเป็น</span>
+                          {!isResearcher && <span className="text-[10px] text-emerald-600 font-normal">จำเป็น</span>}
                         </label>
                         <div className="flex items-center gap-1">
                           <input
                             type="text"
                             value={officialDocDate}
                             onChange={(e) => setOfficialDocDate(e.target.value)}
+                            disabled={isResearcher}
                             placeholder="เช่น 26 มกราคม 2569"
-                            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className={`w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500'}`}
                           />
-                          <button
-                            type="button"
-                            onClick={handleSetToday}
-                            className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer"
-                            title="ใส่วันที่ปัจจุบัน"
-                          >
-                            วันนี้
-                          </button>
+                          {!isResearcher && (
+                            <button
+                              type="button"
+                              onClick={handleSetToday}
+                              className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer"
+                              title="ใส่วันที่ปัจจุบัน"
+                            >
+                              วันนี้
+                            </button>
+                          )}
                         </div>
                       </div>
 
                       {/* Save Button */}
-                      <button
-                        type="button"
-                        onClick={handleSaveNumbering}
-                        className="w-full mt-1 px-3 py-1.5 bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        <span>บันทึกเลขที่ & วันที่</span>
-                      </button>
+                      {!isResearcher && (
+                        <button
+                          type="button"
+                          onClick={handleSaveNumbering}
+                          className="w-full mt-1 px-3 py-1.5 bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                        >
+                          <Save className="w-3.5 h-3.5" />
+                          <span>บันทึกเลขที่ & วันที่</span>
+                        </button>
+                      )}
 
                       {/* Feedback message */}
                       {saveSuccessMsg && (
@@ -1012,12 +1087,25 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                 transformOrigin: 'top center',
                 transition: 'transform 0.15s ease-out'
               }}
-              className={`bg-white shadow-2xl print:shadow-none max-w-[210mm] w-full min-h-[297mm] print:min-h-0 print:h-auto print:max-w-none print:w-full text-black font-sarabun text-[15pt] leading-normal border border-slate-300 print:border-none print:p-0 my-2 ${
+              className={`bg-white shadow-2xl print:shadow-none max-w-[210mm] w-full min-h-[297mm] print:min-h-0 print:h-auto print:max-w-none print:w-full text-black font-sarabun text-[15pt] leading-normal border border-slate-300 print:border-none print:p-0 my-2 relative overflow-hidden ${
                 activeDoc === 'checklist'
                   ? 'pt-[10mm] pb-[10mm] pl-[15mm] pr-[15mm]'
                   : 'pt-[20mm] pb-[20mm] pl-[30mm] pr-[20mm]'
               }`}
             >
+              {/* Draft Watermark Overlay for Screen & Print */}
+              {!isDocReady && (
+                <div className="draft-watermark pointer-events-none select-none absolute inset-0 z-30 flex items-center justify-center overflow-hidden">
+                  <div className="draft-watermark-box transform -rotate-35 border-4 sm:border-8 border-dashed border-red-500/25 print:border-red-600/35 rounded-3xl p-6 sm:p-12 text-center text-red-500/20 print:text-red-600/30 font-black uppercase tracking-widest">
+                    <div className="draft-watermark-title text-3xl sm:text-5xl md:text-6xl font-extrabold font-prompt mb-2">
+                      ฉบับร่าง PREVIEW
+                    </div>
+                    <div className="draft-watermark-sub text-lg sm:text-2xl font-bold font-prompt">
+                      ยังไม่ออกเลขสารบรรณ
+                    </div>
+                  </div>
+                </div>
+              )}
             
             {/* ========================================================= */}
             {/* 1. CHECKLIST (แบบตรวจสอบรายการ AWP)                       */}
