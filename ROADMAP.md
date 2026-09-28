@@ -7,20 +7,28 @@
 ## 🗺️ แผนการดำเนินงาน (Roadmap Overview)
 
 ```mermaid
-gantt
-    title แผนงานการพัฒนาระบบ iRAM
-    dateFormat  YYYY-MM
-    section Phase 1 (Core & Web)
-    ระบบประเมินเกณฑ์และฟอร์มยื่นคำขอ   :done, 2026-08, 2026-09
-    Cloudflare Pages CI/CD             :done, 2026-09, 2026-09
-    section Phase 2 (Doc Engine & RBAC)
-    ระบบสร้างเอกสารราชการ 5 ชุด (Word & PDF) :done, 2026-09, 2026-09
-    ระบบจัดการสิทธิ์และหน้าจอตามบทบาท (RBAC)  :done, 2026-09, 2026-09
-    ระบบ NU Account Gatekeeper & Public Mode :done, 2026-09, 2026-09
-    section Phase 3 (Integration & API)
-    ระบบเชื่อมต่อ Scopus & Researcher API :active, 2026-10, 2026-11
-    Cloudflare D1 & Worker Backend      :2026-10, 2026-11
-    ระบบยืนยันตัวตนและการลงนามดิจิทัล      :2026-11, 2026-12
+flowchart TD
+    subgraph P1["Phase 1: Core System & Evaluation Engine (ส.ค. - ก.ย. 2569) ✅ เสร็จสมบูรณ์"]
+        P1_1["ระบบประเมินเกณฑ์และฟอร์มยื่นคำขอ"]
+        P1_2["คำนวณเงินค่าตีพิมพ์ 70,000 บ. และรางวัล Quartile"]
+        P1_3["Deploy ระบบบน Cloudflare Pages"]
+    end
+
+    subgraph P2["Phase 2: Doc Engine, RBAC & Security (ก.ย. 2569) ✅ เสร็จสมบูรณ์"]
+        P2_1["ระบบสร้างเอกสารราชการ 5 ชุด (Word .docx & PDF)"]
+        P2_2["ระบบกำหนดสิทธิ์และหน้าจอ 5 บทบาท (RBAC)"]
+        P2_3["Admin User Management Console & PDPA Security"]
+        P2_4["ระบบคัดกรอง NU Account (@nu.ac.th) & Public Dashboard"]
+    end
+
+    subgraph P3["Phase 3: Integration, Data Pipeline & API Sync (ต.ค. - ธ.ค. 2569) 🔄 ระยะถัดไป"]
+        P3_1["Cloudflare D1 Database & Worker Backend"]
+        P3_2["Scopus Automation Fetcher & DOI Import"]
+        P3_3["Researcher Profile Sync (ตำแหน่ง, Scopus ID)"]
+        P3_4["ระบบยืนยันตัวตนและการลงนามดิจิทัล (E-Signature)"]
+    end
+
+    P1 --> P2 --> P3
 ```
 
 ---
