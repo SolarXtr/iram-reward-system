@@ -90,79 +90,94 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Quick Search & Actions */}
           <div className="flex items-center gap-3">
-            {/* Search input */}
-            <div className="relative hidden md:block w-56 lg:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ค้นหา AWP.., ชื่อ, วารสาร..."
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-800/90 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-              />
-            </div>
+            {/* Search input: Show for coordinator, finance, executive, admin (hide for researcher to keep clean) */}
+            {currentRole !== 'researcher' && (
+              <div className="relative hidden md:block w-52 lg:w-60">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="ค้นหา AWP.., ชื่อ, วารสาร..."
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-800/90 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
+                />
+              </div>
+            )}
 
-            {/* Role Switcher */}
-            <div className="flex items-center bg-slate-800/90 p-1 rounded-lg border border-slate-700/70 text-xs">
-              <button
-                onClick={() => setCurrentRole('researcher')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
-                  currentRole === 'researcher'
-                    ? 'bg-amber-600 text-white font-medium shadow-sm'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-                }`}
-                title="มุมมองนักวิจัย (กรอกข้อมูล, ปริ้นเอกสาร, เช็คเงินโอน)"
-              >
-                <span>นักวิจัย</span>
-              </button>
-              <button
-                onClick={() => setCurrentRole('coordinator')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
-                  currentRole === 'coordinator'
-                    ? 'bg-blue-600 text-white font-medium shadow-sm'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-                }`}
-                title="มุมมองผู้ประสานงานวิจัย (ตรวจเอกสาร, บันทึกข้อความ, ไทม์ไลน์)"
-              >
-                <span>เจ้าหน้าที่วิจัย</span>
-              </button>
-              <button
-                onClick={() => setCurrentRole('finance')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
-                  currentRole === 'finance'
-                    ? 'bg-emerald-600 text-white font-medium shadow-sm'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-                }`}
-                title="มุมมองงานการเงิน (จัดทำฎีกา, บันทึกการโอนเงิน)"
-              >
-                <span>งานการเงิน</span>
-              </button>
-              <button
-                onClick={() => setCurrentRole('executive')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
-                  currentRole === 'executive'
-                    ? 'bg-indigo-600 text-white font-medium shadow-sm'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-                }`}
-                title="มุมมองผู้บริหาร (หัวหน้าภาควิชา / รองคณบดี / คณบดี)"
-              >
-                <span>ผู้บริหาร</span>
-              </button>
-              <button
-                onClick={() => setCurrentRole('admin')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
-                  currentRole === 'admin'
-                    ? 'bg-purple-600 text-white font-medium shadow-sm'
-                    : isProfileAdmin
-                    ? 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-                    : 'text-purple-300/70 hover:text-purple-200 hover:bg-slate-700/40'
-                }`}
-                title={isProfileAdmin ? "มุมมองผู้ดูแลระบบ (Admin - ตรวจสอบและจัดการได้ทุกขั้นตอน)" : "เข้าสู่ระบบในฐานะผู้ดูแลระบบ (ต้องยืนยันรหัสผ่าน Admin Security Passcode)"}
-              >
-                {!isProfileAdmin && <Lock className="w-3 h-3 text-purple-400" />}
-                <span>ผู้ดูแลระบบ</span>
-              </button>
-            </div>
+            {/* Role Switcher: Only display if account has multiple roles or is Admin */}
+            {(userRoles.length > 1 || isProfileAdmin) && (
+              <div className="flex items-center bg-slate-800/90 p-1 rounded-lg border border-slate-700/70 text-xs">
+                {(isProfileAdmin || userRoles.includes('researcher')) && (
+                  <button
+                    onClick={() => setCurrentRole('researcher')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+                      currentRole === 'researcher'
+                        ? 'bg-amber-600 text-white font-medium shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                    title="มุมมองนักวิจัย (กรอกข้อมูล, ปริ้นเอกสาร, เช็คเงินโอน)"
+                  >
+                    <span>นักวิจัย</span>
+                  </button>
+                )}
+
+                {(isProfileAdmin || userRoles.includes('coordinator')) && (
+                  <button
+                    onClick={() => setCurrentRole('coordinator')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+                      currentRole === 'coordinator'
+                        ? 'bg-blue-600 text-white font-medium shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                    title="มุมมองผู้ประสานงานวิจัย (ตรวจเอกสาร, บันทึกข้อความ, ไทม์ไลน์)"
+                  >
+                    <span>เจ้าหน้าที่วิจัย</span>
+                  </button>
+                )}
+
+                {(isProfileAdmin || userRoles.includes('finance')) && (
+                  <button
+                    onClick={() => setCurrentRole('finance')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+                      currentRole === 'finance'
+                        ? 'bg-emerald-600 text-white font-medium shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                    title="มุมมองงานการเงิน (จัดทำฎีกา, บันทึกการโอนเงิน)"
+                  >
+                    <span>งานการเงิน</span>
+                  </button>
+                )}
+
+                {(isProfileAdmin || userRoles.includes('executive')) && (
+                  <button
+                    onClick={() => setCurrentRole('executive')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+                      currentRole === 'executive'
+                        ? 'bg-indigo-600 text-white font-medium shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                    title="มุมมองผู้บริหาร (หัวหน้าภาควิชา / รองคณบดี / คณบดี)"
+                  >
+                    <span>ผู้บริหาร</span>
+                  </button>
+                )}
+
+                {isProfileAdmin && (
+                  <button
+                    onClick={() => setCurrentRole('admin')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+                      currentRole === 'admin'
+                        ? 'bg-purple-600 text-white font-medium shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                    title="มุมมองผู้ดูแลระบบ (Admin - ตรวจสอบและจัดการได้ทุกขั้นตอน)"
+                  >
+                    <span>ผู้ดูแลระบบ</span>
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* User Profile / SSO Account Button */}
             <button
@@ -184,66 +199,36 @@ export const Header: React.FC<HeaderProps> = ({
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             </button>
 
-            {/* Google Account / Sign in with Google Button */}
-            {googleUser ? (
-              <div 
-                onClick={onOpenGoogleSheetsSettings}
-                className="cursor-pointer hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-slate-800/90 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700/80 transition-all text-xs"
-                title={`เข้าสู่ระบบด้วย Google: ${googleUser.email}`}
+            {/* Cloudflare D1 Database Connection Status: Show ONLY for Admin */}
+            {currentRole === 'admin' && (
+              <div
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-emerald-950/70 text-emerald-300 border-emerald-700/60 shadow-sm text-xs"
+                title="เชื่อมต่อฐานข้อมูล Cloudflare D1 (iram-db) เรียบร้อยแล้ว"
               >
-                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                <span className="text-slate-300 font-medium truncate max-w-[110px]">
-                  {googleUser.displayName ? googleUser.displayName.split(' ')[0] : googleUser.email.split('@')[0]}
-                </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <Database className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="font-medium">Cloudflare D1</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
               </div>
-            ) : (
-              <button
-                onClick={onGoogleSignIn || onOpenGoogleSheetsSettings}
-                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 rounded-lg text-xs font-semibold shadow-xs transition-all border border-slate-200 active:scale-95"
-                title="Sign in with Google เพื่อเชื่อมต่อ Google Sheets โดยตรง"
-              >
-                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                <span>Sign in with Google</span>
-              </button>
             )}
 
-            {/* Google Sheets Sync Settings Button */}
-            {/* Cloudflare D1 Database Connection Status */}
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-emerald-950/70 text-emerald-300 border-emerald-700/60 shadow-sm text-xs"
-              title="เชื่อมต่อฐานข้อมูล Cloudflare D1 (iram-db) เรียบร้อยแล้ว"
-            >
-              <Database className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline font-medium">Cloudflare D1</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
-            </div>
-
-            {/* Primary Action Button */}
-            <button
-              id="btn-new-submission"
-              onClick={onOpenNewSubmission}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold px-3.5 py-1.5 rounded-lg text-xs shadow-md transition-all transform active:scale-95"
-            >
-              <PlusCircle className="w-4 h-4 text-slate-950" />
-              <span className="hidden sm:inline">ยื่นคำขอใหม่</span>
-            </button>
+            {/* Primary Action Button: Show for Researcher, Coordinator, Admin (Hide for Finance & Executive) */}
+            {(currentRole === 'researcher' || currentRole === 'coordinator' || currentRole === 'admin') && (
+              <button
+                id="btn-new-submission"
+                onClick={onOpenNewSubmission}
+                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold px-3.5 py-1.5 rounded-lg text-xs shadow-md transition-all transform active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4 text-slate-950" />
+                <span className="hidden sm:inline">ยื่นคำขอใหม่</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Navigation Tabs Bar */}
         <div className="flex items-center justify-between overflow-x-auto py-2 scrollbar-none">
           <nav className="flex items-center space-x-1 sm:space-x-2 text-xs">
+            {/* Tab 1: Dashboard (All Roles) */}
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
@@ -253,21 +238,31 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <LayoutDashboard className="w-4 h-4" />
-              <span>แดชบอร์ดสรุปสถานะ</span>
+              <span>
+                {currentRole === 'researcher' && 'แดชบอร์ดคำขอของฉัน'}
+                {currentRole === 'coordinator' && 'แดชบอร์ดภาพรวมคณะ'}
+                {currentRole === 'finance' && 'แดชบอร์ดงานการเงิน'}
+                {currentRole === 'executive' && 'แดชบอร์ดสรุปผู้บริหาร'}
+                {currentRole === 'admin' && 'แดชบอร์ดสรุปสถานะ'}
+              </span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('kanban')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                activeTab === 'kanban'
-                  ? 'bg-slate-800 text-amber-400 border border-slate-700'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <KanbanSquare className="w-4 h-4" />
-              <span>ติดตามแบบลากวาง (Kanban)</span>
-            </button>
+            {/* Tab 2: Kanban (Coordinator and Admin ONLY) */}
+            {(currentRole === 'coordinator' || currentRole === 'admin') && (
+              <button
+                onClick={() => setActiveTab('kanban')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
+                  activeTab === 'kanban'
+                    ? 'bg-slate-800 text-amber-400 border border-slate-700'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <KanbanSquare className="w-4 h-4" />
+                <span>ติดตามแบบลากวาง (Kanban)</span>
+              </button>
+            )}
 
+            {/* Tab 3: Table View (All Roles) */}
             <button
               onClick={() => setActiveTab('table')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
@@ -277,9 +272,16 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <TableProperties className="w-4 h-4" />
-              <span>ตารางแก้ไขข้อมูลตนเอง</span>
+              <span>
+                {currentRole === 'researcher' && 'ตารางคำขอของฉัน'}
+                {currentRole === 'coordinator' && 'ตารางข้อมูลรวมทั้งคณะ'}
+                {currentRole === 'finance' && 'ตารางบันทึกเลขฎีกา/เงินโอน'}
+                {currentRole === 'executive' && 'ตารางสรุปคำขอ'}
+                {currentRole === 'admin' && 'ตารางแก้ไขข้อมูลทั้งหมด'}
+              </span>
             </button>
 
+            {/* Tab 4: Calendar (All Roles) */}
             <button
               onClick={() => setActiveTab('calendar')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
@@ -289,24 +291,30 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Calendar className="w-4 h-4" />
-              <span>ปฏิทินรอบเบิกจ่าย (Google Calendar)</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('line_oa')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                activeTab === 'line_oa'
-                  ? 'bg-slate-800 text-emerald-400 border border-emerald-500/40'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Bell className="w-4 h-4 text-emerald-400" />
-              <span>LINE OA (@414jvrca)</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                4 Triggers
+              <span>
+                {currentRole === 'researcher' ? 'ปฏิทินรอบเงินโอน' : 'ปฏิทินรอบเบิกจ่าย (Google Calendar)'}
               </span>
             </button>
 
+            {/* Tab 5: LINE OA (Coordinator and Admin ONLY) */}
+            {(currentRole === 'coordinator' || currentRole === 'admin') && (
+              <button
+                onClick={() => setActiveTab('line_oa')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
+                  activeTab === 'line_oa'
+                    ? 'bg-slate-800 text-emerald-400 border border-emerald-500/40'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <Bell className="w-4 h-4 text-emerald-400" />
+                <span>LINE OA (@414jvrca)</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  4 Triggers
+                </span>
+              </button>
+            )}
+
+            {/* Tab 6: User Management (Admin ONLY) */}
             {currentRole === 'admin' && (
               <button
                 onClick={() => setActiveTab('user_management')}

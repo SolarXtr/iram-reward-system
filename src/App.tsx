@@ -184,7 +184,15 @@ export default function App() {
 
   const handleRoleChange = (newRole: UserRole) => {
     setCurrentRole(newRole);
-    if (newRole !== 'admin' && activeTab === 'user_management') {
+    const roleAllowedTabs: Record<UserRole, ActiveTab[]> = {
+      researcher: ['dashboard', 'table', 'calendar'],
+      finance: ['dashboard', 'table', 'calendar'],
+      executive: ['dashboard', 'table', 'calendar'],
+      coordinator: ['dashboard', 'kanban', 'table', 'calendar', 'line_oa'],
+      admin: ['dashboard', 'kanban', 'table', 'calendar', 'line_oa', 'user_management'],
+    };
+    const allowed = roleAllowedTabs[newRole] || ['dashboard'];
+    if (!allowed.includes(activeTab)) {
       setActiveTab('dashboard');
     }
   };
@@ -493,8 +501,8 @@ export default function App() {
           />
         )}
 
-        {/* Tab 2: Interactive Drag-and-Drop Kanban Board */}
-        {activeTab === 'kanban' && (
+        {/* Tab 2: Interactive Drag-and-Drop Kanban Board (Coordinator and Admin ONLY) */}
+        {activeTab === 'kanban' && (currentRole === 'coordinator' || currentRole === 'admin') && (
           <KanbanBoard
             applications={displayApplications}
             onUpdateStatus={handleUpdateStatus}
@@ -525,8 +533,8 @@ export default function App() {
           <CalendarView applications={roleScopedApplications} />
         )}
 
-        {/* Tab 5: LINE OA Notification Center (iRAM-U Services @414jvrca) */}
-        {activeTab === 'line_oa' && (
+        {/* Tab 5: LINE OA Notification Center (Coordinator and Admin ONLY) */}
+        {activeTab === 'line_oa' && (currentRole === 'coordinator' || currentRole === 'admin') && (
           <LineNotificationModal
             applications={applications}
             onSendNotification={handleSendLineNotification}
