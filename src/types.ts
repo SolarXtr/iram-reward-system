@@ -213,13 +213,13 @@ export interface CalendarEventSchedule {
   googleCalendarUrl?: string;
 }
 
-export type UserRole = 'researcher' | 'coordinator' | 'finance' | 'admin';
+export type UserRole = 'researcher' | 'coordinator' | 'finance' | 'executive' | 'admin';
 
 export interface UserProfile {
   id: string;
   name: string;
-  academicPosition: string; // e.g. เจ้าหน้าที่วิจัย
-  administrativePosition?: string; // e.g. รักษาการในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย
+  academicPosition: string; // e.g. เจ้าหน้าที่วิจัย, ผู้ช่วยศาสตราจารย์
+  administrativePosition?: string; // e.g. ปฏิบัติหน้าที่ในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย
   department: string;
   phone: string;
   email: string;
@@ -229,4 +229,7 @@ export interface UserProfile {
   role: UserRole;
   roles?: UserRole[]; // e.g. ['researcher', 'coordinator', 'admin']
   isNuAccount: boolean;
+  status?: 'active' | 'suspended';
+  createdAt?: string;
+  lastLoginAt?: string;
 }

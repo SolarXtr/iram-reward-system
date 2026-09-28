@@ -10,10 +10,17 @@ import { TimelineTrackerModal } from './components/TimelineTrackerModal';
 import { OfficialPrintModal } from './components/OfficialPrintModal';
 import { PaymentVerificationModal } from './components/PaymentVerificationModal';
 import { UserProfileModal } from './components/UserProfileModal';
+import { UserManagementView } from './components/UserManagementView';
 import { INITIAL_APPLICATIONS, OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
 import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, ResearchApplication, UserProfile, WorkflowStepId } from './types';
 import { generateNextTrackingNo } from './data/regulations';
-import { getStoredUserProfile, saveStoredUserProfile } from './data/userProfile';
+import { 
+  getStoredUserProfile, 
+  saveStoredUserProfile,
+  getStoredUsersRegistry,
+  upsertRegisteredUser,
+  deleteRegisteredUser
+} from './data/userProfile';
 import { 
   LINE_BOT_CONFIG, 
   createLineRecordFromApp, 
@@ -134,10 +141,45 @@ export default function App() {
     showToast(`LINE OA [${LINE_BOT_CONFIG.botBasicId}]: แจ้งเตือน "${milestoneLabels[milestone]}" (${app.trackingNo}) ส่งตรงถึงมือถือสำเร็จ!`);
   };
 
+  // User Management Registry state & handlers
+  const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(() => getStoredUsersRegistry());
+
   const handleSaveProfile = (updated: UserProfile) => {
     saveStoredUserProfile(updated);
     setCurrentUser(updated);
+    const nextUsers = upsertRegisteredUser(updated);
+    setRegisteredUsers(nextUsers);
     showToast('บันทึกข้อมูลโปรไฟล์ตั้งต้นและมาตรการคุ้มครองข้อมูล PDPA เรียบร้อยแล้ว');
+  };
+
+  const handleUpdateRegisteredUser = (updatedUser: UserProfile) => {
+    const nextUsers = upsertRegisteredUser(updatedUser);
+    setRegisteredUsers(nextUsers);
+    if (currentUser.id === updatedUser.id || currentUser.email.toLowerCase() === updatedUser.email.toLowerCase()) {
+      setCurrentUser(updatedUser);
+      saveStoredUserProfile(updatedUser);
+    }
+    showToast(`อัปเดตข้อมูลผู้ใช้งาน ${updatedUser.name} เรียบร้อยแล้ว`);
+  };
+
+  const handleCreateRegisteredUser = (newUser: UserProfile) => {
+    const nextUsers = upsertRegisteredUser(newUser);
+    setRegisteredUsers(nextUsers);
+    showToast(`เพิ่มผู้ใช้งาน ${newUser.name} เข้าสู่ระบบเรียบร้อยแล้ว`);
+  };
+
+  const handleDeleteRegisteredUser = (userId: string) => {
+    const userToDelete = registeredUsers.find((u) => u.id === userId);
+    const nextUsers = deleteRegisteredUser(userId);
+    setRegisteredUsers(nextUsers);
+    showToast(`ลบผู้ใช้งาน ${userToDelete?.name || userId} เรียบร้อยแล้ว`);
+  };
+
+  const handleSwitchUserFromConsole = (user: UserProfile) => {
+    setCurrentUser(user);
+    saveStoredUserProfile(user);
+    setCurrentRole(user.role);
+    showToast(`สลับเข้าใช้งานบัญชี ${user.name} (${user.email}) สิทธิ์: ${user.role} สำเร็จ`);
   };
 
   // 1. Submit New Application (Local State + Real Google Sheets Sync)
@@ -483,6 +525,19 @@ export default function App() {
             onSendNotification={handleSendLineNotification}
             notifications={lineNotifications}
             onTriggerMilestone={triggerLineMilestoneNotification}
+          />
+        )}
+
+        {/* Tab 6: Admin User Management Console */}
+        {activeTab === 'user_management' && (
+          <UserManagementView
+            users={registeredUsers}
+            currentLoggedInUser={currentUser}
+            onUpdateUser={handleUpdateRegisteredUser}
+            onCreateUser={handleCreateRegisteredUser}
+            onDeleteUser={handleDeleteRegisteredUser}
+            onSwitchUser={handleSwitchUserFromConsole}
+            onShowAlert={showToast}
           />
         )}
 

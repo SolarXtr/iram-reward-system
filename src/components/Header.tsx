@@ -14,12 +14,13 @@ import {
   CheckCircle2,
   ShieldCheck,
   User,
-  Database
+  Database,
+  Users
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 
 export type { UserRole };
-export type ActiveTab = 'dashboard' | 'table' | 'kanban' | 'calendar' | 'line_oa';
+export type ActiveTab = 'dashboard' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -129,6 +130,17 @@ export const Header: React.FC<HeaderProps> = ({
                 title="มุมมองงานการเงิน (จัดทำฎีกา, บันทึกการโอนเงิน)"
               >
                 <span>งานการเงิน</span>
+              </button>
+              <button
+                onClick={() => setCurrentRole('executive')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+                  currentRole === 'executive'
+                    ? 'bg-indigo-600 text-white font-medium shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                }`}
+                title="มุมมองผู้บริหาร (หัวหน้าภาควิชา / รองคณบดี / คณบดี)"
+              >
+                <span>ผู้บริหาร</span>
               </button>
               <button
                 onClick={() => setCurrentRole('admin')}
@@ -285,6 +297,24 @@ export const Header: React.FC<HeaderProps> = ({
                 4 Triggers
               </span>
             </button>
+
+            {currentRole === 'admin' && (
+              <button
+                onClick={() => setActiveTab('user_management')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
+                  activeTab === 'user_management'
+                    ? 'bg-slate-800 text-purple-400 border border-purple-500/50'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                }`}
+                title="ระบบจัดการบัญชีผู้ใช้งาน และกำหนดสิทธิ์ (Admin Console)"
+              >
+                <Users className="w-4 h-4 text-purple-400" />
+                <span>จัดการผู้ใช้งาน (Users)</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  Admin
+                </span>
+              </button>
+            )}
           </nav>
 
           {/* Current User Role Badge */}
@@ -295,6 +325,7 @@ export const Header: React.FC<HeaderProps> = ({
               {currentRole === 'researcher' && 'เจ้าหน้าที่วิจัย/นักวิจัย (ขอรับทุน)'}
               {currentRole === 'coordinator' && 'ผู้ประสานงานวิจัย (ตรวจเอกสาร)'}
               {currentRole === 'finance' && 'เจ้าหน้าที่การเงิน (เบิกจ่าย)'}
+              {currentRole === 'executive' && 'ผู้บริหาร (หัวหน้าภาค / รองคณบดี / คณบดี)'}
               {currentRole === 'admin' && 'ผู้ดูแลระบบ (Admin - ตรวจสอบและบริหารจัดการทุกสิทธิ์)'}
             </span>
           </div>
