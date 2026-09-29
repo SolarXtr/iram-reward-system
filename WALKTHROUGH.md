@@ -144,3 +144,23 @@
    - ตัดส่วนกล่องแจ้งเตือนตารางคำขอ (Privacy Alert Box) ออกทั้งหมด เพื่อไม่ให้มีข้อความหรือกรอบเกี่ยวกับตารางคำขอรบกวนสายตาผู้เยี่ยมชม
    - สิ้นสุดเนื้อหาด้วยการ์ด Call-to-Action สีทองสำหรับคณาจารย์อย่างสวยงามและลงตัว
 
+---
+
+## 6. การปรับปรุงโครงสร้างผู้ใช้งานและนักวิจัยบน D1 (`irUser` Consolidation & Short Name Auto-Generation)
+เพื่อแก้ปัญหาความซ้ำซ้อน ฐานข้อมูลอ้วน และป้องกันการเกิดบุคคลซ้ำซ้อนเมื่อเลื่อนฐานะหรือเปลี่ยนชื่อ-สกุล:
+1. **D1 Schema Migration:**
+   - ขยายโครงสร้าง `irUser` เพิ่ม: `titleTh`, `firstNameTh`, `lastNameTh`, `titleEn`, `firstNameEn`, `lastNameEn`, `shortNameEn`, `aliasesJson`, `department`, `scopusAuthorId`, `orcid`, `wosResearcherId`
+   - สร้าง Index: `idx_user_shortNameEn`, `idx_user_scopusAuthorId`, `idx_user_email`
+2. **Automated Parsing & Short Name Generation:**
+   - ประมวลผลและแยกชื่อ-สกุล คำนำหน้า ทั้งภาษาไทยและอังกฤษให้อัตโนมัติครบทั้ง **308 ท่าน**
+   - สร้างชื่อย่อสากล (`shortNameEn`) เช่น `Tapprom A.`, `Kuatrakul A.`, `Mahatthanatrakul A.`, `Srisingh K.` เพื่อใช้ในการจำแนกบทความ Scopus / WoS ได้อย่างแม่นยำ 100%
+3. **Smart Progression & Audit History Logging:**
+   - เมื่อมีการเลื่อนตำแหน่งทางวิชาการ (ผศ. ➔ รศ. ➔ ศ.) หรือเปลี่ยนคำนำหน้า/นามสกุล ระบบจะดำเนินการ `UPDATE` บน `userId` เดิมเท่านั้น (ไม่สร้างแถวใหม่)
+   - ส่งคำสั่งบันทึกประวัติการเปลี่ยนแปลงลงตาราง `irResearcherProfileHistory` อัตโนมัติ (วันที่มีผล, ตำแหน่งเดิม, ตำแหน่งใหม่, เหตุผล)
+   - หากมีการเปลี่ยนนามสกุล ระบบจะเก็บชื่อย่อเดิมไว้ใน `aliasesJson` อัตโนมัติ เพื่อให้บทความเก่าใน Scopus ยังคงผูกอยู่กับอาจารย์
+4. **Backend API & Scopus Author Matching:**
+   - ปรับปรุง `/api/users` และ `/api/users/profile/:email` ให้ดึงจาก `irUser` ตารางเดียวโดยตรง (ลด Row Reads ใน D1)
+   - ปรับ Scopus author import ให้จับคู่ผู้แต่งบทความด้วย `shortNameEn` (เช่น `Srisingh K.`), ชื่อเต็ม, และ `aliasesJson`
+   - Deploy Production Worker Version ID: `13869fe7-1693-4845-bdea-2e017138605d`
+
+
