@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-lg">
       {/* Top Banner / Identity Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 border-b border-slate-800/80">
+        <div className={`flex items-center justify-between h-16 ${!isGuest ? 'border-b border-slate-800/80' : ''}`}>
           {/* Logo & University Title */}
           <div className="flex items-center gap-3.5">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 p-0.5 shadow-md flex items-center justify-center shrink-0">
@@ -81,14 +81,9 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs tracking-wider uppercase font-semibold text-amber-400/90 font-prompt">
-                  คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร
-                </span>
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  ประกาศ พ.ศ. 2567
-                </span>
-              </div>
+              <span className="text-xs tracking-wider uppercase font-semibold text-amber-400/90 font-prompt block">
+                คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร
+              </span>
               <h1 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-1.5 font-prompt">
                 ระบบขอรับเงินรางวัลและค่าตีพิมพ์บทความวิจัย
               </h1>
@@ -97,18 +92,8 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action Bar */}
           <div className="flex items-center gap-2.5">
-            {/* GUEST MODE: Show Prominent NU Account Sign-In Button */}
-            {isGuest ? (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={onOpenLoginModal}
-                  className="flex items-center gap-2 px-3.5 sm:px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs sm:text-sm shadow-md shadow-amber-500/10 transition-all transform active:scale-95 font-prompt"
-                >
-                  <LogIn className="w-4 h-4 text-slate-950" />
-                  <span>เข้าสู่ระบบด้วย NU Account</span>
-                </button>
-              </div>
-            ) : (
+            {/* GUEST MODE: Header right bar is kept clean (login action is in content) */}
+            {isGuest ? null : (
               /* AUTHENTICATED MODE: Role switcher, Profile, D1, Submission, Logout */
               <>
                 {/* Search input: Show for coordinator, finance, executive, admin (hide for researcher to keep clean) */}
@@ -257,23 +242,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Navigation Tabs Bar */}
-        {isGuest ? (
-          /* GUEST MODE: Single Public Overview Tab */
-          <div className="flex items-center justify-between py-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1.5 rounded-md font-semibold bg-slate-800 text-amber-400 border border-slate-700 flex items-center gap-2">
-                <LayoutDashboard className="w-4 h-4" />
-                <span>ภาพรวมระบบและสถิติสาธารณะ (Public General Stats)</span>
-              </span>
-            </div>
-            <div className="hidden sm:flex items-center gap-1.5 text-slate-400 text-xs">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>คุ้มครองข้อมูลส่วนบุคคลตาม พ.ร.บ. PDPA (ซ่อนรายชื่อและรายการคำขอ)</span>
-            </div>
-          </div>
-        ) : (
-          /* AUTHENTICATED MODE: Full Role-Based Navigation Tabs */
+        {/* Navigation Tabs Bar: Only rendered for authenticated users */}
+        {!isGuest && (
           <div className="flex items-center justify-between overflow-x-auto py-2 scrollbar-none">
             <nav className="flex items-center space-x-1 sm:space-x-2 text-xs">
               {/* Tab 1: Dashboard (All Roles) */}

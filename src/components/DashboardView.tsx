@@ -391,56 +391,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* GUEST MODE: Zero Information Leakage Section (Replaces Recent Applications Table) */}
+      {/* GUEST MODE: Show Overview Call-to-Action only (table completely hidden) */}
       {isGuest ? (
-        <div className="space-y-4">
-          {/* Call-to-Action for NU Researchers */}
-          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200/80 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-md shrink-0">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <div>
-                <h4 className="text-sm sm:text-base font-bold text-slate-900 font-prompt">
-                  สำหรับคณาจารย์และนักวิจัย คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร
-                </h4>
-                <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                  เข้าสู่ระบบด้วยบัญชี @nu.ac.th เพื่อยื่นคำขอรับรางวัล, ตรวจสอบเพดานวงเงิน 150,000 บาท/ปีงบประมาณ, และดาวน์โหลดเอกสาร
-                </p>
-              </div>
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200/80 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-md shrink-0">
+              <ShieldCheck className="w-6 h-6" />
             </div>
-            <button
-              onClick={onOpenLoginModal}
-              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-xs shadow-md transition-all flex items-center gap-2 whitespace-nowrap active:scale-95 shrink-0"
-            >
-              <LogIn className="w-4 h-4 text-amber-400" />
-              <span>เข้าสู่ระบบด้วย NU Account</span>
-            </button>
-          </div>
-
-          {/* Privacy & Zero Info Leakage Alert Box */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-8 text-center space-y-4">
-            <div className="w-14 h-14 bg-amber-50 rounded-2xl border border-amber-200/70 text-amber-700 flex items-center justify-center mx-auto shadow-sm">
-              <Lock className="w-7 h-7" />
-            </div>
-            <div className="max-w-md mx-auto space-y-2">
-              <h3 className="text-base font-bold text-slate-900 font-prompt">
-                ตารางรายการคำขอและสถานะเงินโอนส่วนบุคคลถูกจำกัดการเข้าถึง
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA) รายชื่ออาจารย์ผู้ขอรับรางวัล รายละเอียดบทความ และยอดเงินรางวัลรายบุคคล จะแสดงเฉพาะผู้ใช้งานที่ยืนยันตัวตนด้วยบัญชีมหาวิทยาลัยนเรศวร (@nu.ac.th) แล้วเท่านั้น
+            <div>
+              <h4 className="text-sm sm:text-base font-bold text-slate-900 font-prompt">
+                สำหรับคณาจารย์และนักวิจัย คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร
+              </h4>
+              <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                เข้าสู่ระบบด้วยบัญชี @nu.ac.th เพื่อยื่นคำขอรับรางวัล, ตรวจสอบเพดานวงเงิน 150,000 บาท/ปีงบประมาณ, และดาวน์โหลดเอกสาร
               </p>
             </div>
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-              <button
-                onClick={onOpenLoginModal}
-                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-xs shadow-md transition-all flex items-center gap-2"
-              >
-                <LogIn className="w-4 h-4 text-amber-400" />
-                <span>เข้าสู่ระบบเพื่อดูรายการคำขอ</span>
-              </button>
-            </div>
           </div>
+          <button
+            onClick={onOpenLoginModal}
+            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-xs shadow-md transition-all flex items-center gap-2 whitespace-nowrap active:scale-95 shrink-0"
+          >
+            <LogIn className="w-4 h-4 text-amber-400" />
+            <span>เข้าสู่ระบบด้วย NU Account</span>
+          </button>
         </div>
       ) : (
         /* AUTHENTICATED MODE: Role-Specific Applications Table */
