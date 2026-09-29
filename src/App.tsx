@@ -530,6 +530,9 @@ export default function App() {
   };
 
   const roleScopedApplications = applications.filter((app) => {
+    if (isGuest) {
+      return true;
+    }
     if (currentRole === 'researcher') {
       return isAppOwnedByUser(app);
     }
@@ -587,7 +590,7 @@ export default function App() {
         {/* Tab 1: Dashboard View */}
         {activeTab === 'dashboard' && (
           <DashboardView
-            applications={displayApplications}
+            applications={isGuest ? applications : displayApplications}
             onViewApplication={(app) => setTimelineApp(app)}
             onPrintApplication={(app) => setPrintApp(app)}
             onVerifyPayment={(app) => setPaymentApp(app)}
