@@ -63,16 +63,24 @@ flowchart TD
 - [x] **Quick Demo Switcher:** อำนวยความสะดวกในการตรวจประเมินระบบ สามารถสลับเข้าใช้งาน 5 บทบาทได้ทันที
 - [x] **Secure Session & Logout:** จัดการสถานะการเข้าสู่ระบบอย่างปลอดภัย และมีปุ่มออกจากระบบ (Logout) คืนสู่ Guest Mode ทันที
 
+### ✅ Phase 2.7: Cloudflare D1 Unified Users & Profile Sync (เสร็จสมบูรณ์ v1.3.0)
+- [x] **Single Source of Truth (`irUser`):** ขยายโครงสร้างตาราง `irUser` ใน Cloudflare D1 (`iram-db`) รองรับข้อมูลการเงิน, เลขบัญชี, บัตรประชาชน, ตำแหน่งทางวิชาการและบริหาร
+- [x] **Cross-Device Profile Sync:** นักวิจัยหรือเจ้าหน้าที่อัปเดตข้อมูลตนเองจากเครื่องใด ระบบจะบันทึกขึ้น Cloudflare D1 ทันที ทำให้ข้อมูลซิงก์กันทุกอุปกรณ์แบบ Real-time
+- [x] **Unified User Directory:** เชื่อมโยงหน้าต่างโปรไฟล์ (`UserProfileModal`) และศูนย์จัดการผู้ใช้ (`UserManagementView`) ให้ดึงข้อมูลชุดเดียวกัน 12 บัญชีหลักตรงกัน 100%
+- [x] **Cloudflare Worker API:** พัฒนาและ Deploy User Endpoints (`/api/users`, `/api/users/profile/:email`, `/api/users/profile/:id`) บน Cloudflare Worker
+- [x] **Offline-First Resilience:** ระบบมีกลไก LocalStorage Fallback หากการเชื่อมต่ออินเทอร์เน็ตมีปัญหา หน้าเว็บยังคงทำงานได้ต่อเนื่อง
+
 ### 🔄 Phase 3: Integration, Data Pipeline & API Sync (ระยะถัดไป)
-- [x] **Backend Database (Cloudflare D1 & Worker):** เชื่อมต่อฐานข้อมูล `iram-db` และ Worker API สำหรับบันทึกคำขอรับทุน
+- [x] **Backend Database (Cloudflare D1 & Worker):** เชื่อมต่อฐานข้อมูล `iram-db` และ Worker API สำหรับบันทึกคำขอรับทุนและผู้ใช้งาน
 - [ ] **Scopus Automation Fetcher:** เชื่อมต่อระบบดึงข้อมูลผลงานตีพิมพ์จาก Scopus อัตโนมัติด้วย DOI
-- [ ] **Researcher Profile Sync:** ซิงก์ข้อมูลนักวิจัย (ตำแหน่งวิชาการ, ภาควิชา, Scopus Author ID)
 - [ ] **E-Signature & Tracking:** ระบบลงนามอิเล็กทรอนิกส์และติดตามสถานะการเบิกจ่าย
 
 ---
 
 ## 💾 ข้อมูลการแบคอัพ (Backup Metadata)
-- **Tag:** `v1.2.0`
-- **Release Date:** 28 กันยายน 2569
-- **Repository:** `https://github.com/SolarXtr/iram-reward-system.git`
+- **Tag:** `v1.3.0`
+- **Release Date:** 29 กันยายน 2569
+- **Repository Backend:** `https://github.com/SolarXtr/iram-backend.git`
+- **Repository Frontend:** `https://github.com/SolarXtr/iram-reward-system.git`
 - **Production URL:** `https://iram-reward-system.pages.dev`
+
