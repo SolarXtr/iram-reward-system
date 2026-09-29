@@ -23,10 +23,11 @@ import {
   maskThaiCitizenId, 
   maskBankAccountNo 
 } from '../data/regulations';
-import { MOCK_NU_USERS } from '../data/userProfile';
+import { getStoredUsersRegistry, MOCK_NU_USERS } from '../data/userProfile';
 
 interface UserProfileModalProps {
   currentUser: UserProfile;
+  users?: UserProfile[];
   onClose: () => void;
   onSaveProfile: (updated: UserProfile) => void;
   onSwitchUser?: (user: UserProfile) => void;
@@ -34,10 +35,12 @@ interface UserProfileModalProps {
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   currentUser,
+  users,
   onClose,
   onSaveProfile,
   onSwitchUser,
 }) => {
+  const accountList = (users && users.length > 0) ? users : getStoredUsersRegistry();
   const [formData, setFormData] = useState<UserProfile>({ ...currentUser });
   const [showSensitiveData, setShowSensitiveData] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -115,8 +118,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 NU Identity Provider (OAuth2/GSuite)
               </span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-              {MOCK_NU_USERS.map((user) => (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto pr-1">
+              {accountList.map((user) => (
                 <button
                   key={user.id}
                   type="button"
@@ -136,7 +139,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         ? 'นักวิจัย' 
                         : user.role === 'coordinator' 
                           ? 'เจ้าหน้าที่วิจัย' 
-                          : 'งานการเงิน'}
+                          : user.role === 'executive'
+                            ? 'ผู้บริหาร'
+                            : 'งานการเงิน'}
                   </div>
                 </button>
               ))}

@@ -39,6 +39,11 @@ import {
   updateRewardApplicationInD1,
   deleteRewardApplicationInD1
 } from './services/rewardD1Service';
+import {
+  fetchUsersFromD1,
+  updateUserProfileInD1,
+  createUserInD1
+} from './services/userService';
 import { Bell, CheckCircle2 } from 'lucide-react';
 
 const STORAGE_KEY = 'med_nu_research_apps_v1';
@@ -124,6 +129,17 @@ export default function App() {
     loadFromD1();
   }, []);
 
+  // Load registered users from Cloudflare D1 (irUser) on mount
+  useEffect(() => {
+    fetchUsersFromD1()
+      .then((d1Users) => {
+        if (Array.isArray(d1Users) && d1Users.length > 0) {
+          setRegisteredUsers(d1Users);
+        }
+      })
+      .catch((err) => console.warn('D1 users fetch warning:', err));
+  }, []);
+
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -159,16 +175,24 @@ export default function App() {
   // User Management Registry state & handlers
   const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(() => getStoredUsersRegistry());
 
-  const handleSaveProfile = (updated: UserProfile) => {
+  const handleSaveProfile = async (updated: UserProfile) => {
     saveStoredUserProfile(updated);
     setCurrentUser(updated);
     setCurrentAuthUser(updated);
     const nextUsers = upsertRegisteredUser(updated);
     setRegisteredUsers(nextUsers);
     showToast('บันทึกข้อมูลโปรไฟล์ตั้งต้นและมาตรการคุ้มครองข้อมูล PDPA เรียบร้อยแล้ว');
+
+    // Cloudflare D1 Cloud Sync
+    try {
+      await updateUserProfileInD1(updated.id, updated);
+      showToast('✅ ซิงก์ข้อมูลโปรไฟล์ขึ้น Cloudflare D1 (irUser) เรียบร้อยแล้ว');
+    } catch (e: any) {
+      console.warn('D1 profile sync warning:', e);
+    }
   };
 
-  const handleUpdateRegisteredUser = (updatedUser: UserProfile) => {
+  const handleUpdateRegisteredUser = async (updatedUser: UserProfile) => {
     const nextUsers = upsertRegisteredUser(updatedUser);
     setRegisteredUsers(nextUsers);
     if (currentUser && (currentUser.id === updatedUser.id || currentUser.email.toLowerCase() === updatedUser.email.toLowerCase())) {
@@ -177,12 +201,28 @@ export default function App() {
       saveStoredUserProfile(updatedUser);
     }
     showToast(`อัปเดตข้อมูลผู้ใช้งาน ${updatedUser.name} เรียบร้อยแล้ว`);
+
+    // Cloudflare D1 Cloud Sync
+    try {
+      await updateUserProfileInD1(updatedUser.id, updatedUser);
+      showToast(`✅ อัปเดตข้อมูล ${updatedUser.name} ลง Cloudflare D1 (irUser) เรียบร้อย`);
+    } catch (e: any) {
+      console.warn('D1 update user warning:', e);
+    }
   };
 
-  const handleCreateRegisteredUser = (newUser: UserProfile) => {
+  const handleCreateRegisteredUser = async (newUser: UserProfile) => {
     const nextUsers = upsertRegisteredUser(newUser);
     setRegisteredUsers(nextUsers);
     showToast(`เพิ่มผู้ใช้งาน ${newUser.name} เข้าสู่ระบบเรียบร้อยแล้ว`);
+
+    // Cloudflare D1 Cloud Sync
+    try {
+      await createUserInD1(newUser);
+      showToast(`✅ เพิ่มผู้ใช้งาน ${newUser.name} เข้าสู่ Cloudflare D1 (irUser) สำเร็จ`);
+    } catch (e: any) {
+      console.warn('D1 create user warning:', e);
+    }
   };
 
   const handleDeleteRegisteredUser = (userId: string) => {
@@ -698,6 +738,7 @@ export default function App() {
       {isProfileModalOpen && currentUser && (
         <UserProfileModal
           currentUser={currentUser}
+          users={registeredUsers}
           onClose={() => setIsProfileModalOpen(false)}
           onSaveProfile={handleSaveProfile}
           onSwitchUser={(user) => {
