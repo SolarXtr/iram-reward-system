@@ -218,9 +218,19 @@ export type UserRole = 'researcher' | 'coordinator' | 'finance' | 'executive' | 
 export interface UserProfile {
   id: string;
   name: string;
+  titleTh?: string; // คำนำหน้าไทย เช่น ผศ.นพ., ศ.ดร., นพ., พญ., นาย
+  firstNameTh?: string; // ชื่อภาษาไทย
+  lastNameTh?: string; // นามสกุลภาษาไทย
+  titleEn?: string; // คำนำหน้าอังกฤษ เช่น Asst. Prof. Dr., Prof., Dr.
+  firstNameEn?: string; // ชื่อภาษาอังกฤษ
+  lastNameEn?: string; // นามสกุลภาษาอังกฤษ
+  shortNameEn?: string; // ชื่อย่อจำแนกบทความ เช่น Srisingh K., Tapprom A.
+  aliases?: Array<{ shortName: string; type?: string; archivedAt?: string }>; // นามแฝง/ชื่อเดิม
   academicPosition: string; // e.g. เจ้าหน้าที่วิจัย, ผู้ช่วยศาสตราจารย์
   administrativePosition?: string; // e.g. ปฏิบัติหน้าที่ในตำแหน่งหัวหน้าหน่วยบริหารและจัดการงานวิจัย
   department: string;
+  scopusAuthorId?: string; // รหัส Scopus Author ID
+  orcid?: string; // รหัส ORCID
   phone: string;
   email: string;
   bankName: string;
