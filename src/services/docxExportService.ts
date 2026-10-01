@@ -1550,12 +1550,21 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication, isD
   const memoApprovalSubject = getMemoSubject(app, false);
   const effectiveDeptCode = app.deptCode || getDepartmentCode(app.department);
   const isDocOfficiallyNumbered = Boolean(app.isOnlineReviewComplete && app.docRunningNo);
-  const isDraft = isDraftPreview !== undefined ? isDraftPreview : !isDocOfficiallyNumbered;
-  const docNoText = isDocOfficiallyNumbered 
+  const refDocNoText = isDocOfficiallyNumbered 
     ? formatInternalDocNo(effectiveDeptCode, app.docRunningNo) 
     : (app.internalDocNo || formatInternalDocNo(effectiveDeptCode, ''));
-  const dateText = (app.isOnlineReviewComplete && app.officialDocDate) 
+  const refDateText = (app.isOnlineReviewComplete && app.officialDocDate) 
     ? formatThaiDateOfficial(app.officialDocDate) 
+    : '';
+
+  // 2. Disbursement Header numbers (หัวบันทึกขออนุมัติเบิกเงิน Doc 3 - ออกเลขใหม่คนละฉบับ)
+  const isDisbursementNumbered = Boolean(app.isOnlineReviewComplete && app.disbursementDocRunningNo);
+  const isDraft = isDraftPreview !== undefined ? isDraftPreview : !isDisbursementNumbered;
+  const disbursementDocNoText = isDisbursementNumbered 
+    ? formatInternalDocNo(effectiveDeptCode, app.disbursementDocRunningNo) 
+    : (app.disbursementInternalDocNo || formatInternalDocNo(effectiveDeptCode, ''));
+  const disbursementDateText = (app.isOnlineReviewComplete && app.disbursementOfficialDocDate) 
+    ? formatThaiDateOfficial(app.disbursementOfficialDocDate) 
     : '';
 
   const doc = createThaiDocument([
@@ -1680,7 +1689,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication, isD
                       children: [
                         createThaiTextRun({ text: 'ที่  ', font: FONT_NAME, size: 40, bold: true }),
                         createThaiTextRun({ 
-                          text: docNoText, 
+                          text: disbursementDocNoText, 
                           font: FONT_NAME, 
                           size: FONT_SIZE_META,
                           underline: { type: UnderlineType.DOTTED },
@@ -1707,7 +1716,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication, isD
                       children: [
                         createThaiTextRun({ text: 'วันที่  ', font: FONT_NAME, size: 40, bold: true }),
                         createThaiTextRun({ 
-                          text: dateText, 
+                          text: disbursementDateText, 
                           font: FONT_NAME, 
                           size: FONT_SIZE_META,
                           underline: { type: UnderlineType.DOTTED },
@@ -1762,7 +1771,7 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication, isD
           spacing: { line: LINE_SPACING_SINGLE, before: 0, after: 0 },
           children: [
             createThaiTextRun({
-              text: addThaiWordBreaks(`          อ้างถึงหนังสือคณะแพทยศาสตร์ ที่ ${docNoText || 'อว 0603.10...../.....'} ลงวันที่ ${dateText || '...................................................'} เรื่อง ${memoApprovalSubject} บทความวิจัยเรื่อง “${app.articleTitle}” นั้น`),
+              text: addThaiWordBreaks(`          อ้างถึงหนังสือคณะแพทยศาสตร์ ที่ ${refDocNoText || 'อว 0603.10...../.....'} ลงวันที่ ${refDateText || '...................................................'} เรื่อง ${memoApprovalSubject} บทความวิจัยเรื่อง “${app.articleTitle}” นั้น`),
               font: FONT_NAME,
               size: FONT_SIZE_CONTENT,
             }),

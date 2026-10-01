@@ -132,6 +132,9 @@ export interface ResearchApplication {
   deptCode?: string; // รหัสหน่วยงานสารบรรณ เช่น '10', '14', '02'
   docRunningNo?: string; // เลขลำดับหนังสือออก เช่น '066'
   officialDocDate?: string; // วันที่ลงนามในหนังสือราชการ เช่น '26 มกราคม 2569'
+  disbursementDocRunningNo?: string; // เลขลำดับหนังสือออกของบันทึกขออนุมัติเบิกเงิน เช่น '095'
+  disbursementOfficialDocDate?: string; // วันที่ของบันทึกขออนุมัติเบิกเงิน เช่น '2 ตุลาคม 2569'
+  disbursementInternalDocNo?: string; // เลขเต็ม อว... ของบันทึกขออนุมัติเบิกเงิน
   isOnlineReviewComplete?: boolean; // สถานะตรวจบันทึกและแก้ไขออนไลน์ครบ 100% หรือไม่
   onlineReviewNotes?: string;
   researchDocRecNo?: string; // เลขรับงานวิจัย 0205 / เวลา 9.00 น.

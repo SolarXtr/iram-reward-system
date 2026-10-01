@@ -116,14 +116,20 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
     return application.deptCode || getDepartmentCode(currentUser?.department || application.department);
   });
 
-  // Running number (xxx)
+  // Running number (xxx) & Official date (วันที่) for Memo Reward (ฉบับที่ 2)
   const [docRunningNo, setDocRunningNo] = useState<string>(() => {
     return application.docRunningNo || '';
   });
-
-  // Official date (วันที่)
   const [officialDocDate, setOfficialDocDate] = useState<string>(() => {
     return application.officialDocDate || '';
+  });
+
+  // Running number (xxx) & Official date (วันที่) for Memo Disbursement (ฉบับที่ 3 - กรอกใหม่คนละฉบับ)
+  const [disbursementDocRunningNo, setDisbursementDocRunningNo] = useState<string>(() => {
+    return application.disbursementDocRunningNo || '';
+  });
+  const [disbursementOfficialDocDate, setDisbursementOfficialDocDate] = useState<string>(() => {
+    return application.disbursementOfficialDocDate || '';
   });
 
   // Publication & Database fields for memo
@@ -163,6 +169,8 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
       setDeptCode(application.deptCode || getDepartmentCode(currentUser?.department || application.department));
       setDocRunningNo(application.docRunningNo || '');
       setOfficialDocDate(application.officialDocDate || '');
+      setDisbursementDocRunningNo(application.disbursementDocRunningNo || '');
+      setDisbursementOfficialDocDate(application.disbursementOfficialDocDate || '');
       setDatabaseYear(application.databaseYear || '2025');
       setVol(application.vol || '');
       setNo(application.no || '');
@@ -178,6 +186,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   // Download / Print is allowed ONLY when 100% complete AND both runningNo and date are properly filled!
   const isDocReady = isOnlineReviewComplete && Boolean(docRunningNo.trim()) && Boolean(officialDocDate.trim());
 
+  // เลขที่และวันที่สำหรับ บันทึกขออนุมัติเงิน (ฉบับที่ 2) -> นำไปเป็นเลขอ้างถึงในเนื้อหาของบันทึกขออนุมัติเบิกเงินด้วย
   const previewDocNo = isDocReady 
     ? formatInternalDocNo(deptCode, docRunningNo) 
     : formatInternalDocNo(deptCode, '');
@@ -186,11 +195,25 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
     ? formatThaiDateOfficial(officialDocDate) 
     : '...................................................';
 
+  // เลขที่และวันที่สำหรับ บันทึกขออนุมัติเบิกเงิน (ฉบับที่ 3) -> แสดงบนหัวบันทึกขออนุมัติเบิกเงิน (คนละฉบับ)
+  const previewDisbursementDocNo = disbursementDocRunningNo.trim() 
+    ? formatInternalDocNo(deptCode, disbursementDocRunningNo) 
+    : formatInternalDocNo(deptCode, '');
+
+  const previewDisbursementDate = disbursementOfficialDocDate.trim() 
+    ? formatThaiDateOfficial(disbursementOfficialDocDate) 
+    : '...................................................';
+
   const appWithDocDetails: ResearchApplication = {
     ...application,
     deptCode,
     docRunningNo: isDocReady ? docRunningNo.trim() : undefined,
     officialDocDate: isDocReady ? officialDocDate.trim() : undefined,
+    disbursementDocRunningNo: disbursementDocRunningNo.trim() || undefined,
+    disbursementOfficialDocDate: disbursementOfficialDocDate.trim() || undefined,
+    disbursementInternalDocNo: disbursementDocRunningNo.trim()
+      ? formatInternalDocNo(deptCode, disbursementDocRunningNo.trim())
+      : undefined,
     isOnlineReviewComplete,
     internalDocNo: previewDocNo,
     databaseYear: databaseYear.trim(),
@@ -207,6 +230,11 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
         deptCode,
         docRunningNo: docRunningNo.trim(),
         officialDocDate: officialDocDate.trim(),
+        disbursementDocRunningNo: disbursementDocRunningNo.trim(),
+        disbursementOfficialDocDate: disbursementOfficialDocDate.trim(),
+        disbursementInternalDocNo: disbursementDocRunningNo.trim()
+          ? formatInternalDocNo(deptCode, disbursementDocRunningNo.trim())
+          : undefined,
         isOnlineReviewComplete,
         internalDocNo: previewDocNo,
         databaseYear: databaseYear.trim(),
@@ -217,13 +245,18 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
         pages: pages.trim(),
       });
     }
-    setSaveSuccessMsg('บันทึกข้อมูลเรียบร้อยแล้ว');
-    setTimeout(() => setSaveSuccessMsg(''), 3000);
+    setSaveSuccessMsg('บันทึกข้อมูลเลขที่หนังสือทั้ง 2 ฉบับเรียบร้อยแล้ว');
+    setTimeout(() => setSaveSuccessMsg(''), 3500);
   };
 
   const handleSetToday = () => {
     const today = new Date().toISOString().split('T')[0];
     setOfficialDocDate(formatThaiDateOfficial(today));
+  };
+
+  const handleSetDisbursementToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setDisbursementOfficialDocDate(formatThaiDateOfficial(today));
   };
 
   const totalAmount = application.totalClaimedAmount || 0;
@@ -809,8 +842,8 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
 
                   {/* Numbering Form (Enabled if 100%) */}
                   {isOnlineReviewComplete ? (
-                    <div className="space-y-2.5 pt-1 border-t border-slate-100">
-                      {/* Dept Code */}
+                    <div className="space-y-3 pt-1 border-t border-slate-100">
+                      {/* Dept Code (รหัสหน่วยงาน อว 0603.10.xx) */}
                       <div>
                         <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                           <span>รหัสหน่วยงาน (10.xx)</span>
@@ -839,52 +872,147 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Running No */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                          <span>เลขลำดับ (xxx)*</span>
-                          {!isResearcher && <span className="text-[10px] text-emerald-600 font-normal">จำเป็น</span>}
-                        </label>
-                        <div className="flex items-center">
-                          <span className="px-2 py-1.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
-                            /
+                      {/* ส่วนที่ 1: บันทึกขออนุมัติเงินรางวัล (ฉบับที่ 2) */}
+                      <div className="p-2.5 rounded-lg border border-blue-200 bg-blue-50/50 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-blue-900 flex items-center gap-1.5">
+                            <Award className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <span>1. บันทึกขออนุมัติเงินรางวัล (ฉบับที่ 2)</span>
                           </span>
-                          <input
-                            type="text"
-                            value={docRunningNo}
-                            onChange={(e) => setDocRunningNo(e.target.value)}
-                            disabled={isResearcher}
-                            placeholder="เช่น 066"
-                            className={`w-full px-2.5 py-1.5 border border-slate-300 rounded-r-lg text-xs font-mono font-bold ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500'}`}
-                          />
+                          <span className="text-[9.5px] text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded font-medium">ฉบับต้นเรื่อง</span>
+                        </div>
+                        <p className="text-[10px] text-slate-600 leading-tight">
+                          * เลขที่และวันนี้จะแสดงบนหัวฉบับที่ 2 และนำไปเป็น <strong>"เลขอ้างถึงในเนื้อหา"</strong> ของบันทึกเบิกเงิน
+                        </p>
+
+                        {/* Running No Doc 2 */}
+                        <div>
+                          <label className="block text-[10.5px] font-semibold text-slate-700 mb-0.5 flex items-center justify-between">
+                            <span>เลขลำดับ (xxx)*</span>
+                            {!isResearcher && <span className="text-[9.5px] text-emerald-600 font-normal">จำเป็น</span>}
+                          </label>
+                          <div className="flex items-center">
+                            <span className="px-2 py-1 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
+                              /
+                            </span>
+                            <input
+                              type="text"
+                              value={docRunningNo}
+                              onChange={(e) => setDocRunningNo(e.target.value)}
+                              disabled={isResearcher}
+                              placeholder="เช่น 089"
+                              className={`w-full px-2 py-1 border border-slate-300 rounded-r-lg text-xs font-mono font-bold ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500'}`}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Official Date Doc 2 */}
+                        <div>
+                          <label className="block text-[10.5px] font-semibold text-slate-700 mb-0.5 flex items-center justify-between">
+                            <span>วันที่ในหนังสือ*</span>
+                            {!isResearcher && <span className="text-[9.5px] text-emerald-600 font-normal">จำเป็น</span>}
+                          </label>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={officialDocDate}
+                              onChange={(e) => setOfficialDocDate(e.target.value)}
+                              disabled={isResearcher}
+                              placeholder="เช่น 1 ตุลาคม 2569"
+                              className={`w-full px-2 py-1 border border-slate-300 rounded-lg text-xs ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500'}`}
+                            />
+                            {!isResearcher && (
+                              <button
+                                type="button"
+                                onClick={handleSetToday}
+                                className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer shadow-xs"
+                                title="ใส่วันที่ปัจจุบัน"
+                              >
+                                วันนี้
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Official Date */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                          <span>วันที่ในหนังสือ*</span>
-                          {!isResearcher && <span className="text-[10px] text-emerald-600 font-normal">จำเป็น</span>}
-                        </label>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="text"
-                            value={officialDocDate}
-                            onChange={(e) => setOfficialDocDate(e.target.value)}
-                            disabled={isResearcher}
-                            placeholder="เช่น 26 มกราคม 2569"
-                            className={`w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500'}`}
-                          />
-                          {!isResearcher && (
-                            <button
-                              type="button"
-                              onClick={handleSetToday}
-                              className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer"
-                              title="ใส่วันที่ปัจจุบัน"
-                            >
-                              วันนี้
-                            </button>
+                      {/* ส่วนที่ 2: บันทึกขออนุมัติเบิกเงิน (ฉบับที่ 3) */}
+                      <div className={`p-2.5 rounded-lg border space-y-2 transition-all ${
+                        activeDoc === 'memo_disbursement'
+                          ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-400 ring-offset-1 shadow-md'
+                          : 'border-indigo-200 bg-indigo-50/50'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                            <span>2. บันทึกขออนุมัติเบิกเงิน (ฉบับที่ 3)</span>
+                          </span>
+                          {activeDoc === 'memo_disbursement' && !disbursementDocRunningNo.trim() ? (
+                            <span className="text-[9.5px] text-white bg-amber-500 px-1.5 py-0.5 rounded font-bold animate-pulse">⚠️ กรอกด้วย</span>
+                          ) : (
+                            <span className="text-[9.5px] text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded font-medium">ฉบับเบิกจ่าย</span>
                           )}
+                        </div>
+                        <p className="text-[10px] text-slate-600 leading-tight">
+                          * กรอกเลขและวันที่ใหม่สำหรับ <strong>"หัวบันทึกขออนุมัติเบิกเงิน"</strong> — คนละฉบับกับฉบับที่ 2 ด้านบน
+                        </p>
+
+                        {/* Running No Doc 3 */}
+                        <div>
+                          <label className="block text-[10.5px] font-semibold text-slate-700 mb-0.5">
+                            เลขลำดับหนังสือเบิกเงิน (xxx)
+                          </label>
+                          <div className="flex items-center">
+                            <span className="px-2 py-1 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-mono font-bold text-slate-600 shrink-0">
+                              /
+                            </span>
+                            <input
+                              type="text"
+                              value={disbursementDocRunningNo}
+                              onChange={(e) => setDisbursementDocRunningNo(e.target.value)}
+                              disabled={isResearcher}
+                              placeholder="เช่น 095 (เว้นว่างได้)"
+                              className={`w-full px-2 py-1 border border-slate-300 rounded-r-lg text-xs font-mono font-bold ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900 border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500'}`}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Official Date Doc 3 */}
+                        <div>
+                          <label className="block text-[10.5px] font-semibold text-slate-700 mb-0.5">
+                            วันที่ในบันทึกเบิกเงิน
+                          </label>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={disbursementOfficialDocDate}
+                              onChange={(e) => setDisbursementOfficialDocDate(e.target.value)}
+                              disabled={isResearcher}
+                              placeholder="เช่น 2 ตุลาคม 2569 (ต่างจากฉบับ 2)"
+                              className={`w-full px-2 py-1 border border-slate-300 rounded-lg text-xs ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900 border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500'}`}
+                            />
+                            {!isResearcher && (
+                              <button
+                                type="button"
+                                onClick={handleSetDisbursementToday}
+                                className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer shadow-xs"
+                                title="ใส่วันที่ปัจจุบัน"
+                              >
+                                วันนี้
+                              </button>
+                            )}
+                          </div>
+                          {/* Live preview + warning if same as Memo 2 */}
+                          <div className="mt-1 space-y-0.5">
+                            <div className="text-[9.5px] text-indigo-700 font-mono bg-indigo-50 rounded px-1.5 py-0.5">
+                              ↑ หัวบันทึก: <span className="font-semibold">{previewDisbursementDate}</span>
+                            </div>
+                            {disbursementOfficialDocDate.trim() && officialDocDate.trim() &&
+                              disbursementOfficialDocDate.trim() === officialDocDate.trim() && (
+                              <div className="text-[9.5px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                                ⚠️ วันที่ตรงกับฉบับ 2 — ควรกรอกวันที่ออกหนังสือเบิกเงินจริง
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -893,10 +1021,10 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <button
                           type="button"
                           onClick={handleSaveNumbering}
-                          className="w-full mt-1 px-3 py-1.5 bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                          className="w-full mt-2 px-3 py-2 bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
                         >
                           <Save className="w-3.5 h-3.5" />
-                          <span>บันทึกเลขที่ & วันที่</span>
+                          <span>บันทึกเลขที่ & วันที่ทั้ง 2 ฉบับ</span>
                         </button>
                       )}
 
@@ -1561,13 +1689,13 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <div className="flex items-baseline pr-3 box-border" style={{ width: 'calc(50% - 8.92pt)' }}>
                           <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">ที่</span>
                           <div className="flex-1 border-b border-dotted border-black pb-0 leading-[1.0] text-[16pt]">
-                            {previewDocNo}
+                            {previewDisbursementDocNo}
                           </div>
                         </div>
                         <div className="flex items-baseline flex-1">
                           <span className="font-bold text-[20pt] shrink-0 mr-2 leading-none">วันที่</span>
                           <div className="flex-1 border-b border-dotted border-black pb-0 leading-[1.0] text-[16pt]">
-                            {previewDate}
+                            {previewDisbursementDate}
                           </div>
                         </div>
                       </div>
