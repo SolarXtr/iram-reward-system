@@ -9,25 +9,25 @@ import {
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 
+// Streamlined scopes for fast, friction-free NU Account authentication
 export const WORKSPACE_SCOPES = [
-  'https://www.googleapis.com/auth/drive',
-  'https://www.googleapis.com/auth/drive.file',
-  'https://www.googleapis.com/auth/drive.readonly',
-  'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/spreadsheets.readonly'
+  'email',
+  'profile',
+  'openid'
 ];
 
 // Initialize Firebase App singleton
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const auth = getAuth(app);
 
-// Provider with Google Sheets & Drive scopes
+// Provider with streamlined scopes (Email, Profile, OpenID)
 const provider = new GoogleAuthProvider();
-WORKSPACE_SCOPES.forEach((scope) => {
-  provider.addScope(scope);
-});
+provider.addScope('email');
+provider.addScope('profile');
+provider.addScope('openid');
 provider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
+  hd: 'nu.ac.th'
 });
 
 let isSigningIn = false;
@@ -58,11 +58,10 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     const result = await signInWithPopup(auth, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     
-    if (!credential?.accessToken) {
-      throw new Error('ไม่สามารถรับ Access Token จาก Google OAuth ได้ กรุณาลองใหม่อีกครั้ง');
-    }
+    // Obtain OAuth access token or fallback to Firebase ID token
+    const token = credential?.accessToken || (await result.user.getIdToken());
 
-    cachedAccessToken = credential.accessToken;
+    cachedAccessToken = token;
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
     console.error('Sign-in error:', error);

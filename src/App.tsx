@@ -513,7 +513,7 @@ export default function App() {
       }
     }
 
-    showToast(`เลื่อนขั้นตอนสำเร็จ &rarr; ขั้นตอนที่ ${nextStep}/12`);
+    showToast(`เลื่อนขั้นตอนสำเร็จ → ขั้นตอนที่ ${nextStep}/12`);
   };
 
   // 5. Send LINE Notification Trigger

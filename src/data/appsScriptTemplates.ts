@@ -879,7 +879,7 @@ function notifyPaymentTransferred(appData, targetUserId) {
           createFlexRow('ยอดโอนสุทธิ:', Number(appData.actualPaidAmount || appData.totalClaimedAmount || 0).toLocaleString('th-TH') + ' บาท', '#047857', true),
           createFlexRow('เลขฎีกาเบิกจ่าย:', appData.disbursementVoucherNo || 'ฎีกา 3606/70', '#0f172a', true),
           createFlexRow('วันที่ทำรายการโอน:', appData.paymentDate || 'วันนี้', '#0f172a', false),
-          createFlexRow('ธนาคารผู้รับโอน:', 'ธ.กรุงศรีอยุธยา สาขา ม.นเรศวร', '#475569', false),
+          createFlexRow('ธนาคารผู้รับโอน:', appData.bankName || 'ธนาคารตามที่ระบุในคำขอ', '#475569', false),
           { type: 'separator', margin: 'md' },
           { type: 'text', text: 'เงินรางวัลและค่าตีพิมพ์ได้ถูกโอนเข้าบัญชีเงินฝากของท่านเรียบร้อยแล้ว สามารถพิมพ์ใบสำคัญรับเงินได้ในระบบ', size: 'xxs', color: '#64748b', wrap: true, margin: 'md' }
         ]

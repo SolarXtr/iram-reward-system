@@ -22,7 +22,10 @@ import {
   Layers,
   HelpCircle,
   ChevronRight,
-  Info
+  Info,
+  Search,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import { LineMilestoneType, LineNotificationRecord, ResearchApplication } from '../types';
 import { formatBaht, maskBankAccountNo } from '../data/regulations';
@@ -58,6 +61,25 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
   const [notificationLogs, setNotificationLogs] = useState<LineNotificationRecord[]>(() => {
     return propNotifications || getStoredLineNotifications();
   });
+  const [logSearchQuery, setLogSearchQuery] = useState('');
+
+  const filteredLogs = notificationLogs.filter((log) => {
+    if (!logSearchQuery.trim()) return true;
+    const q = logSearchQuery.toLowerCase();
+    return (
+      log.trackingNo.toLowerCase().includes(q) ||
+      log.recipientName.toLowerCase().includes(q) ||
+      log.recipientEmail.toLowerCase().includes(q) ||
+      (log.details && log.details.toLowerCase().includes(q))
+    );
+  });
+
+  const handleClearLogs = () => {
+    if (window.confirm('คุณต้องการล้างประวัติการทดสอบส่งแจ้งเตือนทั้งหมดใช่หรือไม่?')) {
+      setNotificationLogs([]);
+      saveStoredLineNotifications([]);
+    }
+  };
 
   const targetApp = applications.find(a => a.id === selectedAppId) || applications[0];
   const currentMeta = LINE_MILESTONES[activeMilestone];
@@ -97,21 +119,24 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
 
   return (
     <div className="space-y-8 pb-12">
-      {/* 1. Official LINE Developers Console Header Bar (As seen in the uploaded console screenshot) */}
+      {/* 1. Official LINE OA Integration Header Bar */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Breadcrumb line */}
-        <div className="px-6 py-2.5 bg-slate-50 border-b border-slate-200/80 text-[11px] text-slate-500 font-mono flex items-center gap-1.5">
-          <span className="hover:text-slate-800 cursor-pointer">TOP</span>
-          <span>&gt;</span>
-          <span className="hover:text-slate-800 cursor-pointer">RAM-U Service & Support</span>
-          <span>&gt;</span>
-          <span className="text-slate-800 font-semibold">iRAM-U Services</span>
-          <span>&gt;</span>
-          <span className="text-emerald-700 font-bold">Messaging API</span>
+        {/* Status bar */}
+        <div className="px-6 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white text-xs flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-semibold font-prompt">ศูนย์บริการแจ้งเตือนอัตโนมัติผ่าน LINE Official Account</span>
+            <span className="text-slate-400 text-[11px] hidden sm:inline">• งานบริหารงานวิจัย คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</span>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-slate-300">
+            <span className="font-mono text-emerald-400 font-medium">● Connected: {LINE_BOT_CONFIG.botBasicId}</span>
+            <span className="hidden md:inline text-slate-400">|</span>
+            <span className="hidden md:inline">LINE Messaging API v2</span>
+          </div>
         </div>
 
         {/* Profile Card Header */}
-        <div className="p-6 sm:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="p-6 sm:p-7 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-700 via-indigo-600 to-emerald-500 p-0.5 shadow-md flex items-center justify-center shrink-0">
               <div className="w-full h-full bg-slate-900 rounded-[14px] flex flex-col items-center justify-center text-white">
@@ -120,20 +145,20 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 font-prompt">
                   {LINE_BOT_CONFIG.name}
                 </h1>
-                <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  Admin
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  LINE Verified Bot
                 </span>
-                <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
                   <MessageSquare className="w-3 h-3" />
-                  <span>Messaging API</span>
+                  <span>Flex Message 2.0</span>
                 </span>
               </div>
-              <p className="text-xs text-slate-600 max-w-xl">
+              <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
                 {LINE_BOT_CONFIG.organization} • {LINE_BOT_CONFIG.description}
               </p>
             </div>
@@ -159,7 +184,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
             <div className="space-y-1">
               <div className="text-[11px] text-slate-500 font-medium">Bot basic ID</div>
               <div className="flex items-center gap-1.5">
-                <span className="font-mono text-sm font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-300">
+                <span className="font-mono text-sm font-bold text-slate-900 bg-white px-2.5 py-0.5 rounded border border-slate-300">
                   {LINE_BOT_CONFIG.botBasicId}
                 </span>
                 <button
@@ -174,7 +199,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                 href={LINE_BOT_CONFIG.addFriendUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] text-emerald-700 hover:text-emerald-800 font-semibold"
+                className="inline-flex items-center gap-1 text-[11px] text-emerald-700 hover:text-emerald-800 font-bold"
               >
                 <span>เปิดแอดเพื่อนใน LINE</span>
                 <ExternalLink className="w-3 h-3" />
@@ -183,15 +208,20 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
           </div>
         </div>
 
-        {/* Tab Navigation in Console style */}
-        <div className="flex border-t border-slate-200 px-6 bg-slate-50/50 text-xs font-medium">
-          <span className="py-3 px-4 text-slate-500 hover:text-slate-800 cursor-pointer">Basic settings</span>
-          <span className="py-3 px-4 text-emerald-700 border-b-2 border-emerald-600 font-bold bg-white -mb-px">
-            Messaging API
-          </span>
-          <span className="py-3 px-4 text-slate-500 hover:text-slate-800 cursor-pointer">LIFF</span>
-          <span className="py-3 px-4 text-slate-500 hover:text-slate-800 cursor-pointer">Security</span>
-          <span className="py-3 px-4 text-slate-500 hover:text-slate-800 cursor-pointer">Roles</span>
+        {/* Feature status bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 border-t border-slate-200 px-6 py-2.5 bg-slate-50/70 text-xs font-medium text-slate-600 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
+          <div className="py-1 sm:py-0 sm:pr-4 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>คุ้มครองข้อมูล PDPA: พรางเลขบัญชีธนาคาร 100%</span>
+          </div>
+          <div className="py-1 sm:py-0 sm:px-4 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>เชื่อมต่อ Hook 4 สเต็ป: ยื่น, ตรวจ, อนุมัติ, โอนเงิน</span>
+          </div>
+          <div className="py-1 sm:py-0 sm:pl-4 flex items-center gap-2">
+            <Smartphone className="w-4 h-4 text-indigo-600 shrink-0" />
+            <span>รองรับ Private Push Message ตรงถึงมือถือนักวิจัย</span>
+          </div>
         </div>
       </div>
 
@@ -342,7 +372,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                   className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
                 >
                   <Send className="w-4 h-4" />
-                  <span>ยิงแจ้งเตือนผ่าน {LINE_BOT_CONFIG.name} ทันที</span>
+                  <span>ส่งแจ้งเตือนจำลองผ่าน {LINE_BOT_CONFIG.name} ทันที</span>
                 </button>
               </div>
 
@@ -517,7 +547,9 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                               </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-slate-500">โอนเข้า ธ.กรุงศรี:</span>
+                              <span className="text-slate-500">
+                                {targetApp.bankName ? `โอนเข้า ${targetApp.bankName.replace('ธนาคาร', 'ธ.')}:` : 'โอนเข้าบัญชีธนาคาร:'}
+                              </span>
                               <span className="font-mono text-slate-700">
                                 {maskBankAccountNo(targetApp.bankAccountNo)}
                               </span>
@@ -525,7 +557,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                             <div className="flex justify-between">
                               <span className="text-slate-500">วันที่ทำรายการ:</span>
                               <span className="text-slate-700">
-                                {targetApp.paymentDate || '23 มีนาคม 2569'}
+                                {targetApp.paymentDate || '23 มีนาคม 2570'}
                               </span>
                             </div>
                           </>
@@ -621,68 +653,106 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
 
       {/* 4. Live Notification Event Logs (ประวัติการส่งแจ้งเตือนอัตโนมัติ) */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-emerald-600" />
             <h3 className="font-bold text-slate-900 font-prompt text-sm sm:text-base">
               ประวัติการส่งแจ้งเตือนผ่าน LINE OA อัตโนมัติ (Live Dispatch Logs)
             </h3>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">
+              {filteredLogs.length} / {notificationLogs.length}
+            </span>
           </div>
-          <span className="text-xs text-slate-500 font-mono">
-            ทั้งหมด {notificationLogs.length} รายการ
-          </span>
+
+          <div className="flex items-center gap-2">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={logSearchQuery}
+                onChange={(e) => setLogSearchQuery(e.target.value)}
+                placeholder="ค้นหา AWP, ชื่อผู้ขอ..."
+                className="pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg w-44 sm:w-56 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+
+            {/* Clear Logs Button */}
+            {notificationLogs.length > 0 && (
+              <button
+                onClick={handleClearLogs}
+                className="px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-1 transition-colors"
+                title="ล้างประวัติการทดสอบส่งแจ้งเตือนทั้งหมด"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">ล้างประวัติ</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600">
-                <th className="py-2.5 px-3 font-semibold">วัน-เวลา</th>
-                <th className="py-2.5 px-3 font-semibold">เลขที่คำขอ</th>
-                <th className="py-2.5 px-3 font-semibold">ขั้นตอน / Milestone</th>
-                <th className="py-2.5 px-3 font-semibold">ผู้ขอรับทุน</th>
-                <th className="py-2.5 px-3 font-semibold">ยอดเงิน</th>
-                <th className="py-2.5 px-3 font-semibold">ช่องทาง</th>
-                <th className="py-2.5 px-3 font-semibold text-center">สถานะ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {notificationLogs.map((log) => {
-                const meta = LINE_MILESTONES[log.milestone] || LINE_MILESTONES.payment_transferred;
-                return (
-                  <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">
-                      {log.timestamp}
-                    </td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-blue-900">
-                      {log.trackingNo}
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${meta.badgeBg} ${meta.badgeText}`}>
-                        {meta.badgeLabel}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <div className="font-semibold text-slate-800">{log.recipientName}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{log.recipientEmail}</div>
-                    </td>
-                    <td className="py-2.5 px-3 font-bold text-emerald-800 font-prompt">
-                      {formatBaht(log.amount)}
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">
-                      {log.channel || LINE_BOT_CONFIG.botBasicId}
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Delivered</span>
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          {filteredLogs.length === 0 ? (
+            <div className="py-8 text-center text-slate-400 space-y-1">
+              <Clock className="w-8 h-8 text-slate-300 mx-auto" />
+              <div className="text-xs font-medium text-slate-600">
+                {notificationLogs.length === 0 ? 'ยังไม่มีประวัติการส่งแจ้งเตือนในระบบ' : 'ไม่พบประวัติแจ้งเตือนที่ตรงกับคำค้นหา'}
+              </div>
+              <p className="text-[11px] text-slate-400">
+                {notificationLogs.length === 0 ? 'ท่านสามารถกดปุ่ม "ส่งแจ้งเตือนจำลอง" ด้านบนเพื่อเริ่มทดสอบส่งข้อความ' : 'ลองเปลี่ยนคำค้นหาเป็นเลขคำขอ เช่น AWP70 หรือชื่ออาจารย์'}
+              </p>
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600">
+                  <th className="py-2.5 px-3 font-semibold">วัน-เวลา</th>
+                  <th className="py-2.5 px-3 font-semibold">เลขที่คำขอ</th>
+                  <th className="py-2.5 px-3 font-semibold">ขั้นตอน / Milestone</th>
+                  <th className="py-2.5 px-3 font-semibold">ผู้ขอรับทุน</th>
+                  <th className="py-2.5 px-3 font-semibold">ยอดเงิน</th>
+                  <th className="py-2.5 px-3 font-semibold">ช่องทาง</th>
+                  <th className="py-2.5 px-3 font-semibold text-center">สถานะ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredLogs.map((log) => {
+                  const meta = LINE_MILESTONES[log.milestone] || LINE_MILESTONES.payment_transferred;
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">
+                        {log.timestamp}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-blue-900">
+                        {log.trackingNo}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${meta.badgeBg} ${meta.badgeText}`}>
+                          {meta.badgeLabel}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <div className="font-semibold text-slate-800">{log.recipientName}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">{log.recipientEmail}</div>
+                      </td>
+                      <td className="py-2.5 px-3 font-bold text-emerald-800 font-prompt">
+                        {formatBaht(log.amount)}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">
+                        {log.channel || LINE_BOT_CONFIG.botBasicId}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Delivered</span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -741,7 +811,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                 </div>
                 <p className="text-slate-600 text-[11px]">
                   1. เข้าสู่ระบบ <a href="https://developers.line.biz" target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold">developers.line.biz</a> ด้วยบัญชีของคณะแพทย์<br />
-                  2. เลือก Provider <strong>"RAM-U Service & Support"</strong> &rarr; Channel <strong>"iRAM-U Services"</strong><br />
+                  2. เลือก Provider <strong>"RAM-U Service & Support"</strong> → Channel <strong>"iRAM-U Services"</strong><br />
                   3. ในแถบ <strong>Messaging API</strong> ออกค่า <em>Channel access token (long-lived)</em><br />
                   4. นำ Token และ Webhook URL ไปใส่ใน Script Properties ของ Google Apps Script หรือระบบหลัก
                 </p>
@@ -759,7 +829,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                   <li><strong>Trigger 1 (ยื่นคำขอ):</strong> ระบบเรียก <code className="bg-slate-200 px-1 py-0.5 rounded text-blue-900">notifyApplicationSubmitted()</code> ทันทีที่มีการบันทึกคำขอใหม่</li>
                   <li><strong>Trigger 2 (ตรวจเอกสารผ่าน):</strong> เมื่อเจ้าหน้าที่เลื่อนสเต็ป 4/12 ผ่าน ระบบส่งแจ้งเตือนอัตโนมัติ</li>
                   <li><strong>Trigger 3 (คณบดีอนุมัติ):</strong> เมื่อคณบดีลงนามบันทึกข้อความ (สเต็ป 7/12) ส่งแจ้งเตือนพร้อมส่งเรื่องต่องานคลัง</li>
-                  <li><strong>Trigger 4 (โอนเงินสำเร็จ):</strong> งานการเงินบันทึกเลขฎีกา/ยืนยันการโอนเงิน (สเต็ป 11/12) ยิง Push Message แบบ Real-time ทันที</li>
+                  <li><strong>Trigger 4 (โอนเงินสำเร็จ):</strong> งานการเงินบันทึกเลขฎีกา/ยืนยันการโอนเงิน (สเต็ป 11/12) ส่ง Push Message แบบ Real-time ทันที</li>
                 </ul>
               </div>
 
@@ -769,10 +839,10 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                   <span className="w-6 h-6 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs">
                     3
                   </span>
-                  <span>การเชื่อมโยง Google Apps Script & Google Sheets</span>
+                  <span>ระบบแจ้งเตือนอัตโนมัติ (Automated Cloud Hook) & การสำรองข้อมูล Google Sheets</span>
                 </div>
-                <p className="text-slate-600 text-[11px]">
-                  เจ้าหน้าที่สามารถคัดลอกโค้ดจากแท็บ <strong>"Google Apps Script"</strong> ไฟล์ <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-900">LineNotifier.gs</code> ไปวางใน Script Editor ของ Google Sheet คำขอรับเงินรางวัล โดยโค้ดจะดักจับเหตุการณ์การเปลี่ยนแปลงสถานะในเซลล์ชีตแล้วส่ง LINE Push อัตโนมัติทันที
+                <p className="text-slate-600 text-[11px] leading-relaxed">
+                  ระบบในปัจจุบันเชื่อมต่อส่งการแจ้งเตือนอัตโนมัติผ่าน Cloudflare และ LINE Messaging API โดยตรงจากหน้าเว็บ เจ้าหน้าที่ไม่ต้องติดตั้งสคริปต์เพิ่มเติม ทั้งนี้ระบบยังรองรับการส่งออกข้อมูลคำขอ (Export) ไปยัง Google Sheets ของคณะ เพื่อให้งานการเงินนำไปใช้จัดทำรายงานงบประมาณประจำปีได้อย่างสะดวก
                 </p>
               </div>
 
@@ -816,7 +886,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800"
                   >
-                    <span>คลิกเพื่อเพิ่มเพื่อนทันที &rarr;</span>
+                    <span>คลิกเพื่อเพิ่มเพื่อนทันที →</span>
                   </a>
                 </div>
               </div>
@@ -827,10 +897,10 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                   2
                 </div>
                 <h4 className="font-bold text-slate-900 font-prompt text-sm">
-                  ผูกบัญชีอีเมล @nu.ac.th
+                  ผูกบัญชีด้วยอีเมล @nu.ac.th
                 </h4>
-                <p className="text-slate-600 text-[11px]">
-                  เมื่อยื่นคำขอรับทุนในระบบด้วยอีเมลมหาวิทยาลัยนเรศวร ระบบจะผูกข้อมูลคำขอเข้ากับบัญชี LINE ของท่านโดยอัตโนมัติ เพื่อส่งการแจ้งเตือนส่วนตัว (Private Push) มายังมือถือของท่านโดยตรง
+                <p className="text-slate-600 text-[11px] leading-relaxed">
+                  เมื่อแอดเพื่อนแล้ว ให้พิมพ์ส่งอีเมลมหาวิทยาลัย (เช่น <span className="font-mono font-semibold text-blue-900">somchaij@nu.ac.th</span>) เข้ามาในห้องแชท หรือใช้อีเมล <span className="font-mono font-semibold text-blue-900">@nu.ac.th</span> เดียวกันในการยื่นคำขอรับรางวัลในระบบ เพื่อให้ระบบเชื่อมโยงข้อมูลและส่งการแจ้งเตือนสถานะมายัง LINE ของท่านโดยตรง
                 </p>
               </div>
 
@@ -858,7 +928,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
               <ul className="text-[11px] text-emerald-900 list-disc list-inside space-y-0.5">
                 <li>ไม่ต้องคอยโทรถามเจ้าหน้าที่หรือเดินทางมาตรวจสอบเอกสารที่คณะ</li>
                 <li>ทราบทันทีเมื่อคณบดีอนุมัติ และทราบกำหนดเวลาที่เงินจะโอนเข้าบัญชีภายใน 4 สัปดาห์</li>
-                <li>เมื่อเงินเข้าบัญชีกรุงศรีอยุธยา จะมีแจ้งเตือนระบุเลขที่ฎีกาและยอดเงินสุทธิ พร้อมลิงก์ดาวน์โหลดสลิปทางการได้ทันที</li>
+                <li>เมื่อเงินเข้าบัญชีธนาคาร จะมีแจ้งเตือนระบุเลขที่ฎีกาและยอดเงินสุทธิ พร้อมลิงก์ดาวน์โหลดสลิปทางการได้ทันที</li>
               </ul>
             </div>
           </div>

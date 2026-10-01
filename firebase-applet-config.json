@@ -1,11 +1,11 @@
 {
-  "projectId": "gen-lang-client-0936667294",
-  "appId": "1:429427980115:web:181623529dd36e3eaa93a6",
-  "apiKey": "AIzaSyCmvsvilwdeDn8jc7x3moBvssz8_A4vfZE",
-  "authDomain": "gen-lang-client-0936667294.firebaseapp.com",
-  "storageBucket": "gen-lang-client-0936667294.firebasestorage.app",
-  "messagingSenderId": "429427980115",
-  "measurementId": "",
-  "oAuthClientId": "429427980115-s5soqdnp53fohra6sbpdua0dteb9pip3.apps.googleusercontent.com",
+  "projectId": "iram-services",
+  "appId": "1:1055971677520:web:1acd3073567f07ced7c855",
+  "apiKey": "AIzaSyC0P2bG6P116Kl4Y_EX1tdk3i6NoBiZjHk",
+  "authDomain": "iram-services.firebaseapp.com",
+  "storageBucket": "iram-services.firebasestorage.app",
+  "messagingSenderId": "1055971677520",
+  "measurementId": "G-XKEPRYJ070",
+  "oAuthClientId": "",
   "recaptchaSiteKey": ""
 }

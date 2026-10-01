@@ -93,63 +93,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Banner with University Identity & Official Scope */}
-      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-2xl p-6 sm:p-8 text-white border border-slate-800 shadow-xl relative overflow-hidden">
-        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              <span>ประกาศมหาวิทยาลัยนเรศวร (ลงวันที่ 27 พฤษภาคม 2567)</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-prompt">
-              {isGuest 
-                ? 'ระบบขอรับเงินรางวัลและค่าตีพิมพ์ คณะแพทยศาสตร์' 
-                : isResearcher 
-                  ? `แดชบอร์ดคำขอทุนของ ${currentUser?.name || 'อาจารย์'}` 
-                  : 'แดชบอร์ดติดตามเงินรางวัลและค่าตีพิมพ์ คณะแพทยศาสตร์'}
-            </h2>
-            <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-              {isGuest ? (
-                'ยินดีต้อนรับสู่ระบบข้อมูลสาธารณะ ติดตามสถิติการส่งเสริมการตีพิมพ์ผลงานวิจัยระดับนานาชาติและระดับชาติตามประกาศคณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร'
-              ) : (
-                'ติดตามขั้นตอนการขอรับเงินรางวัลและค่าตีพิมพ์บทความวิจัยระดับนานาชาติและระดับชาติ ตรวจสอบเอกสารตามเกณฑ์ AWP และกำกับขั้นตอนการโอนเงินเข้าบัญชีอย่างโปร่งใส'
-              )}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            {isGuest ? (
-              <button
-                onClick={onOpenLoginModal}
-                className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 font-prompt active:scale-95"
-              >
-                <LogIn className="w-4 h-4 text-slate-950" />
-                <span>เข้าสู่ระบบด้วย NU Account</span>
-              </button>
-            ) : (
-              (currentUser?.role === 'researcher' || currentUser?.role === 'coordinator' || currentUser?.role === 'admin') && (
-                <button
-                  onClick={onOpenNewSubmission}
-                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 active:scale-95"
-                >
-                  <TrendingUp className="w-4 h-4 text-slate-950" />
-                  <span>ยื่นคำขอรับทุนใหม่</span>
-                </button>
-              )
-            )}
-
-            <div className="bg-slate-800/80 backdrop-blur px-4 py-2.5 rounded-xl border border-slate-700/80 text-xs">
-              <span className="text-slate-400 block">
-                {isResearcher ? 'วงเงินคงเหลือของท่าน (150k):' : 'เพดานสิทธิ์ต่อคน/ปีงบประมาณ:'}
-              </span>
-              <span className="font-bold text-amber-300 text-sm">
-                {isResearcher ? `${formatBaht(personalRemainingQuota)} บาท` : '150,000 บาท'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* KPI Cards: Aggregate Statistics (Safe for Public) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Approved Amount */}
@@ -187,7 +130,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {formatBaht(totalPaidAmount)}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-              <span>โอนเข้าบัญชีกรุงศรี {countPaid} รายการ</span>
+              <span>โอนเข้าบัญชีธนาคาร {countPaid} รายการ</span>
             </div>
           </div>
         </div>
@@ -251,7 +194,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 การกระจายตัวบทความตามฐานข้อมูลและ Quartile
               </h3>
               <p className="text-xs text-slate-500">
-                วารสารวิชาการที่ได้รับการตีพิมพ์ คณะแพทยศาสตร์ ประจำปีงบประมาณ 2569
+                วารสารวิชาการที่ได้รับการตีพิมพ์ คณะแพทยศาสตร์ ประจำปีงบประมาณ 2570
               </p>
             </div>
             <span className="text-xs px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg font-medium">
@@ -369,7 +312,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div>
                 <span className="font-semibold text-emerald-900 block">งานการเงินจัดทำฎีกา & โอนเงิน</span>
-                <span className="text-slate-600 text-[11px]">โอนเข้าบัญชีกรุงศรีภายใน 4 สัปดาห์ พร้อมแจ้ง LINE OA</span>
+                <span className="text-slate-600 text-[11px]">โอนเข้าบัญชีธนาคารภายใน 4 สัปดาห์ พร้อมแจ้ง LINE OA</span>
               </div>
             </div>
           </div>
@@ -429,16 +372,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   : 'คลิกเพื่อดูไทม์ไลน์ 12 ขั้นตอน, ปริ้นเอกสารราชการ, หรือตรวจสอบสถานะเงินโอน'}
               </p>
             </div>
-            <span className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1 rounded-full">
-              แสดง {displayedApplications.length} รายการ
-            </span>
+            <div className="flex items-center gap-3">
+              {(currentUser?.role === 'researcher' || currentUser?.role === 'coordinator' || currentUser?.role === 'admin') && (
+                <button
+                  onClick={onOpenNewSubmission}
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 active:scale-95 font-prompt"
+                >
+                  <TrendingUp className="w-4 h-4 text-slate-950" />
+                  <span>ยื่นคำขอรับทุนใหม่</span>
+                </button>
+              )}
+              <span className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-full whitespace-nowrap">
+                แสดง {displayedApplications.length} รายการ
+              </span>
+            </div>
           </div>
 
           {displayedApplications.length === 0 ? (
             <div className="p-12 text-center text-slate-500">
               <CheckCircle2 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
               <p className="text-sm font-medium">ยังไม่มีรายการคำขอของท่านในระบบ</p>
-              <p className="text-xs text-slate-400 mt-1">กดปุ่ม "ยื่นคำขอรับทุนใหม่" ด้านบนเพื่อเริ่มต้นกรอกข้อมูล</p>
+              <p className="text-xs text-slate-400 mt-1">กดปุ่ม "ยื่นคำขอรับทุนใหม่" เพื่อเริ่มต้นกรอกข้อมูล</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

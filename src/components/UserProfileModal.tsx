@@ -40,6 +40,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onSaveProfile,
   onSwitchUser,
 }) => {
+  const isAdmin = currentUser.role === 'admin' || (currentUser.roles && currentUser.roles.includes('admin'));
   const accountList = (users && users.length > 0) ? users : getStoredUsersRegistry();
   const [formData, setFormData] = useState<UserProfile>({ ...currentUser });
   const [showSensitiveData, setShowSensitiveData] = useState(false);
@@ -107,46 +108,63 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
           )}
 
-          {/* Account Selector Bar (Simulation of switching accounts) */}
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-slate-700 flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-blue-600" />
-                บัญชีผู้ใช้งานที่เข้าสู่ระบบ (Active Account):
-              </span>
-              <span className="text-[10px] text-slate-500 font-mono bg-white px-2 py-0.5 rounded border border-slate-200">
-                NU Identity Provider (OAuth2/GSuite)
+          {/* Account Selector Bar: แสดงเฉพาะผู้ดูแลระบบ (Admin) เท่านั้น ตามมาตรการคุ้มครองข้อมูลส่วนบุคคล (PDPA) */}
+          {isAdmin ? (
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-blue-600" />
+                  สลับบัญชีผู้ใช้งาน (เฉพาะผู้ดูแลระบบ):
+                </span>
+                <span className="text-[10px] text-amber-800 font-medium bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                  สิทธิ์ผู้ดูแลระบบ (Admin Only)
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                {accountList.map((user) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => handleSelectAccount(user)}
+                    className={`p-2 rounded-lg border text-left transition-all ${
+                      formData.email === user.email
+                        ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100/80'
+                    }`}
+                  >
+                    <div className="font-bold truncate text-[11px]">{user.name}</div>
+                    <div className="text-[10px] text-slate-400 font-mono truncate">{user.email}</div>
+                    <div className="text-[9px] text-amber-700 font-medium mt-0.5">
+                      {user.role === 'admin' 
+                        ? 'ผู้ดูแลระบบ / วิจัย / ประสานงาน' 
+                        : user.role === 'researcher' 
+                          ? 'นักวิจัย' 
+                          : user.role === 'coordinator' 
+                            ? 'เจ้าหน้าที่วิจัย' 
+                            : user.role === 'executive'
+                              ? 'ผู้บริหาร'
+                              : 'งานการเงิน'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-700 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                  {formData.name ? formData.name.charAt(0) : 'U'}
+                </div>
+                <div>
+                  <div className="font-bold text-blue-950 text-xs">{formData.name}</div>
+                  <div className="text-[11px] text-blue-700 font-mono">{formData.email}</div>
+                </div>
+              </div>
+              <span className="text-[10px] font-medium bg-white text-slate-600 px-2 py-1 rounded border border-blue-200">
+                NU Single Sign-On (@nu.ac.th)
               </span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto pr-1">
-              {accountList.map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  onClick={() => handleSelectAccount(user)}
-                  className={`p-2 rounded-lg border text-left transition-all ${
-                    formData.email === user.email
-                      ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100/80'
-                  }`}
-                >
-                  <div className="font-bold truncate text-[11px]">{user.name}</div>
-                  <div className="text-[10px] text-slate-400 font-mono truncate">{user.email}</div>
-                  <div className="text-[9px] text-amber-700 font-medium mt-0.5">
-                    {user.role === 'admin' 
-                      ? 'ผู้ดูแลระบบ / วิจัย / ประสานงาน' 
-                      : user.role === 'researcher' 
-                        ? 'นักวิจัย' 
-                        : user.role === 'coordinator' 
-                          ? 'เจ้าหน้าที่วิจัย' 
-                          : user.role === 'executive'
-                            ? 'ผู้บริหาร'
-                            : 'งานการเงิน'}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Form Fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-white p-4 rounded-xl border border-slate-200/90 shadow-sm">

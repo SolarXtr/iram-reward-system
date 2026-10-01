@@ -46,7 +46,7 @@ export const LINE_MILESTONES: Record<LineMilestoneType, MilestoneMeta> = {
     description: 'แจ้งเตือนทันทีเมื่อนักวิจัยกรอกแบบคำขอและบันทึกเข้าระบบ หรือส่งข้อมูลผ่าน Google Forms / ระบบงานวิจัย',
     defaultMessage: (app) => ({
       title: `ยื่นคำขอรับรางวัลและค่าตีพิมพ์ [${app.trackingNo}]`,
-      statusText: 'ยื่นคำขอสำเร็จ (ขั้นตอนที่ 1 &rarr; 2)',
+      statusText: 'ยื่นคำขอสำเร็จ (ขั้นตอนที่ 1 → 2)',
       details: `บทความ: "${app.articleTitle}" | ฐานข้อมูล: ${app.database || 'Scopus'} (${app.quartile}) | ยอดขอรับรวม: ${formatBaht(app.totalClaimedAmount)}`,
       notes: `ระบบบันทึกคำขอเข้าสู่คิวงานตรวจสอบเอกสารและฐานข้อมูลสากล (SLA 3 วันทำการ)`
     }),
@@ -98,7 +98,7 @@ export const LINE_MILESTONES: Record<LineMilestoneType, MilestoneMeta> = {
     label: '4. งานการเงินโอนเงินแล้ว (Transferred)',
     badgeLabel: 'โอนเงินสำเร็จ',
     headerTitle: 'งานการเงินโอนเงินเข้าบัญชีธนาคารเรียบร้อยแล้ว',
-    subTitle: 'โอนเงินเข้าบัญชี ธ.กรุงศรีอยุธยา แบบ Real-time',
+    subTitle: 'โอนเงินเข้าบัญชีธนาคารแบบ Real-time',
     accentColor: '#047857', // emerald-700
     badgeBg: 'bg-emerald-100',
     badgeText: 'text-emerald-900',
@@ -106,7 +106,7 @@ export const LINE_MILESTONES: Record<LineMilestoneType, MilestoneMeta> = {
     description: 'แจ้งเตือนทันทีเมื่องานคลังและการเงินโอนเงินรางวัล/ค่าตีพิมพ์เข้าบัญชีธนาคาร พร้อมแจ้งเลขฎีกาและยอดเงินสุทธิ',
     defaultMessage: (app) => ({
       title: `โอนเงินรางวัลและค่าตีพิมพ์เข้าบัญชีแล้ว [${app.trackingNo}]`,
-      statusText: 'โอนเงินสำเร็จเข้าบัญชี ธ.กรุงศรีอยุธยา (ขั้นตอนที่ 11-12/12)',
+      statusText: `โอนเงินสำเร็จเข้าบัญชี ${app.bankName ? app.bankName.replace('ธนาคาร', 'ธ.') : 'ธนาคาร'} (ขั้นตอนที่ 11-12/12)`,
       details: `โอนเข้าบัญชี: ${maskBankAccountNo(app.bankAccountNo)} | วันที่โอน: ${app.paymentDate || 'วันนี้'} | เลขที่ฎีกา: ${app.disbursementVoucherNo || 'ฎีกา 3606/70'} | ยอดสุทธิ: ${formatBaht(app.actualPaidAmount || app.totalClaimedAmount)}`,
       notes: `ท่านสามารถคลิกปุ่มด้านล่างเพื่อเปิดดูหรือดาวน์โหลดสลิป/ใบรับเงินทางการของคณะแพทย์ได้ทันที`
     }),
@@ -116,13 +116,13 @@ export const LINE_MILESTONES: Record<LineMilestoneType, MilestoneMeta> = {
 export const INITIAL_LINE_NOTIFICATION_LOG: LineNotificationRecord[] = [
   {
     id: 'notif-004',
-    trackingNo: 'AWP69-051',
+    trackingNo: 'AWP70-051',
     milestone: 'payment_transferred',
-    title: 'โอนเงินรางวัลและค่าตีพิมพ์เข้าบัญชีแล้ว [AWP69-051]',
+    title: 'โอนเงินรางวัลและค่าตีพิมพ์เข้าบัญชีแล้ว [AWP70-051]',
     recipientName: 'ผศ.ดร.สมชาย ใจดี',
     recipientEmail: 'somchaij@nu.ac.th',
     amount: 55000,
-    details: 'โอนเข้าบัญชี ธ.กรุงศรีอยุธยา xxx-x-xxxxx-7 ยอดสุทธิ 55,000 บาท (ฎีกา 3606/69)',
+    details: 'โอนเข้าบัญชีธนาคาร xxx-x-xxxxx-7 ยอดสุทธิ 55,000 บาท (ฎีกา 3606/70)',
     timestamp: '2026-03-23 14:15:22',
     channel: '@414jvrca',
     status: 'delivered',
