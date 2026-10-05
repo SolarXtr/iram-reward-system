@@ -31,7 +31,9 @@ import {
   LINE_BOT_CONFIG, 
   createLineRecordFromApp, 
   getStoredLineNotifications, 
-  saveStoredLineNotifications 
+  saveStoredLineNotifications,
+  IS_NOTIFICATION_SYSTEM_SUSPENDED,
+  LINE_NOTIFICATION_SYSTEM_ENABLED
 } from './data/lineNotificationService';
 import {
   fetchRewardApplicationsFromD1,
@@ -156,6 +158,11 @@ export default function App() {
   });
 
   const triggerLineMilestoneNotification = (app: ResearchApplication, milestone: LineMilestoneType) => {
+    // ระงับการใช้งานระบบแจ้งเตือน Line OA/Email ชั่วคราวตามนโยบาย
+    if (IS_NOTIFICATION_SYSTEM_SUSPENDED || !LINE_NOTIFICATION_SYSTEM_ENABLED) {
+      return;
+    }
+
     const newRecord = createLineRecordFromApp(app, milestone);
     setLineNotifications((prev) => {
       const updated = [newRecord, ...prev];
@@ -281,8 +288,8 @@ export default function App() {
       researcher: ['dashboard', 'table', 'calendar'],
       finance: ['dashboard', 'table', 'calendar'],
       executive: ['dashboard', 'table', 'calendar'],
-      coordinator: ['dashboard', 'kanban', 'table', 'calendar', 'line_oa'],
-      admin: ['dashboard', 'kanban', 'table', 'calendar', 'line_oa', 'user_management'],
+      coordinator: ['dashboard', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
+      admin: ['dashboard', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
     };
     const allowed = roleAllowedTabs[newRole] || ['dashboard'];
     if (!allowed.includes(activeTab)) {
@@ -518,6 +525,10 @@ export default function App() {
 
   // 5. Send LINE Notification Trigger
   const handleSendLineNotification = (trackingNo: string, message: string) => {
+    if (IS_NOTIFICATION_SYSTEM_SUSPENDED || !LINE_NOTIFICATION_SYSTEM_ENABLED) {
+      showToast('ระบบแจ้งเตือน LINE OA / Email อยู่ระหว่างการระงับการใช้งานชั่วคราวตามนโยบาย');
+      return;
+    }
     showToast(`LINE OA [${LINE_BOT_CONFIG.botBasicId}]: ส่งแจ้งเตือนสำหรับ [${trackingNo}] สำเร็จ!`);
   };
 
@@ -632,14 +643,33 @@ export default function App() {
           <CalendarView applications={roleScopedApplications} />
         )}
 
-        {/* Tab 5: LINE OA Notification Center (Coordinator and Admin ONLY) */}
-        {activeTab === 'line_oa' && (currentRole === 'coordinator' || currentRole === 'admin') && !isGuest && (
+        {/* Tab 5: LINE OA Notification Center (แสดงเฉพาะเมื่อเปิดใช้งานระบบ) */}
+        {activeTab === 'line_oa' && LINE_NOTIFICATION_SYSTEM_ENABLED && (currentRole === 'coordinator' || currentRole === 'admin') && !isGuest && (
           <LineNotificationModal
             applications={applications}
             onSendNotification={handleSendLineNotification}
             notifications={lineNotifications}
             onTriggerMilestone={triggerLineMilestoneNotification}
           />
+        )}
+        {activeTab === 'line_oa' && !LINE_NOTIFICATION_SYSTEM_ENABLED && !isGuest && (
+          <div className="bg-white rounded-2xl p-8 border border-amber-200 text-center max-w-lg mx-auto my-12 shadow-lg animate-in fade-in duration-150">
+            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-3">
+              <span className="text-xl">⏸️</span>
+            </div>
+            <h3 className="text-base font-bold text-slate-900 font-prompt mb-1.5">
+              ระบบแจ้งเตือน LINE OA / Email ระงับการใช้งานชั่วคราว
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed mb-4">
+              ระบบแจ้งเตือนอัตโนมัติผ่าน LINE OA และ Email อยู่ระหว่างการระงับการใช้งานชั่วคราวตามนโยบาย ยังไม่เปิดให้บริการในขณะนี้
+            </p>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+            >
+              กลับสู่หน้าแดชบอร์ด
+            </button>
+          </div>
         )}
 
         {/* Tab 6: Admin User Management Console */}

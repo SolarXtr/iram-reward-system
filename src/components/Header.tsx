@@ -21,6 +21,7 @@ import {
   LogIn
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
+import { LINE_NOTIFICATION_SYSTEM_ENABLED } from '../data/lineNotificationService';
 
 export type { UserRole };
 export type ActiveTab = 'dashboard' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management';
@@ -314,8 +315,8 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </button>
 
-              {/* Tab 5: LINE OA (Coordinator and Admin ONLY) */}
-              {(currentRole === 'coordinator' || currentRole === 'admin') && (
+              {/* Tab 5: LINE OA (Coordinator and Admin ONLY - แสดงเฉพาะเมื่อเปิดใช้งานระบบ) */}
+              {(LINE_NOTIFICATION_SYSTEM_ENABLED && (currentRole === 'coordinator' || currentRole === 'admin')) && (
                 <button
                   onClick={() => setActiveTab('line_oa')}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${

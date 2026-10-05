@@ -179,7 +179,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             </span>
           </h2>
           <p className="text-xs text-slate-500">
-            จำแนกตาม 5 ช่วงการดำเนินงานหลัก พร้อมแจ้งเตือนไปยัง LINE OA นักวิจัยอัตโนมัติ
+            จำแนกตาม 5 ช่วงการดำเนินงานหลักตามขั้นตอนการดำเนินงาน
           </p>
         </div>
       </div>

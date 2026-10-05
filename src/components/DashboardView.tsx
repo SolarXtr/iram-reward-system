@@ -312,7 +312,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div>
                 <span className="font-semibold text-emerald-900 block">งานการเงินจัดทำฎีกา & โอนเงิน</span>
-                <span className="text-slate-600 text-[11px]">โอนเข้าบัญชีธนาคารภายใน 4 สัปดาห์ พร้อมแจ้ง LINE OA</span>
+                <span className="text-slate-600 text-[11px]">โอนเข้าบัญชีธนาคารภายใน 4 สัปดาห์</span>
               </div>
             </div>
           </div>

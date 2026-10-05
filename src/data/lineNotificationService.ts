@@ -1,6 +1,14 @@
 import { LineMilestoneType, LineNotificationRecord, ResearchApplication } from '../types';
 import { formatBaht, maskBankAccountNo } from './regulations';
 
+// ========================================================
+// System Notification Status Configuration
+// ระงับการใช้งานระบบแจ้งเตือน Line OA/Email ไว้ก่อน ยังไม่ต้องเปิดใช้ระบบ
+// ========================================================
+export const IS_NOTIFICATION_SYSTEM_SUSPENDED = true;
+export const LINE_NOTIFICATION_SYSTEM_ENABLED = false;
+export const EMAIL_NOTIFICATION_SYSTEM_ENABLED = false;
+
 export const LINE_BOT_CONFIG = {
   name: 'iRAM-U Services',
   botBasicId: '@414jvrca',
