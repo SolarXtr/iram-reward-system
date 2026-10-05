@@ -45,12 +45,16 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
   const [editingRecord, setEditingRecord] = useState<NuDisbursementRecord | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
-  const isAdminOrCoordinator = currentRole === 'admin' || currentRole === 'coordinator';
+  // สิทธิ์การมองเห็นข้อมูลทั้งหมดของคณะแพทยศาสตร์ (Admin, Coordinator, Executive, Finance)
+  const canViewAll = ['admin', 'coordinator', 'executive', 'finance'].includes(currentRole);
 
-  // Role Scoping: Researcher sees only their own articles; Admin/Coordinator sees all
+  // สิทธิ์การนำเข้าและแก้ไขข้อมูล (Admin และ Coordinator เท่านั้น)
+  const canEdit = currentRole === 'admin' || currentRole === 'coordinator';
+
+  // Role Scoping: Researcher sees only their own articles; Admin/Coordinator/Executive/Finance see all
   const scopedRecords = useMemo(() => {
     if (!currentUser) return [];
-    if (isAdminOrCoordinator) return records;
+    if (canViewAll) return records;
 
     const myName = currentUser.name || '';
     const myFirstName = currentUser.firstNameTh || '';
@@ -62,7 +66,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
       if (myFirstName && myLastName && recName.includes(myFirstName) && recName.includes(myLastName)) return true;
       return false;
     });
-  }, [records, currentUser, isAdminOrCoordinator]);
+  }, [records, currentUser, canViewAll]);
 
   // Search & Filter
   const filteredRecords = useMemo(() => {
@@ -138,15 +142,15 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
             </h2>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            {isAdminOrCoordinator
+            {canViewAll
               ? 'ข้อมูลการขอรับการสนับสนุนจากกองการวิจัยและนวัตกรรม (ม.นเรศวร) ทั้งหมดของคณะแพทยศาสตร์'
               : 'รายการขอรับการสนับสนุนเงินรางวัลและค่าเพจชาร์จจากกองการวิจัยและนวัตกรรม (ม.นเรศวร) ของท่าน'}
           </p>
         </div>
 
-        {/* Admin/Coordinator Action Buttons */}
-        {isAdminOrCoordinator && (
-          <div className="flex items-center gap-2">
+        {/* Action Buttons: Import for Admin/Coordinator; Read-only badge for Executive/Finance */}
+        <div className="flex items-center gap-2">
+          {canEdit && (
             <button
               onClick={() => setIsImportModalOpen(true)}
               className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
@@ -155,8 +159,15 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
               <FileSpreadsheet className="w-3.5 h-3.5" />
               <span>นำเข้า Excel (.xlsx)</span>
             </button>
-          </div>
-        )}
+          )}
+
+          {!canEdit && canViewAll && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>โหมดตรวจสอบข้อมูลภาพรวม (อ่านอย่างเดียว)</span>
+            </span>
+          )}
+        </div>
       </div>
 
       {/* 2. Quick KPI Cards */}
@@ -231,13 +242,13 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                 <th className="py-3 px-3 w-28">วันที่จ่ายเงิน</th>
                 <th className="py-3 px-3 w-28 text-right">ยอดรวม มน.</th>
                 <th className="py-3 px-3 w-28 text-center">สถานะคณะฯ</th>
-                {isAdminOrCoordinator && <th className="py-3 px-3 w-16 text-center">จัดการ</th>}
+                {canEdit && <th className="py-3 px-3 w-16 text-center">จัดการ</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdminOrCoordinator ? 11 : 10} className="py-8 text-center text-slate-400">
+                  <td colSpan={canEdit ? 11 : 10} className="py-8 text-center text-slate-400">
                     <Info className="w-5 h-5 mx-auto mb-1 text-slate-300" />
                     <span>ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</span>
                   </td>
@@ -309,7 +320,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                           <span className="text-[10px] text-slate-400">ยังไม่ยื่นคณะ</span>
                         )}
                       </td>
-                      {isAdminOrCoordinator && (
+                      {canEdit && (
                         <td className="py-2.5 px-3 text-center">
                           <button
                             type="button"
