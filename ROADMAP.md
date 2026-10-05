@@ -70,6 +70,14 @@ flowchart TD
 - [x] **Cloudflare Worker API:** พัฒนาและ Deploy User Endpoints (`/api/users`, `/api/users/profile/:email`, `/api/users/profile/:id`) บน Cloudflare Worker
 - [x] **Offline-First Resilience:** ระบบมีกลไก LocalStorage Fallback หากการเชื่อมต่ออินเทอร์เน็ตมีปัญหา หน้าเว็บยังคงทำงานได้ต่อเนื่อง
 
+### ✅ Phase 2.8: Document Numbering Independence & DRI NU Tracker (เสร็จสมบูรณ์ v1.3.2)
+- [x] **Memo 2 & Memo 3 Separation:** แยกเลขที่หนังสือและวันที่อิสระระหว่างฉบับขออนุมัติและฉบับเบิกจ่าย พร้อม Smart Highlight และคำเตือน
+- [x] **Production Auth Hardening:** ถอด Demo Login บังคับล็อกอินด้วยบัญชีจริง `@nu.ac.th` และลด Scopes เหลือเฉพาะ `email`, `profile`, `openid`
+- [x] **DRI NU Disbursement Tracker:** ตารางติดตามการเบิกจ่ายเงินรางวัลและค่าเพจชาร์จ กองการวิจัยและนวัตกรรม ม.นเรศวร บน Dashboard
+- [x] **Excel Parser & Matching:** นำเข้าข้อมูลจาก `ASPxGridView1.xlsx` จับคู่ชื่อบทความของ มน. กับคำขอคณะแพทยฯ อัตโนมัติ
+- [x] **Disbursement Amount & Date Management:** ปรับปรุงสถานะ วันที่อนุมัติ วันที่จ่ายเงิน เงินรางวัล และค่าเพจชาร์จ มน.
+- [x] **Role Scoping (Executive & Finance):** เปิดสิทธิ์ให้ผู้บริหารและการเงินดูข้อมูลทั้งคณะได้แบบ Read-only พร้อมป้ายกำกับโหมดความปลอดภัย
+
 ### 🔄 Phase 3: Integration, Data Pipeline & API Sync (ระยะถัดไป)
 - [x] **Backend Database (Cloudflare D1 & Worker):** เชื่อมต่อฐานข้อมูล `iram-db` และ Worker API สำหรับบันทึกคำขอรับทุนและผู้ใช้งาน
 - [ ] **Scopus Automation Fetcher:** เชื่อมต่อระบบดึงข้อมูลผลงานตีพิมพ์จาก Scopus อัตโนมัติด้วย DOI
@@ -78,8 +86,8 @@ flowchart TD
 ---
 
 ## 💾 ข้อมูลการแบคอัพ (Backup Metadata)
-- **Tag:** `v1.3.0`
-- **Release Date:** 29 กันยายน 2569
+- **Tag:** `v1.3.2`
+- **Release Date:** 5 ตุลาคม 2569
 - **Repository Backend:** `https://github.com/SolarXtr/iram-backend.git`
 - **Repository Frontend:** `https://github.com/SolarXtr/iram-reward-system.git`
 - **Production URL:** `https://iram-reward-system.pages.dev`
