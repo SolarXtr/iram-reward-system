@@ -13,7 +13,7 @@ import { UserProfileModal } from './components/UserProfileModal';
 import { UserManagementView } from './components/UserManagementView';
 import { LoginModal } from './components/LoginModal';
 import { INITIAL_APPLICATIONS, OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
-import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, ResearchApplication, UserProfile, WorkflowStepId } from './types';
+import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, ResearchApplication, UserProfile, WorkflowStepId, NuDisbursementRecord } from './types';
 import { generateNextTrackingNo } from './data/regulations';
 import { 
   DEFAULT_LOGGED_IN_USER,
@@ -22,6 +22,11 @@ import {
   upsertRegisteredUser,
   deleteRegisteredUser
 } from './data/userProfile';
+import {
+  getStoredNuDisbursements,
+  saveStoredNuDisbursements,
+  upsertNuDisbursement
+} from './data/nuDisbursementData';
 import { 
   getCurrentAuthUser, 
   setCurrentAuthUser, 
@@ -177,6 +182,40 @@ export default function App() {
       payment_transferred: '4. งานการเงินโอนเงินเข้าบัญชีเรียบร้อย (Real-time)'
     };
     showToast(`LINE OA [${LINE_BOT_CONFIG.botBasicId}]: แจ้งเตือน "${milestoneLabels[milestone]}" (${app.trackingNo}) ส่งตรงถึงมือถือสำเร็จ!`);
+  };
+
+  // DRI NU Disbursement Tracking State (ม.นเรศวร)
+  const [nuDisbursements, setNuDisbursements] = useState<NuDisbursementRecord[]>(() => getStoredNuDisbursements());
+
+  const handleUpdateNuRecord = (updated: NuDisbursementRecord) => {
+    setNuDisbursements((prev) => upsertNuDisbursement(prev, updated));
+    showToast(`อัปเดตข้อมูลการเบิกจ่าย มน. (${updated.researcherName}) เรียบร้อยแล้ว`);
+  };
+
+  const handleImportNuRecords = (newRecords: NuDisbursementRecord[]) => {
+    setNuDisbursements((prev) => {
+      const merged = [...prev];
+      for (const nr of newRecords) {
+        const idx = merged.findIndex(
+          m => m.id === nr.id || (m.articleTitle && nr.articleTitle && m.articleTitle.trim().toLowerCase() === nr.articleTitle.trim().toLowerCase())
+        );
+        if (idx >= 0) {
+          merged[idx] = { 
+            ...merged[idx], 
+            ...nr, 
+            rewardAmount: merged[idx].rewardAmount || nr.rewardAmount,
+            pageChargeAmount: merged[idx].pageChargeAmount || nr.pageChargeAmount,
+            totalAmount: (merged[idx].rewardAmount || nr.rewardAmount || 0) + (merged[idx].pageChargeAmount || nr.pageChargeAmount || 0),
+            updatedAt: new Date().toISOString().split('T')[0] 
+          };
+        } else {
+          merged.unshift(nr);
+        }
+      }
+      saveStoredNuDisbursements(merged);
+      return merged;
+    });
+    showToast(`นำเข้าข้อมูลจากระบบ มน. สำเร็จ (${newRecords.length} รายการ)`);
   };
 
   // User Management Registry state & handlers
@@ -608,6 +647,10 @@ export default function App() {
             onOpenNewSubmission={handleOpenNewSubmission}
             currentUser={currentUser}
             onOpenLoginModal={() => setIsLoginModalOpen(true)}
+            currentRole={currentRole}
+            nuDisbursements={nuDisbursements}
+            onUpdateNuRecord={handleUpdateNuRecord}
+            onImportNuRecords={handleImportNuRecords}
           />
         )}
 

@@ -246,3 +246,27 @@ export interface UserProfile {
   createdAt?: string;
   lastLoginAt?: string;
 }
+
+// ==========================================
+// DRI NU DISBURSEMENT TRACKING (ม.นเรศวร)
+// ==========================================
+export interface NuDisbursementRecord {
+  id: string;
+  researcherName: string; // ชื่อนักวิจัย (เช่น รองศาสตราจารย์ แพทย์หญิงรสสุคนธ์ คชรัตน์)
+  articleTitle: string; // ชื่อผลงาน/บทความวิจัย
+  department: string; // หน่วยงาน เช่น คณะแพทยศาสตร์
+  submissionDate: string; // วันที่ยื่นคำร้องผ่านระบบ มน.
+  claimType: string; // ประเภท: 'รางวัลการตีพิมพ์และ Page Charge' | 'รางวัลการตีพิมพ์' | 'ค่าตีพิมพ์ (Page Charge)'
+  status: string; // สถานะของ มน. เช่น 'อยู่ระหว่างการจัดส่งเอกสาร', 'อนุมัติแล้ว', 'จ่ายเงินแล้ว', 'ไม่อนุมัติ'
+  approvedDate?: string; // วันที่อนุมัติเบิกของ มน.
+  paymentDate?: string; // วันที่จ่ายเงิน/โอนเงินของ มน.
+  rewardAmount?: number; // เงินรางวัลส่วนของ มน. (บาท)
+  pageChargeAmount?: number; // ค่าตีพิมพ์/เพจชาร์จส่วนของ มน. (บาท)
+  totalAmount?: number; // ยอดรวมเงินรางวัลและค่าตีพิมพ์ส่วนของ มน. (บาท)
+  matchedFacultyTrackingNo?: string; // รหัสคำขอของคณะแพทยศาสตร์ที่ตรงกัน (เช่น AWP70-001)
+  fileDownloadUrl?: string; // ลิงก์ดาวน์โหลดเอกสารจากระบบ มน. (ถ้ามี)
+  notes?: string; // บันทึกข้อความเพิ่มเติม
+  createdAt: string;
+  updatedAt: string;
+}
+

@@ -19,8 +19,9 @@ import {
   UserCheck,
   ExternalLink
 } from 'lucide-react';
-import { ResearchApplication, UserProfile } from '../types';
+import { ResearchApplication, UserProfile, NuDisbursementRecord, UserRole } from '../types';
 import { formatBaht } from '../data/regulations';
+import { NuDisbursementTable } from './NuDisbursementTable';
 
 interface DashboardViewProps {
   applications: ResearchApplication[];
@@ -30,6 +31,10 @@ interface DashboardViewProps {
   onOpenNewSubmission: () => void;
   currentUser?: UserProfile | null;
   onOpenLoginModal?: () => void;
+  currentRole?: UserRole;
+  nuDisbursements?: NuDisbursementRecord[];
+  onUpdateNuRecord?: (updated: NuDisbursementRecord) => void;
+  onImportNuRecords?: (newRecords: NuDisbursementRecord[]) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -40,6 +45,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNewSubmission,
   currentUser,
   onOpenLoginModal,
+  currentRole = 'researcher',
+  nuDisbursements = [],
+  onUpdateNuRecord,
+  onImportNuRecords,
 }) => {
   const isGuest = !currentUser;
 
@@ -511,6 +520,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           )}
         </div>
       )}
+
+      {/* 4. ติดตามการเบิกจ่ายเงินรางวัล & ค่าตีพิมพ์ส่วนของ มหาวิทยาลัยนเรศวร (DRI NU Tracker) */}
+      {!isGuest && (
+        <NuDisbursementTable
+          records={nuDisbursements}
+          facultyApps={applications}
+          currentUser={currentUser || null}
+          currentRole={currentRole}
+          onUpdateRecord={onUpdateNuRecord || (() => {})}
+          onImportRecords={onImportNuRecords || (() => {})}
+          onOpenFacultyDoc={onPrintApplication}
+        />
+      )}
     </div>
   );
 };
+
