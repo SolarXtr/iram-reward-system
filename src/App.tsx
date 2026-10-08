@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header, UserRole, ActiveTab } from './components/Header';
 import { DashboardView } from './components/DashboardView';
+import { QuotaPlannerView } from './components/QuotaPlannerView';
 import { KanbanBoard } from './components/KanbanBoard';
 import { TableView } from './components/TableView';
 import { CalendarView } from './components/CalendarView';
@@ -109,6 +110,7 @@ export default function App() {
   const [timelineApp, setTimelineApp] = useState<ResearchApplication | null>(null);
   const [printApp, setPrintApp] = useState<ResearchApplication | null>(null);
   const [paymentApp, setPaymentApp] = useState<ResearchApplication | null>(null);
+  const [editingDraftApp, setEditingDraftApp] = useState<ResearchApplication | null>(null);
   const [isLoadingD1, setIsLoadingD1] = useState(false);
 
   // Enforce Guest Mode to remain on dashboard tab
@@ -308,6 +310,7 @@ export default function App() {
       showToast('กรุณาเข้าสู่ระบบด้วย NU Account (@nu.ac.th) ก่อนยื่นคำขอรับทุน');
       return;
     }
+    setEditingDraftApp(null);
     setIsSubmissionModalOpen(true);
   };
 
@@ -324,11 +327,11 @@ export default function App() {
     if (!currentUser) return;
     setCurrentRole(newRole);
     const roleAllowedTabs: Record<UserRole, ActiveTab[]> = {
-      researcher: ['dashboard', 'table', 'calendar'],
+      researcher: ['dashboard', 'quota_planner', 'table', 'calendar'],
       finance: ['dashboard', 'table', 'calendar'],
       executive: ['dashboard', 'table', 'calendar'],
       coordinator: ['dashboard', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
-      admin: ['dashboard', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
+      admin: ['dashboard', 'quota_planner', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
     };
     const allowed = roleAllowedTabs[newRole] || ['dashboard'];
     if (!allowed.includes(activeTab)) {
@@ -336,15 +339,20 @@ export default function App() {
     }
   };
 
-  // 1. Submit New Application (Local State + Real Google Sheets Sync)
-  const handleCreateSubmission = (appInput: Partial<ResearchApplication>) => {
+  // 1. Submit or Save Draft Application (Local State + Cloudflare D1 Sync)
+  const handleCreateSubmission = (appInput: Partial<ResearchApplication>, asDraft = false) => {
     const activeUser = currentUser || DEFAULT_LOGGED_IN_USER;
     const finalId = appInput.id || `app-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const appFiscalYear = appInput.fiscalYear || 2570;
-    const finalTrackingNo = appInput.trackingNo || generateNextTrackingNo(
-      appFiscalYear, 
-      applications.map((a) => a.trackingNo)
-    );
+    const isActuallyDraft = asDraft || appInput.status === 'draft';
+
+    // For drafts, do not consume sequential tracking numbers
+    const finalTrackingNo = isActuallyDraft
+      ? (appInput.trackingNo && appInput.trackingNo !== 'DRAFT' ? appInput.trackingNo : 'DRAFT')
+      : (appInput.trackingNo && appInput.trackingNo !== 'DRAFT'
+          ? appInput.trackingNo
+          : generateNextTrackingNo(appFiscalYear, applications.map((a) => a.trackingNo)));
+
     const today = new Date().toISOString().split('T')[0];
 
     const finalApp: ResearchApplication = {
@@ -375,37 +383,148 @@ export default function App() {
       approvedPageChargeAmount: 0,
       totalClaimedAmount: 0,
       fiscalYear: appFiscalYear,
-      currentStep: 2,
-      status: 'submitted',
+      currentStep: isActuallyDraft ? 1 : 2,
       paymentStatus: 'unpaid',
       attachments: [],
       lineNotified: false,
       calendarSynced: false,
       timeline: OFFICIAL_WORKFLOW_STEPS_DEF.map((s, idx) => ({
         ...s,
-        status: idx === 0 ? 'completed' : idx === 1 ? 'in_progress' : 'pending',
-        completedAt: idx === 0 ? today : undefined,
+        status: idx === 0 ? (isActuallyDraft ? 'in_progress' : 'completed') : 'pending',
+        completedAt: idx === 0 && !isActuallyDraft ? today : undefined,
       })),
       ...appInput,
       id: finalId,
       trackingNo: finalTrackingNo,
+      status: isActuallyDraft ? 'draft' : 'submitted',
       createdAt: appInput.createdAt || today,
-      updatedAt: appInput.updatedAt || today,
+      updatedAt: today,
     };
 
-    setApplications((prev) => [finalApp, ...prev]);
+    setApplications((prev) => {
+      const existingIdx = prev.findIndex((a) => a.id === finalId);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = finalApp;
+        return updated;
+      }
+      return [finalApp, ...prev];
+    });
+
     setIsSubmissionModalOpen(false);
+    setEditingDraftApp(null);
+
+    if (isActuallyDraft) {
+      showToast(`💾 บันทึกร่างเตรียมเบิกรางวัล "${finalApp.articleTitle || 'ฉบับร่าง'}" สำเร็จ! ตรวจสอบได้ที่เมนู "เตรียมเบิกรางวัล & วงเงิน"`);
+      return;
+    }
+
     triggerLineMilestoneNotification(finalApp, 'application_submitted');
 
     // Cloudflare D1 Database Sync
     createRewardApplicationInD1(finalApp)
       .then(() => {
-        showToast(`✅ บันทึกคำขอ ${finalApp.trackingNo} ลง Cloudflare D1 สำเร็จเรียบร้อย!`);
+        showToast(`✅ ยื่นคำขอ ${finalApp.trackingNo} ลง Cloudflare D1 สำเร็จเรียบร้อย!`);
       })
       .catch((err) => {
         console.error('D1 create error:', err);
         showToast(`⚠️ บันทึกข้อมูลในเครื่องแล้ว แต่การซิงก์เข้า Cloudflare D1 ขัดข้อง: ${err.message}`);
       });
+  };
+
+  // Draft Management Handlers
+  const handleEditDraft = (draftApp: ResearchApplication) => {
+    setEditingDraftApp(draftApp);
+    setIsSubmissionModalOpen(true);
+  };
+
+  const handleSubmitDraft = (draftApp: ResearchApplication) => {
+    const today = new Date().toISOString().split('T')[0];
+    const newTrackingNo = generateNextTrackingNo(
+      draftApp.fiscalYear,
+      applications.map((a) => a.trackingNo)
+    );
+
+    const submittedApp: ResearchApplication = {
+      ...draftApp,
+      trackingNo: newTrackingNo,
+      status: 'submitted',
+      currentStep: 2,
+      updatedAt: today,
+      timeline: draftApp.timeline.map((s, idx) => ({
+        ...s,
+        status: idx === 0 ? 'completed' : idx === 1 ? 'in_progress' : 'pending',
+        completedAt: idx === 0 ? today : undefined,
+      })),
+    };
+
+    setApplications((prev) =>
+      prev.map((a) => (a.id === draftApp.id ? submittedApp : a))
+    );
+
+    triggerLineMilestoneNotification(submittedApp, 'application_submitted');
+    createRewardApplicationInD1(submittedApp)
+      .then(() => {
+        showToast(`🚀 ส่งเบิกคำขอสำเร็จ! รหัสติดตามงานใหม่: ${submittedApp.trackingNo}`);
+      })
+      .catch((err) => {
+        console.warn('D1 sync draft submit:', err);
+        showToast(`🚀 ส่งเบิกคำขอสำเร็จในระบบท้องถิ่น (${submittedApp.trackingNo})`);
+      });
+  };
+
+  const handleSubmitSelectedDrafts = (draftApps: ResearchApplication[]) => {
+    if (draftApps.length === 0) return;
+    const today = new Date().toISOString().split('T')[0];
+    let currentTrackingList = applications.map((a) => a.trackingNo);
+
+    const updatedDrafts: ResearchApplication[] = [];
+    draftApps.forEach((draft) => {
+      const nextTrackingNo = generateNextTrackingNo(draft.fiscalYear, currentTrackingList);
+      currentTrackingList.push(nextTrackingNo);
+
+      const submitted: ResearchApplication = {
+        ...draft,
+        trackingNo: nextTrackingNo,
+        status: 'submitted',
+        currentStep: 2,
+        updatedAt: today,
+        timeline: draft.timeline.map((s, idx) => ({
+          ...s,
+          status: idx === 0 ? 'completed' : idx === 1 ? 'in_progress' : 'pending',
+          completedAt: idx === 0 ? today : undefined,
+        })),
+      };
+      updatedDrafts.push(submitted);
+      createRewardApplicationInD1(submitted).catch((e) => console.warn('D1 batch submit error:', e));
+    });
+
+    const updatedMap = new Map(updatedDrafts.map((d) => [d.id, d]));
+    setApplications((prev) => prev.map((a) => updatedMap.get(a.id) || a));
+
+    showToast(`🚀 ส่งเบิกคำขอที่เลือกเรียบร้อยแล้วทั้งหมด ${draftApps.length} รายการ!`);
+  };
+
+  const handleDeleteDraft = (id: string) => {
+    setApplications((prev) => prev.filter((a) => a.id !== id));
+    deleteRewardApplicationInD1(id).catch((e) => console.warn('D1 delete draft error:', e));
+    showToast('🗑️ ลบรายการร่างเตรียมเบิกเรียบร้อยแล้ว');
+  };
+
+  const handleCarryOverDraft = (id: string, targetFiscalYear: number) => {
+    setApplications((prev) =>
+      prev.map((a) => {
+        if (a.id !== id) return a;
+        return {
+          ...a,
+          fiscalYear: targetFiscalYear,
+          isCarryOverToNextYear: true,
+          plannedFiscalYear: targetFiscalYear,
+          updatedAt: new Date().toISOString().split('T')[0],
+        };
+      })
+    );
+    showToast(`🗓️ เลื่อนรายการไปเตรียมเบิกในปีงบประมาณ ${targetFiscalYear} เรียบร้อยแล้ว`);
   };
 
   // 2. Drag-and-Drop / Kanban status update
@@ -602,6 +721,16 @@ export default function App() {
     );
   });
 
+  // Count drafts for current researcher
+  const myDraftsCount = applications.filter((app) => {
+    if (app.status !== 'draft') return false;
+    if (isGuest) return false;
+    if (currentRole === 'researcher') {
+      return isAppOwnedByUser(app);
+    }
+    return true;
+  }).length;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900">
       
@@ -614,6 +743,7 @@ export default function App() {
         onOpenNewSubmission={handleOpenNewSubmission}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        draftsCount={myDraftsCount}
         currentUser={currentUser}
         onOpenProfile={() => {
           if (!currentUser) {
@@ -651,6 +781,22 @@ export default function App() {
             nuDisbursements={nuDisbursements}
             onUpdateNuRecord={handleUpdateNuRecord}
             onImportNuRecords={handleImportNuRecords}
+            onNavigateToPlanner={() => setActiveTab('quota_planner')}
+          />
+        )}
+
+        {/* Tab 1.5: Quota & 24-Month Expiry Planner View (Researcher & Admin) */}
+        {activeTab === 'quota_planner' && !isGuest && (
+          <QuotaPlannerView
+            applications={applications}
+            nuDisbursements={nuDisbursements}
+            currentUser={currentUser}
+            onOpenNewSubmission={handleOpenNewSubmission}
+            onEditDraft={handleEditDraft}
+            onSubmitDraft={handleSubmitDraft}
+            onSubmitSelectedDrafts={handleSubmitSelectedDrafts}
+            onDeleteDraft={handleDeleteDraft}
+            onCarryOverDraft={handleCarryOverDraft}
           />
         )}
 
@@ -769,10 +915,14 @@ export default function App() {
       {isSubmissionModalOpen && (
         <SubmissionFormModal
           isOpen={isSubmissionModalOpen}
-          onClose={() => setIsSubmissionModalOpen(false)}
+          onClose={() => {
+            setIsSubmissionModalOpen(false);
+            setEditingDraftApp(null);
+          }}
           onSubmit={handleCreateSubmission}
           existingApplications={applications}
           currentUser={currentUser || DEFAULT_LOGGED_IN_USER}
+          initialData={editingDraftApp}
         />
       )}
 

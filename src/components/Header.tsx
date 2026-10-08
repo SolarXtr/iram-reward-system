@@ -18,13 +18,14 @@ import {
   Users,
   Lock,
   LogOut,
-  LogIn
+  LogIn,
+  Sparkles
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 import { LINE_NOTIFICATION_SYSTEM_ENABLED } from '../data/lineNotificationService';
 
 export type { UserRole };
-export type ActiveTab = 'dashboard' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management';
+export type ActiveTab = 'dashboard' | 'quota_planner' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -35,6 +36,7 @@ interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   unreadCount?: number;
+  draftsCount?: number;
   currentUser?: UserProfile | null;
   onOpenProfile?: () => void;
   onOpenLoginModal?: () => void;
@@ -54,6 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery,
   setSearchQuery,
   unreadCount = 2,
+  draftsCount = 0,
   currentUser,
   onOpenProfile,
   onOpenLoginModal,
@@ -265,6 +268,26 @@ export const Header: React.FC<HeaderProps> = ({
                   {currentRole === 'admin' && 'แดชบอร์ดสรุปสถานะ'}
                 </span>
               </button>
+
+              {/* Tab: Quota Planner (เตรียมเบิกรางวัล & ตรวจสอบวงเงิน - Researcher & Admin) */}
+              {(currentRole === 'researcher' || currentRole === 'admin') && (
+                <button
+                  onClick={() => setActiveTab('quota_planner')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
+                    activeTab === 'quota_planner'
+                      ? 'bg-slate-800 text-amber-400 border border-slate-700'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>เตรียมเบิกรางวัล & วงเงิน</span>
+                  {draftsCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {draftsCount} ร่าง
+                    </span>
+                  )}
+                </button>
+              )}
 
               {/* Tab 2: Kanban (Coordinator and Admin ONLY) */}
               {(currentRole === 'coordinator' || currentRole === 'admin') && (

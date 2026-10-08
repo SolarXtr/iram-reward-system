@@ -161,6 +161,10 @@ export interface ResearchApplication {
   lineNotified: boolean;
   lineLastSentAt?: string;
   calendarSynced: boolean;
+
+  // Quota & Strategy Planner (Draft Preparation & 24-Month Rule)
+  isCarryOverToNextYear?: boolean; // ตั้งใจเก็บไว้เบิกในปีงบประมาณถัดไป
+  plannedFiscalYear?: number; // ปีงบประมาณที่วางแผนจะยื่นเบิก
 }
 
 export interface ResearcherQuota {

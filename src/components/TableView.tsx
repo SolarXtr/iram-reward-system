@@ -94,6 +94,9 @@ export const TableView: React.FC<TableViewProps> = ({
 
   // Filtering
   const filteredApps = applications.filter((app) => {
+    // ซ่อนรายการร่างเตรียมเบิก (Draft) จากตารางประวัติคำขอทางการ (แสดงเฉพาะใน Quota Planner)
+    if (app.status === 'draft') return false;
+
     if (currentRole === 'researcher' || filterScope === 'my_jobs') {
       const isMyJob = 
         (currentUserEmail && app.email && app.email.toLowerCase() === currentUserEmail.toLowerCase()) ||

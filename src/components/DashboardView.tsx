@@ -15,9 +15,10 @@ import {
   Building, 
   Layers,
   Lock,
-  LogIn,
   UserCheck,
-  ExternalLink
+  ExternalLink,
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 import { ResearchApplication, UserProfile, NuDisbursementRecord, UserRole } from '../types';
 import { formatBaht } from '../data/regulations';
@@ -35,6 +36,7 @@ interface DashboardViewProps {
   nuDisbursements?: NuDisbursementRecord[];
   onUpdateNuRecord?: (updated: NuDisbursementRecord) => void;
   onImportNuRecords?: (newRecords: NuDisbursementRecord[]) => void;
+  onNavigateToPlanner?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -49,49 +51,65 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   nuDisbursements = [],
   onUpdateNuRecord,
   onImportNuRecords,
+  onNavigateToPlanner,
 }) => {
   const isGuest = !currentUser;
 
+  // Filter out drafts for official general statistics
+  const submittedAppsOnly = React.useMemo(() => {
+    return applications.filter((a) => a.status !== 'draft');
+  }, [applications]);
+
   // Aggregate statistics for entire faculty
-  const totalApplications = applications.length;
-  const totalApprovedAmount = applications.reduce((acc, a) => acc + (a.totalClaimedAmount || 0), 0);
-  const totalPaidAmount = applications
+  const totalApplications = submittedAppsOnly.length;
+  const totalApprovedAmount = submittedAppsOnly.reduce((acc, a) => acc + (a.totalClaimedAmount || 0), 0);
+  const totalPaidAmount = submittedAppsOnly
     .filter((a) => a.status === 'paid')
     .reduce((acc, a) => acc + (a.actualPaidAmount || a.totalClaimedAmount || 0), 0);
-  const totalPendingAmount = applications
+  const totalPendingAmount = submittedAppsOnly
     .filter((a) => a.status !== 'paid' && a.status !== 'rejected')
     .reduce((acc, a) => acc + (a.totalClaimedAmount || 0), 0);
 
-  const totalRewardsOnly = applications.reduce((acc, a) => acc + (a.claimedRewardAmount || 0), 0);
-  const totalPageChargesOnly = applications.reduce((acc, a) => acc + (a.approvedPageChargeAmount || 0), 0);
+  const totalRewardsOnly = submittedAppsOnly.reduce((acc, a) => acc + (a.claimedRewardAmount || 0), 0);
+  const totalPageChargesOnly = submittedAppsOnly.reduce((acc, a) => acc + (a.approvedPageChargeAmount || 0), 0);
 
   // Status counts
-  const countPaid = applications.filter((a) => a.status === 'paid').length;
-  const countInReview = applications.filter((a) => ['staff_verified', 'researcher_signed', 'admin_review', 'budget_verified', 'dean_approved', 'finance_processing'].includes(a.status)).length;
-  const countSubmitted = applications.filter((a) => a.status === 'submitted').length;
+  const countPaid = submittedAppsOnly.filter((a) => a.status === 'paid').length;
+  const countInReview = submittedAppsOnly.filter((a) => ['staff_verified', 'researcher_signed', 'admin_review', 'budget_verified', 'dean_approved', 'finance_processing'].includes(a.status)).length;
+  const countSubmitted = submittedAppsOnly.filter((a) => a.status === 'submitted').length;
 
   // Quartile distribution
-  const q1Tier1Count = applications.filter((a) => a.quartile === 'Q1_Tier1' || a.isTier1Top10).length;
-  const q1Count = applications.filter((a) => a.quartile === 'Q1' && !a.isTier1Top10).length;
-  const q2Count = applications.filter((a) => a.quartile === 'Q2').length;
-  const q3Count = applications.filter((a) => a.quartile === 'Q3').length;
-  const q4Count = applications.filter((a) => a.quartile === 'Q4').length;
-  const tciCount = applications.filter((a) => a.quartile === 'TCI_1' || a.quartile === 'TCI_2').length;
+  const q1Tier1Count = submittedAppsOnly.filter((a) => a.quartile === 'Q1_Tier1' || a.isTier1Top10).length;
+  const q1Count = submittedAppsOnly.filter((a) => a.quartile === 'Q1' && !a.isTier1Top10).length;
+  const q2Count = submittedAppsOnly.filter((a) => a.quartile === 'Q2').length;
+  const q3Count = submittedAppsOnly.filter((a) => a.quartile === 'Q3').length;
+  const q4Count = submittedAppsOnly.filter((a) => a.quartile === 'Q4').length;
+  const tciCount = submittedAppsOnly.filter((a) => a.quartile === 'TCI_1' || a.quartile === 'TCI_2').length;
 
-  // Filtered applications based on logged-in role
+  // Filtered applications based on logged-in role (excluding drafts from recent applications table)
   const isResearcher = currentUser?.role === 'researcher';
+  const userLastName = currentUser?.name.trim().split(' ').pop()?.toLowerCase() || '';
+  const userEmail = currentUser?.email?.toLowerCase() || '';
+
+  const isMyApplication = (a: ResearchApplication) => {
+    const matchesEmail = userEmail && a.email && a.email.toLowerCase() === userEmail;
+    const matchesName = userLastName && a.applicantName && a.applicantName.toLowerCase().includes(userLastName);
+    return Boolean(matchesEmail || matchesName);
+  };
+
   const displayedApplications = React.useMemo(() => {
     if (isGuest) return [];
     if (isResearcher && currentUser) {
-      const userLastName = currentUser.name.trim().split(' ').pop()?.toLowerCase() || '';
-      return applications.filter((a) => {
-        const matchesEmail = a.applicantEmail && currentUser.email && a.applicantEmail.toLowerCase() === currentUser.email.toLowerCase();
-        const matchesName = userLastName && a.applicantName && a.applicantName.toLowerCase().includes(userLastName);
-        return matchesEmail || matchesName;
-      });
+      return submittedAppsOnly.filter(isMyApplication);
     }
-    return applications;
-  }, [applications, isGuest, isResearcher, currentUser]);
+    return submittedAppsOnly;
+  }, [submittedAppsOnly, isGuest, isResearcher, currentUser, userLastName, userEmail]);
+
+  // Drafts count for current researcher
+  const myDraftsCount = React.useMemo(() => {
+    if (!isResearcher) return 0;
+    return applications.filter((a) => isMyApplication(a) && a.status === 'draft').length;
+  }, [applications, isResearcher, userLastName, userEmail]);
 
   // Researcher personal quota calculation
   const personalClaimedTotal = React.useMemo(() => {
@@ -102,6 +120,42 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Researcher Quota Planner Quick Access Banner */}
+      {isResearcher && (
+        <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-2xl p-4 sm:p-5 text-white shadow-md border border-indigo-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold font-prompt text-sm text-white">
+                  วางแผนใช้วงเงินประจำปี & ตรวจสอบอายุบทความ 24 เดือน
+                </h3>
+                {myDraftsCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-slate-950 font-prompt">
+                    เตรียมไว้ {myDraftsCount} เรื่อง
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                วงเงินคงเหลือของคณะฯ ปีนี้: <strong className="text-amber-300 font-prompt">{formatBaht(personalRemainingQuota)}</strong> (จากเพดาน 150,000 บ.) • ตรวจสอบบทความเพื่อไม่ให้เสียสิทธิ์ก่อนครบ 24 เดือน
+              </p>
+            </div>
+          </div>
+
+          {onNavigateToPlanner && (
+            <button
+              onClick={onNavigateToPlanner}
+              className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-md transition-all shrink-0 cursor-pointer"
+            >
+              <span>เปิดระบบตรวจเลือกบทความ (Quota Planner)</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* KPI Cards: Aggregate Statistics (Safe for Public) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Approved Amount */}

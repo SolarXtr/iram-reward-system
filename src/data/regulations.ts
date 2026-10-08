@@ -396,3 +396,85 @@ export function generateNextTrackingNo(
   return `${prefix}-${String(nextSeq).padStart(3, '0')}`;
 }
 
+/**
+ * Check and calculate 24-month publication deadline for research rewards
+ * (Articles are eligible within 24 months / 2 years from publication date)
+ */
+export function checkPublication24MonthExpiry(publishedDateStr?: string) {
+  if (!publishedDateStr) {
+    return {
+      daysRemaining: 730,
+      monthsRemaining: 24,
+      expiryDateStr: '-',
+      isExpired: false,
+      urgency: 'safe' as const,
+      label: 'ไม่ระบุวันที่'
+    };
+  }
+
+  const pubDate = new Date(publishedDateStr);
+  if (isNaN(pubDate.getTime())) {
+    return {
+      daysRemaining: 730,
+      monthsRemaining: 24,
+      expiryDateStr: '-',
+      isExpired: false,
+      urgency: 'safe' as const,
+      label: 'วันที่ไม่ถูกต้อง'
+    };
+  }
+
+  // Expiry date is publishedDate + 24 months
+  const expiryDate = new Date(pubDate);
+  expiryDate.setMonth(expiryDate.getMonth() + 24);
+
+  const today = new Date();
+  const diffTime = expiryDate.getTime() - today.getTime();
+  const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const monthsRemaining = Math.max(0, Math.ceil(daysRemaining / 30.44));
+
+  const expiryDateStr = expiryDate.toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  if (daysRemaining <= 0) {
+    return {
+      daysRemaining,
+      monthsRemaining: 0,
+      expiryDateStr,
+      isExpired: true,
+      urgency: 'expired' as const,
+      label: 'หมดสิทธิ์เบิกแล้ว (> 24 ด.)'
+    };
+  } else if (monthsRemaining <= 3) {
+    return {
+      daysRemaining,
+      monthsRemaining,
+      expiryDateStr,
+      isExpired: false,
+      urgency: 'urgent' as const,
+      label: `เร่งด่วนมาก! เหลืออีก ${daysRemaining} วัน (~${monthsRemaining} ด.)`
+    };
+  } else if (monthsRemaining <= 6) {
+    return {
+      daysRemaining,
+      monthsRemaining,
+      expiryDateStr,
+      isExpired: false,
+      urgency: 'warning' as const,
+      label: `ควรเบิกปีนี้ (เหลืออีก ${monthsRemaining} เดือน)`
+    };
+  } else {
+    return {
+      daysRemaining,
+      monthsRemaining,
+      expiryDateStr,
+      isExpired: false,
+      urgency: 'safe' as const,
+      label: `เก็บไว้ปีถัดไปได้ (เหลืออีก ${monthsRemaining} เดือน)`
+    };
+  }
+}
+
