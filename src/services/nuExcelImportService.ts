@@ -52,6 +52,7 @@ export async function parseNuDisbursementExcel(
   const idxSubDate = headers.findIndex(h => h.includes('วันที่ยื่น') || h.includes('ยื่นคำร้อง') || h.includes('วันที่'));
   const idxType = headers.findIndex(h => h.includes('ประเภท') || h.includes('รายการ'));
   const idxStatus = headers.findIndex(h => h.includes('สถานะ'));
+  const idxFy = headers.findIndex(h => h.includes('ปีที่ส่งเบิก') || h.includes('ปีงบประมาณ') || h.includes('ปี'));
 
   const parsedRecords: NuDisbursementRecord[] = [];
   let matchedCount = 0;
@@ -68,6 +69,8 @@ export async function parseNuDisbursementExcel(
     let submissionDate = idxSubDate >= 0 ? String(row[idxSubDate] || '').trim() : '';
     const claimType = idxType >= 0 ? String(row[idxType] || '').trim() : 'รางวัลการตีพิมพ์และ Page Charge';
     const status = idxStatus >= 0 ? String(row[idxStatus] || '').trim() : 'อยู่ระหว่างการจัดส่งเอกสาร';
+    const rawFy = idxFy >= 0 ? String(row[idxFy] || '').trim() : '';
+    const parsedFiscalYear = rawFy && /^\d+$/.test(rawFy) ? parseInt(rawFy, 10) : 2570;
 
     if (!researcherName && !articleTitle) {
       continue;
@@ -82,6 +85,7 @@ export async function parseNuDisbursementExcel(
 
     // Check matching with faculty applications
     let matchedFacultyTrackingNo: string | undefined = undefined;
+    let facultyVoucher: string | undefined = undefined;
     const normArticle = normalizeText(articleTitle);
 
     if (normArticle.length > 10) {
@@ -91,6 +95,7 @@ export async function parseNuDisbursementExcel(
       });
       if (match) {
         matchedFacultyTrackingNo = match.trackingNo;
+        facultyVoucher = match.disbursementVoucherNo;
         matchedCount++;
       }
     }
@@ -105,6 +110,8 @@ export async function parseNuDisbursementExcel(
       estPage = 35000;
     }
 
+    const isPaid = status.includes('จ่ายเงินแล้ว');
+
     const rec: NuDisbursementRecord = {
       id: 'nu-import-' + Date.now() + '-' + r + '-' + Math.random().toString(36).substring(2, 6),
       researcherName: researcherName || 'ไม่ระบุชื่อ',
@@ -113,10 +120,14 @@ export async function parseNuDisbursementExcel(
       submissionDate: submissionDate || new Date().toISOString().split('T')[0],
       claimType: claimType || 'รางวัลการตีพิมพ์และ Page Charge',
       status: status || 'อยู่ระหว่างการจัดส่งเอกสาร',
+      paymentDate: isPaid ? submissionDate : undefined,
       rewardAmount: estReward,
       pageChargeAmount: estPage,
       totalAmount: estReward + estPage,
+      fiscalYear: parsedFiscalYear,
       matchedFacultyTrackingNo,
+      disbursementVoucherNo: facultyVoucher,
+      isNuPaidConfirmed: isPaid,
       createdAt: new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString().split('T')[0],
     };

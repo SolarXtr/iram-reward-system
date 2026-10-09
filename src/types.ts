@@ -261,13 +261,23 @@ export interface NuDisbursementRecord {
   department: string; // หน่วยงาน เช่น คณะแพทยศาสตร์
   submissionDate: string; // วันที่ยื่นคำร้องผ่านระบบ มน.
   claimType: string; // ประเภท: 'รางวัลการตีพิมพ์และ Page Charge' | 'รางวัลการตีพิมพ์' | 'ค่าตีพิมพ์ (Page Charge)'
-  status: string; // สถานะของ มน. เช่น 'อยู่ระหว่างการจัดส่งเอกสาร', 'อนุมัติแล้ว', 'จ่ายเงินแล้ว', 'ไม่อนุมัติ'
+  status: string; // สถานะของ มน. เช่น 'อยู่ระหว่างการจัดส่งเอกสาร', 'ส่งการเงินรวมศูนย์เพื่อเบิกจ่าย', 'อนุมัติแล้ว', 'จ่ายเงินแล้ว', 'ไม่อนุมัติ'
   approvedDate?: string; // วันที่อนุมัติเบิกของ มน.
   paymentDate?: string; // วันที่จ่ายเงิน/โอนเงินของ มน.
   rewardAmount?: number; // เงินรางวัลส่วนของ มน. (บาท)
   pageChargeAmount?: number; // ค่าตีพิมพ์/เพจชาร์จส่วนของ มน. (บาท)
   totalAmount?: number; // ยอดรวมเงินรางวัลและค่าตีพิมพ์ส่วนของ มน. (บาท)
-  matchedFacultyTrackingNo?: string; // รหัสคำขอของคณะแพทยศาสตร์ที่ตรงกัน (เช่น AWP70-001)
+  fiscalYear?: number; // ปีงบประมาณ เช่น 2570, 2569, 2568
+  matchedFacultyTrackingNo?: string; // รหัสคำขอของคณะแพทยศาสตร์ที่ตรงกัน (เช่น AWP69-69001)
+  facultyTrackingNo?: string; // เลขที่คำขอคณะฯ (เช่น 69001, 2203)
+  facultyStatus?: string; // สถานะเบิกจ่ายฝั่งคณะฯ ('paid' | 'submitted' | 'approved')
+  disbursementVoucherNo?: string; // เลขที่ฎีกาเบิกจ่ายของคณะแพทยฯ (เช่น รด.0544/305022 หรือ 2203, 2204)
+  facultyPaymentDate?: string; // วันที่จ่ายเงินฝั่งคณะแพทยฯ
+  facultyRewardAmount?: number; // เงินรางวัลส่วนของคณะฯ (บาท)
+  facultyPageChargeAmount?: number; // ค่าตีพิมพ์ส่วนของคณะฯ (บาท)
+  facultyTotalAmount?: number; // ยอดรวมส่วนของคณะฯ (บาท)
+  nuDisbursementVoucherNo?: string; // เลขคำสั่งจ่ายของ มน. (เช่น PV0204..., AP0200...)
+  isNuPaidConfirmed?: boolean; // ยืนยันสถานะจ่ายเงินแล้วจาก ASPxGridView ของ มน.
   fileDownloadUrl?: string; // ลิงก์ดาวน์โหลดเอกสารจากระบบ มน. (ถ้ามี)
   notes?: string; // บันทึกข้อความเพิ่มเติม
   createdAt: string;

@@ -42,6 +42,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [fiscalYearFilter, setFiscalYearFilter] = useState<string>('all');
   const [editingRecord, setEditingRecord] = useState<NuDisbursementRecord | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
@@ -71,8 +72,16 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
   // Search & Filter
   const filteredRecords = useMemo(() => {
     return scopedRecords.filter((r) => {
+      // 1. Fiscal Year Filter
+      if (fiscalYearFilter !== 'all') {
+        const fy = r.fiscalYear ? String(r.fiscalYear) : '2570';
+        if (fy !== fiscalYearFilter) return false;
+      }
+
+      // 2. Status Filter
       if (statusFilter !== 'all') {
         if (statusFilter === 'paid' && !r.status.includes('จ่ายเงินแล้ว')) return false;
+        if (statusFilter === 'central_finance' && !r.status.includes('ส่งการเงินรวมศูนย์')) return false;
         if (statusFilter === 'approved' && !r.status.includes('อนุมัติแล้ว')) return false;
         if (statusFilter === 'shipping' && !r.status.includes('จัดส่งเอกสาร') && !r.status.includes('เข้าระบบ')) return false;
       }
@@ -83,10 +92,13 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
         r.researcherName.toLowerCase().includes(q) ||
         r.articleTitle.toLowerCase().includes(q) ||
         r.status.toLowerCase().includes(q) ||
-        (r.matchedFacultyTrackingNo && r.matchedFacultyTrackingNo.toLowerCase().includes(q))
+        (r.disbursementVoucherNo && r.disbursementVoucherNo.toLowerCase().includes(q)) ||
+        (r.nuDisbursementVoucherNo && r.nuDisbursementVoucherNo.toLowerCase().includes(q)) ||
+        (r.matchedFacultyTrackingNo && r.matchedFacultyTrackingNo.toLowerCase().includes(q)) ||
+        (r.facultyTrackingNo && r.facultyTrackingNo.toLowerCase().includes(q))
       );
     });
-  }, [scopedRecords, statusFilter, searchQuery]);
+  }, [scopedRecords, fiscalYearFilter, statusFilter, searchQuery]);
 
   // Summary Metrics
   const metrics = useMemo(() => {
@@ -102,12 +114,21 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
     return { total, countPaid, countApproved, countPending, sumTotalAmount, sumPaidAmount };
   }, [scopedRecords]);
 
-  const getStatusBadge = (status: string) => {
-    if (status.includes('จ่ายเงินแล้ว')) {
+  const getStatusBadge = (r: NuDisbursementRecord) => {
+    const status = r.status || '';
+    if (status.includes('จ่ายเงินแล้ว') || r.isNuPaidConfirmed) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300" title="ยืนยันการจ่ายเงินแล้วจากระบบ มน.">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
           <span>จ่ายเงินแล้ว</span>
+        </span>
+      );
+    }
+    if (status.includes('ส่งการเงินรวมศูนย์')) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300" title="ส่งการเงินรวมศูนย์เพื่อเบิกจ่าย">
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
+          <span>ส่งการเงินรวมศูนย์</span>
         </span>
       );
     }
@@ -203,11 +224,36 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
           />
         </div>
 
+        {/* Fiscal Year Filter Buttons */}
+        <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 sm:pb-0">
+          <span className="text-slate-400 text-[11px] shrink-0 font-medium">ปีงบฯ:</span>
+          {[
+            { id: 'all', label: 'ทุกปี' },
+            { id: '2570', label: 'ปี 2570' },
+            { id: '2569', label: 'ปี 2569' },
+            { id: '2568', label: 'ปี 2568' },
+          ].map(fy => (
+            <button
+              key={fy.id}
+              onClick={() => setFiscalYearFilter(fy.id)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
+                fiscalYearFilter === fy.id
+                  ? 'bg-amber-600 text-white font-semibold shadow-xs'
+                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200/60'
+              }`}
+            >
+              {fy.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Status Filter Buttons */}
         <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
-          <span className="text-slate-400 text-[11px] shrink-0">กรอง:</span>
+          <span className="text-slate-400 text-[11px] shrink-0 font-medium">สถานะ:</span>
           {[
             { id: 'all', label: 'ทั้งหมด' },
             { id: 'shipping', label: 'ยื่น/ส่งเอกสาร' },
+            { id: 'central_finance', label: 'ส่งการเงินรวมศูนย์' },
             { id: 'approved', label: 'อนุมัติแล้ว' },
             { id: 'paid', label: 'จ่ายเงินแล้ว' },
           ].map(f => (
@@ -268,6 +314,18 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                         {r.submissionDate || '-'}
                       </td>
                       <td className="py-2.5 px-3">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          {r.fiscalYear && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                              ปี {r.fiscalYear}
+                            </span>
+                          )}
+                          {r.matchedFacultyTrackingNo && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                              {r.matchedFacultyTrackingNo}
+                            </span>
+                          )}
+                        </div>
                         <div className="font-semibold text-slate-900 line-clamp-2 leading-snug">
                           {r.articleTitle}
                         </div>
@@ -286,7 +344,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                        {getStatusBadge(r.status)}
+                        {getStatusBadge(r)}
                       </td>
                       <td className="py-2.5 px-3 font-mono text-[11px] whitespace-nowrap text-blue-900">
                         {r.approvedDate ? (
@@ -297,7 +355,14 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                       </td>
                       <td className="py-2.5 px-3 font-mono text-[11px] whitespace-nowrap text-emerald-900">
                         {r.paymentDate ? (
-                          <span className="font-semibold">✓ {r.paymentDate}</span>
+                          <div>
+                            <span className="font-semibold">✓ {r.paymentDate}</span>
+                            {r.nuDisbursementVoucherNo && (
+                              <span className="text-[10px] text-slate-500 font-mono block">
+                                {r.nuDisbursementVoucherNo}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-slate-300">-</span>
                         )}
@@ -306,7 +371,19 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                         {r.totalAmount ? `฿${r.totalAmount.toLocaleString()}` : '-'}
                       </td>
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                        {matchedFaculty ? (
+                        {r.facultyStatus === 'paid' || r.disbursementVoucherNo ? (
+                          <div className="inline-flex flex-col items-center">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span>เบิกจ่ายแล้ว</span>
+                            </span>
+                            {r.disbursementVoucherNo && (
+                              <span className="text-[10px] text-slate-600 font-mono mt-0.5" title="เลขที่ฎีกาเบิกจ่ายของคณะฯ">
+                                {r.disbursementVoucherNo}
+                              </span>
+                            )}
+                          </div>
+                        ) : matchedFaculty ? (
                           <button
                             type="button"
                             onClick={() => onOpenFacultyDoc && onOpenFacultyDoc(matchedFaculty)}
