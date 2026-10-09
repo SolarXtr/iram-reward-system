@@ -184,13 +184,14 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
     }
 
     if (isNuPaid) {
+      const isValidPaymentDate = Boolean(r.paymentDate && r.paymentDate.length >= 8 && r.paymentDate.includes('-'));
       return (
         <div className="inline-flex flex-col items-center">
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300" title="ยืนยันการจ่ายเงินแล้วจากระบบ มน.">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
             <span>จ่ายเงินแล้ว</span>
           </span>
-          {r.paymentDate && (
+          {isValidPaymentDate && (
             <span className="text-[10px] text-emerald-800 font-mono font-semibold mt-0.5" title="วันที่โอน/จ่ายเงินของ มน.">
               ✓ {r.paymentDate}
             </span>
