@@ -96,7 +96,13 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
 
       // 2. NU Status Filter
       if (statusFilter !== 'all') {
-        if (statusFilter === 'paid' && !r.status.includes('จ่ายเงินแล้ว')) return false;
+        const isNuPaid = Boolean(r.status?.includes('จ่ายเงินแล้ว') || r.isNuPaidConfirmed);
+        const isFacPaid = Boolean(r.facultyStatus === 'paid' || r.disbursementVoucherNo || r.fiscalYear === 2569);
+        const hasNuClaim = (r.totalAmount || 0) > 0 || isNuPaid;
+        const isNotEligibleNu = isFacPaid && !isNuPaid && !hasNuClaim;
+
+        if (statusFilter === 'not_eligible' && !isNotEligibleNu) return false;
+        if (statusFilter === 'paid' && !isNuPaid) return false;
         if (statusFilter === 'central_finance' && !r.status.includes('ส่งการเงินรวมศูนย์')) return false;
         if (statusFilter === 'approved' && !r.status.includes('อนุมัติแล้ว')) return false;
         if (statusFilter === 'shipping' && !r.status.includes('จัดส่งเอกสาร') && !r.status.includes('เข้าระบบ')) return false;
@@ -160,7 +166,24 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
 
   const getStatusBadge = (r: NuDisbursementRecord) => {
     const status = r.status || '';
-    if (status.includes('จ่ายเงินแล้ว') || r.isNuPaidConfirmed) {
+    const isNuPaid = Boolean(status.includes('จ่ายเงินแล้ว') || r.isNuPaidConfirmed);
+    const isFacPaid = Boolean(r.facultyStatus === 'paid' || r.disbursementVoucherNo || r.fiscalYear === 2569);
+    const hasNuClaim = (r.totalAmount || 0) > 0 || isNuPaid;
+
+    // กรณีมีเบิกจ่ายแค่ส่วนของคณะอย่างเดียว -> แสดงสถานะของ มน. เป็น "ไม่เข้าเกณฑ์ มน."
+    if (isFacPaid && !isNuPaid && !hasNuClaim) {
+      return (
+        <span 
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-300" 
+          title="บทความนี้ขอรับเงินสนับสนุนเฉพาะส่วนของคณะแพทยศาสตร์ ไม่เข้าเกณฑ์หรือไม่ได้ยื่นเบิก มน."
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+          <span>ไม่เข้าเกณฑ์ มน.</span>
+        </span>
+      );
+    }
+
+    if (isNuPaid) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300" title="ยืนยันการจ่ายเงินแล้วจากระบบ มน.">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -293,13 +316,14 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
 
         {/* Status Filter Buttons */}
         <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
-          <span className="text-slate-400 text-[11px] shrink-0 font-medium">สถานะ:</span>
+          <span className="text-slate-400 text-[11px] shrink-0 font-medium">สถานะ มน.:</span>
           {[
             { id: 'all', label: 'ทั้งหมด' },
-            { id: 'shipping', label: 'ยื่น/ส่งเอกสาร' },
-            { id: 'central_finance', label: 'ส่งการเงินรวมศูนย์' },
-            { id: 'approved', label: 'อนุมัติแล้ว' },
             { id: 'paid', label: 'จ่ายเงินแล้ว' },
+            { id: 'approved', label: 'อนุมัติแล้ว' },
+            { id: 'central_finance', label: 'ส่งการเงินรวมศูนย์' },
+            { id: 'shipping', label: 'ยื่น/ส่งเอกสาร' },
+            { id: 'not_eligible', label: 'ไม่เข้าเกณฑ์ มน.' },
           ].map(f => (
             <button
               key={f.id}

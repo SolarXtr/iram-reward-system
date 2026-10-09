@@ -579,8 +579,13 @@ export function checkArticlePriorClaim(
     (match.fiscalYear === 2569) // ปี 69 คณะเบิกจ่ายเรียบร้อยแล้วทั้งหมด
   );
 
+  const hasNuClaim = (match.totalAmount || 0) > 0 || isNuPaid;
+  const isFacultyOnly = isFacultyPaid && !isNuPaid && !hasNuClaim;
+
   let nuStatusText = 'ยังไม่ได้เบิกจ่าย มน.';
-  if (isNuPaid) {
+  if (isFacultyOnly) {
+    nuStatusText = 'มน: ไม่เข้าเกณฑ์ มน.';
+  } else if (isNuPaid) {
     nuStatusText = `มน: จ่ายเงินแล้ว${match.nuDisbursementVoucherNo ? ` (${match.nuDisbursementVoucherNo})` : ''}`;
   } else if (isNuApproved) {
     nuStatusText = `มน: ${match.status}`;
@@ -647,9 +652,9 @@ export function checkArticlePriorClaim(
       claimType: match.claimType,
       summaryBadge: {
         status: 'paid_faculty_only',
-        label: `เบิกจ่ายคณะฯ แล้ว (ยังไม่เบิก มน.)`,
+        label: `เบิกจ่ายคณะฯ แล้ว (ไม่เข้าเกณฑ์ มน.)`,
         color: 'purple',
-        details: `เคยเบิกคณะฯ แล้วปี ${match.fiscalYear} (${match.disbursementVoucherNo || '-'})`
+        details: `เคยเบิกคณะฯ แล้วปี ${match.fiscalYear} (${match.disbursementVoucherNo || '-'}) | สถานะ มน.: ไม่เข้าเกณฑ์ มน.`
       }
     };
   } else {
