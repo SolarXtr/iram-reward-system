@@ -18,7 +18,8 @@ import {
   UserCheck,
   ExternalLink,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  LogIn
 } from 'lucide-react';
 import { ResearchApplication, UserProfile, NuDisbursementRecord, UserRole } from '../types';
 import { formatBaht } from '../data/regulations';
