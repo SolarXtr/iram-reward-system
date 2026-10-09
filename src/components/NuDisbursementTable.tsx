@@ -396,9 +396,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                   </div>
                 </th>
 
-                <th className="py-3 px-3 w-36">ประเภทคำขอ</th>
                 <th className="py-3 px-3 w-32 text-center">สถานะ มน.</th>
-                <th className="py-3 px-3 w-28">วันที่อนุมัติ มน.</th>
                 <th className="py-3 px-3 w-32">วันที่จ่ายเงิน มน.</th>
 
                 {/* Sortable: ยอดรวม มน. */}
@@ -440,7 +438,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
             <tbody className="divide-y divide-slate-100 bg-white">
               {filteredAndSortedRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={canEdit ? 12 : 11} className="py-8 text-center text-slate-400">
+                  <td colSpan={canEdit ? 10 : 9} className="py-8 text-center text-slate-400">
                     <Info className="w-5 h-5 mx-auto mb-1 text-slate-300" />
                     <span>ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</span>
                   </td>
@@ -484,31 +482,8 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                       <td className="py-2.5 px-3 text-slate-800 font-medium leading-tight">
                         {r.researcherName}
                       </td>
-                      <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium">
-                          {r.claimType}
-                        </span>
-                      </td>
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         {getStatusBadge(r)}
-                      </td>
-                      {/* วันที่อนุมัติ มน. (กรณีไม่เข้าเกณฑ์ มน. หรือยังไม่ได้เบิก มน. ต้องไม่มีวันอนุมัติ) */}
-                      <td className="py-2.5 px-3 font-mono text-[11px] whitespace-nowrap text-blue-900">
-                        {(() => {
-                          const isNuPaid = Boolean(r.status?.includes('จ่ายเงินแล้ว') || r.isNuPaidConfirmed);
-                          const isFacPaid = Boolean(r.facultyStatus === 'paid' || r.disbursementVoucherNo || r.fiscalYear === 2569);
-                          const hasNuClaim = (r.totalAmount || 0) > 0 || isNuPaid;
-                          const isNotEligibleNu = isFacPaid && !isNuPaid && !hasNuClaim;
-
-                          if (isNotEligibleNu || !hasNuClaim) {
-                            return <span className="text-slate-300">-</span>;
-                          }
-                          return r.approvedDate ? (
-                            <span className="font-semibold">✓ {r.approvedDate}</span>
-                          ) : (
-                            <span className="text-slate-300">-</span>
-                          );
-                        })()}
                       </td>
 
                       {/* วันที่จ่ายเงิน มน. */}
