@@ -478,3 +478,196 @@ export function checkPublication24MonthExpiry(publishedDateStr?: string) {
   }
 }
 
+export interface ArticlePriorClaimStatus {
+  hasClaimed: boolean;
+  hasClaimedNu: boolean;
+  hasClaimedFaculty: boolean;
+  nuStatusText: string;
+  facultyStatusText: string;
+  nuPaymentDate?: string;
+  nuVoucherNo?: string;
+  facultyPaymentDate?: string;
+  facultyVoucherNo?: string;
+  claimFiscalYear?: number;
+  claimType?: string;
+  summaryBadge: {
+    status: 'paid_both' | 'paid_nu_only' | 'paid_faculty_only' | 'in_progress' | 'unclaimed';
+    label: string;
+    color: string;
+    details: string;
+  };
+}
+
+/**
+ * Check if article title or DOI has prior disbursement history across all fiscal years (2568, 2569, and current 2570)
+ */
+export function checkArticlePriorClaim(
+  title?: string,
+  doi?: string,
+  nuDisbursements: Array<{
+    articleTitle?: string;
+    doi?: string;
+    status?: string;
+    facultyStatus?: string;
+    disbursementVoucherNo?: string;
+    nuDisbursementVoucherNo?: string;
+    paymentDate?: string;
+    facultyPaymentDate?: string;
+    fiscalYear?: number;
+    claimType?: string;
+    isNuPaidConfirmed?: boolean;
+    rewardAmount?: number;
+    pageChargeAmount?: number;
+    facultyRewardAmount?: number;
+    facultyPageChargeAmount?: number;
+  }> = []
+): ArticlePriorClaimStatus {
+  if (!title && !doi) {
+    return {
+      hasClaimed: false,
+      hasClaimedNu: false,
+      hasClaimedFaculty: false,
+      nuStatusText: 'ยังไม่ได้เบิกจ่าย มน.',
+      facultyStatusText: 'ยังไม่ได้เบิกจ่ายคณะ',
+      summaryBadge: {
+        status: 'unclaimed',
+        label: 'ยังไม่เคยเบิกจ่าย',
+        color: 'emerald',
+        details: 'มีสิทธิ์เบิกได้ทั้ง มน. และ คณะฯ'
+      }
+    };
+  }
+
+  const norm = (s?: string) => {
+    if (!s) return '';
+    return s.toLowerCase().replace(/[^a-z0-9\u0E00-\u0E7F]/g, '');
+  };
+
+  const cleanTitle = norm(title);
+  const cleanDoi = (doi || '').trim().toLowerCase();
+
+  const match = nuDisbursements.find(r => {
+    if (cleanDoi && r.doi && r.doi.trim().toLowerCase() === cleanDoi) return true;
+    if (cleanTitle && cleanTitle.length > 15) {
+      const rNorm = norm(r.articleTitle);
+      return rNorm.length > 15 && (cleanTitle.includes(rNorm) || rNorm.includes(cleanTitle));
+    }
+    return false;
+  });
+
+  if (!match) {
+    return {
+      hasClaimed: false,
+      hasClaimedNu: false,
+      hasClaimedFaculty: false,
+      nuStatusText: 'ยังไม่ได้เบิกจ่าย มน.',
+      facultyStatusText: 'ยังไม่ได้เบิกจ่ายคณะ',
+      summaryBadge: {
+        status: 'unclaimed',
+        label: 'ยังไม่เคยเบิกจ่าย',
+        color: 'emerald',
+        details: 'ไม่พบประวัติการเบิกจ่ายปีก่อนหน้าหรือปีปัจจุบัน (มีสิทธิ์เบิกสมบูรณ์)'
+      }
+    };
+  }
+
+  const isNuPaid = Boolean(match.status?.includes('จ่ายเงินแล้ว') || match.isNuPaidConfirmed || match.paymentDate);
+  const isNuApproved = Boolean(match.status?.includes('อนุมัติแล้ว') || match.status?.includes('ส่งการเงินรวมศูนย์'));
+  const isFacultyPaid = Boolean(
+    match.facultyStatus === 'paid' || 
+    (match.disbursementVoucherNo && match.disbursementVoucherNo !== '-') ||
+    (match.fiscalYear === 2569) // ปี 69 คณะเบิกจ่ายเรียบร้อยแล้วทั้งหมด
+  );
+
+  let nuStatusText = 'ยังไม่ได้เบิกจ่าย มน.';
+  if (isNuPaid) {
+    nuStatusText = `มน: จ่ายเงินแล้ว${match.nuDisbursementVoucherNo ? ` (${match.nuDisbursementVoucherNo})` : ''}`;
+  } else if (isNuApproved) {
+    nuStatusText = `มน: ${match.status}`;
+  } else if (match.status) {
+    nuStatusText = `มน: ${match.status}`;
+  }
+
+  let facultyStatusText = 'ยังไม่ได้เบิกจ่ายคณะ';
+  if (isFacultyPaid) {
+    facultyStatusText = `คณะ: เบิกจ่ายแล้ว${match.disbursementVoucherNo ? ` (${match.disbursementVoucherNo})` : ''}`;
+  } else if (match.facultyStatus) {
+    facultyStatusText = `คณะ: ${match.facultyStatus}`;
+  }
+
+  // Summary Badge determination
+  if (isNuPaid && isFacultyPaid) {
+    return {
+      hasClaimed: true,
+      hasClaimedNu: true,
+      hasClaimedFaculty: true,
+      nuStatusText,
+      facultyStatusText,
+      nuPaymentDate: match.paymentDate,
+      nuVoucherNo: match.nuDisbursementVoucherNo,
+      facultyPaymentDate: match.facultyPaymentDate,
+      facultyVoucherNo: match.disbursementVoucherNo,
+      claimFiscalYear: match.fiscalYear,
+      claimType: match.claimType,
+      summaryBadge: {
+        status: 'paid_both',
+        label: `เคยเบิกจ่ายแล้วทั้ง 2 ส่วน (ปี ${match.fiscalYear || 'ก่อนหน้า'})`,
+        color: 'rose',
+        details: `มน. จ่ายแล้ว (${match.nuDisbursementVoucherNo || '-'}) และ คณะฯ จ่ายแล้ว (${match.disbursementVoucherNo || '-'})`
+      }
+    };
+  } else if (isNuPaid && !isFacultyPaid) {
+    return {
+      hasClaimed: true,
+      hasClaimedNu: true,
+      hasClaimedFaculty: false,
+      nuStatusText,
+      facultyStatusText,
+      nuPaymentDate: match.paymentDate,
+      nuVoucherNo: match.nuDisbursementVoucherNo,
+      claimFiscalYear: match.fiscalYear,
+      claimType: match.claimType,
+      summaryBadge: {
+        status: 'paid_nu_only',
+        label: `เบิกจ่าย มน. แล้ว (ยังไม่เบิกคณะฯ)`,
+        color: 'blue',
+        details: `เคยเบิก มน. แล้วปี ${match.fiscalYear} (${match.nuDisbursementVoucherNo || '-'}) แต่ยังสามารถยื่นเบิกส่วนของคณะแพทยฯ ได้`
+      }
+    };
+  } else if (!isNuPaid && isFacultyPaid) {
+    return {
+      hasClaimed: true,
+      hasClaimedNu: false,
+      hasClaimedFaculty: true,
+      nuStatusText,
+      facultyStatusText,
+      facultyPaymentDate: match.facultyPaymentDate,
+      facultyVoucherNo: match.disbursementVoucherNo,
+      claimFiscalYear: match.fiscalYear,
+      claimType: match.claimType,
+      summaryBadge: {
+        status: 'paid_faculty_only',
+        label: `เบิกจ่ายคณะฯ แล้ว (ยังไม่เบิก มน.)`,
+        color: 'purple',
+        details: `เคยเบิกคณะฯ แล้วปี ${match.fiscalYear} (${match.disbursementVoucherNo || '-'})`
+      }
+    };
+  } else {
+    return {
+      hasClaimed: true,
+      hasClaimedNu: false,
+      hasClaimedFaculty: false,
+      nuStatusText,
+      facultyStatusText,
+      claimFiscalYear: match.fiscalYear,
+      claimType: match.claimType,
+      summaryBadge: {
+        status: 'in_progress',
+        label: `มีคำขออยู่ระหว่างดำเนินการ (ปี ${match.fiscalYear})`,
+        color: 'amber',
+        details: `สถานะ: ${match.status || 'อยู่ระหว่างส่งเอกสาร'}`
+      }
+    };
+  }
+}
+

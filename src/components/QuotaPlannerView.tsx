@@ -24,7 +24,12 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { ResearchApplication, UserProfile, NuDisbursementRecord } from '../types';
-import { formatBaht, checkPublication24MonthExpiry, getTrackingPrefix } from '../data/regulations';
+import { 
+  formatBaht, 
+  checkPublication24MonthExpiry, 
+  getTrackingPrefix,
+  checkArticlePriorClaim 
+} from '../data/regulations';
 
 interface QuotaPlannerViewProps {
   applications: ResearchApplication[];
@@ -562,17 +567,55 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                         </span>
                       </td>
 
-                      {/* Article Title & Journal */}
+                      {/* Article Title, Journal & Prior Claim Status */}
                       <td className="py-3 px-4">
                         <div className="font-semibold text-slate-900 line-clamp-2 leading-snug">
                           {draft.articleTitle}
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                        <div className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-2">
                           <span className="italic">{draft.journalName}</span>
                           {draft.doi && (
                             <span className="font-mono text-slate-400 text-[10px]">DOI: {draft.doi}</span>
                           )}
                         </div>
+                        {/* Status Check (มน. & คณะ ทั้งปีเก่า 2568, 2569 และปีปัจจุบัน 2570) */}
+                        {(() => {
+                          const priorClaim = checkArticlePriorClaim(draft.articleTitle, draft.doi, nuDisbursements);
+                          if (priorClaim.summaryBadge.status === 'not_claimed') {
+                            return (
+                              <div className="mt-1.5 flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>ยังไม่มีประวัติเบิกจ่าย (สิทธิ์สมบูรณ์ ทั้ง มน. และ คณะฯ)</span>
+                                </span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="mt-1.5 flex flex-col gap-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                  priorClaim.summaryBadge.status === 'paid_both'
+                                    ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                    : priorClaim.summaryBadge.status === 'paid_nu_only'
+                                    ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                    : priorClaim.summaryBadge.status === 'paid_faculty_only'
+                                    ? 'bg-purple-100 text-purple-800 border-purple-300'
+                                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                                }`}>
+                                  {priorClaim.summaryBadge.status === 'paid_both' && <AlertTriangle className="w-3 h-3 text-rose-600" />}
+                                  {priorClaim.summaryBadge.status === 'paid_nu_only' && <ShieldCheck className="w-3 h-3 text-blue-600" />}
+                                  {priorClaim.summaryBadge.status === 'paid_faculty_only' && <Building className="w-3 h-3 text-purple-600" />}
+                                  {priorClaim.summaryBadge.status === 'in_progress' && <Clock className="w-3 h-3 text-amber-600" />}
+                                  <span>{priorClaim.summaryBadge.label}</span>
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-slate-500 leading-tight">
+                                {priorClaim.summaryBadge.details}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Quartile Badge */}

@@ -921,6 +921,7 @@ export default function App() {
           }}
           onSubmit={handleCreateSubmission}
           existingApplications={applications}
+          nuDisbursements={nuDisbursements}
           currentUser={currentUser || DEFAULT_LOGGED_IN_USER}
           initialData={editingDraftApp}
         />

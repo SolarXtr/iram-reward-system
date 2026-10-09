@@ -15,7 +15,10 @@ import {
   BookOpen, 
   ChevronRight,
   ShieldCheck,
-  Info
+  Info,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { NuDisbursementRecord, ResearchApplication, UserProfile, UserRole } from '../types';
 import { NuEditModal } from './NuEditModal';
@@ -43,8 +46,21 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [fiscalYearFilter, setFiscalYearFilter] = useState<string>('all');
+  const [facultyStatusFilter, setFacultyStatusFilter] = useState<string>('all');
+  const [sortField, setSortField] = useState<'submissionDate' | 'articleTitle' | 'researcherName' | 'fiscalYear' | 'totalAmount' | 'facultyTotalAmount'>('submissionDate');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [editingRecord, setEditingRecord] = useState<NuDisbursementRecord | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
+
+  // Toggle or change sort
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection(field === 'submissionDate' || field === 'totalAmount' || field === 'facultyTotalAmount' ? 'desc' : 'asc');
+    }
+  };
 
   // สิทธิ์การมองเห็นข้อมูลทั้งหมดของคณะแพทยศาสตร์ (Admin, Coordinator, Executive, Finance)
   const canViewAll = ['admin', 'coordinator', 'executive', 'finance'].includes(currentRole);
@@ -69,21 +85,28 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
     });
   }, [records, currentUser, canViewAll]);
 
-  // Search & Filter
-  const filteredRecords = useMemo(() => {
-    return scopedRecords.filter((r) => {
+  // Search, Filter & Sort
+  const filteredAndSortedRecords = useMemo(() => {
+    const list = scopedRecords.filter((r) => {
       // 1. Fiscal Year Filter
       if (fiscalYearFilter !== 'all') {
         const fy = r.fiscalYear ? String(r.fiscalYear) : '2570';
         if (fy !== fiscalYearFilter) return false;
       }
 
-      // 2. Status Filter
+      // 2. NU Status Filter
       if (statusFilter !== 'all') {
         if (statusFilter === 'paid' && !r.status.includes('จ่ายเงินแล้ว')) return false;
         if (statusFilter === 'central_finance' && !r.status.includes('ส่งการเงินรวมศูนย์')) return false;
         if (statusFilter === 'approved' && !r.status.includes('อนุมัติแล้ว')) return false;
         if (statusFilter === 'shipping' && !r.status.includes('จัดส่งเอกสาร') && !r.status.includes('เข้าระบบ')) return false;
+      }
+
+      // 3. Faculty Status Filter
+      if (facultyStatusFilter !== 'all') {
+        const isFacPaid = Boolean(r.facultyStatus === 'paid' || r.disbursementVoucherNo || r.fiscalYear === 2569);
+        if (facultyStatusFilter === 'paid' && !isFacPaid) return false;
+        if (facultyStatusFilter === 'unpaid' && isFacPaid) return false;
       }
 
       if (!searchQuery.trim()) return true;
@@ -98,7 +121,28 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
         (r.facultyTrackingNo && r.facultyTrackingNo.toLowerCase().includes(q))
       );
     });
-  }, [scopedRecords, fiscalYearFilter, statusFilter, searchQuery]);
+
+    // Interactive Sorting (Default: Latest NU submissionDate first)
+    return list.sort((a, b) => {
+      let comparison = 0;
+      if (sortField === 'submissionDate') {
+        const dateA = a.submissionDate ? new Date(a.submissionDate).getTime() : 0;
+        const dateB = b.submissionDate ? new Date(b.submissionDate).getTime() : 0;
+        comparison = dateA - dateB;
+      } else if (sortField === 'fiscalYear') {
+        comparison = (a.fiscalYear || 0) - (b.fiscalYear || 0);
+      } else if (sortField === 'totalAmount') {
+        comparison = (a.totalAmount || 0) - (b.totalAmount || 0);
+      } else if (sortField === 'facultyTotalAmount') {
+        comparison = (a.facultyTotalAmount || 0) - (b.facultyTotalAmount || 0);
+      } else if (sortField === 'articleTitle') {
+        comparison = a.articleTitle.localeCompare(b.articleTitle, 'th');
+      } else if (sortField === 'researcherName') {
+        comparison = a.researcherName.localeCompare(b.researcherName, 'th');
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [scopedRecords, fiscalYearFilter, statusFilter, facultyStatusFilter, searchQuery, sortField, sortDirection]);
 
   // Summary Metrics
   const metrics = useMemo(() => {
@@ -279,20 +323,82 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
             <thead className="bg-slate-50/90 text-slate-700 font-semibold uppercase tracking-wider text-[11px] font-prompt">
               <tr>
                 <th className="py-3 px-3 w-12 text-center">ลำดับ</th>
-                <th className="py-3 px-3 w-28">วันที่ยื่น มน.</th>
-                <th className="py-3 px-3 min-w-[240px]">ชื่อผลงาน / บทความวิจัย</th>
-                <th className="py-3 px-3 w-44">อาจารย์นักวิจัย</th>
+                
+                {/* Sortable: วันที่ยื่น มน. */}
+                <th 
+                  onClick={() => handleSort('submissionDate')}
+                  className="py-3 px-3 w-28 cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  title="คลิกเพื่อจัดเรียงตามวันที่ยื่น มน."
+                >
+                  <div className="flex items-center gap-1">
+                    <span>วันที่ยื่น มน.</span>
+                    {sortField === 'submissionDate' ? (
+                      sortDirection === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-amber-600" /> : <ArrowUp className="w-3.5 h-3.5 text-amber-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+
+                {/* Sortable: ชื่อบทความ */}
+                <th 
+                  onClick={() => handleSort('articleTitle')}
+                  className="py-3 px-3 min-w-[240px] cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  title="คลิกเพื่อจัดเรียงตามชื่อบทความ"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>ชื่อผลงาน / บทความวิจัย</span>
+                    {sortField === 'articleTitle' ? (
+                      sortDirection === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-amber-600" /> : <ArrowUp className="w-3.5 h-3.5 text-amber-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+
+                {/* Sortable: อาจารย์นักวิจัย */}
+                <th 
+                  onClick={() => handleSort('researcherName')}
+                  className="py-3 px-3 w-44 cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  title="คลิกเพื่อจัดเรียงตามชื่ออาจารย์"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>อาจารย์นักวิจัย</span>
+                    {sortField === 'researcherName' ? (
+                      sortDirection === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-amber-600" /> : <ArrowUp className="w-3.5 h-3.5 text-amber-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+
                 <th className="py-3 px-3 w-36">ประเภทคำขอ</th>
                 <th className="py-3 px-3 w-32 text-center">สถานะ มน.</th>
-                <th className="py-3 px-3 w-28">วันที่อนุมัติ</th>
-                <th className="py-3 px-3 w-28">วันที่จ่ายเงิน</th>
-                <th className="py-3 px-3 w-28 text-right">ยอดรวม มน.</th>
-                <th className="py-3 px-3 w-28 text-center">สถานะคณะฯ</th>
+                <th className="py-3 px-3 w-28">วันที่อนุมัติ มน.</th>
+                <th className="py-3 px-3 w-32">วันที่จ่ายเงิน มน.</th>
+
+                {/* Sortable: ยอดรวม มน. */}
+                <th 
+                  onClick={() => handleSort('totalAmount')}
+                  className="py-3 px-3 w-28 text-right cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  title="คลิกเพื่อจัดเรียงตามยอดรวม มน."
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    <span>ยอดรวม มน.</span>
+                    {sortField === 'totalAmount' ? (
+                      sortDirection === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-amber-600" /> : <ArrowUp className="w-3.5 h-3.5 text-amber-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+
+                <th className="py-3 px-3 w-36 text-center">สถานะ คณะฯ</th>
                 {canEdit && <th className="py-3 px-3 w-16 text-center">จัดการ</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-              {filteredRecords.length === 0 ? (
+              {filteredAndSortedRecords.length === 0 ? (
                 <tr>
                   <td colSpan={canEdit ? 11 : 10} className="py-8 text-center text-slate-400">
                     <Info className="w-5 h-5 mx-auto mb-1 text-slate-300" />
@@ -300,7 +406,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredRecords.map((r, idx) => {
+                filteredAndSortedRecords.map((r, idx) => {
                   const matchedFaculty = facultyApps.find(
                     f => f.trackingNo === r.matchedFacultyTrackingNo
                   );

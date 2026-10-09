@@ -33,7 +33,8 @@ import {
   QuartileRank, 
   RequestType, 
   ResearchApplication,
-  UserProfile 
+  UserProfile,
+  NuDisbursementRecord
 } from '../types';
 import { 
   calculateFacultyReward, 
@@ -43,9 +44,11 @@ import {
   formatPageChargeInput, 
   parsePageCharge,
   getTrackingPrefix,
-  generateNextTrackingNo
+  generateNextTrackingNo,
+  checkArticlePriorClaim
 } from '../data/regulations';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from '../data/initialData';
+import { INITIAL_NU_DISBURSEMENTS } from '../data/nuDisbursementData';
 import { getStoredUserProfile, saveStoredUserProfile } from '../data/userProfile';
 
 interface SubmissionFormModalProps {
@@ -53,6 +56,7 @@ interface SubmissionFormModalProps {
   onClose: () => void;
   onSubmit: (newApp: Partial<ResearchApplication>, asDraft?: boolean) => void;
   existingApplications?: ResearchApplication[];
+  nuDisbursements?: NuDisbursementRecord[];
   currentUser?: UserProfile;
   initialData?: Partial<ResearchApplication> | null;
 }
@@ -155,6 +159,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   onClose,
   onSubmit,
   existingApplications,
+  nuDisbursements = INITIAL_NU_DISBURSEMENTS,
   currentUser,
   initialData,
 }) => {
@@ -287,7 +292,11 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
     return () => clearTimeout(timer);
   }, [doi, articleTitle]);
 
-  // Mandatory regulation compliance checkboxes - เริ่มต้นเป็น false (unchecked) ต้องเลือกทุกข้อจึงจะส่งได้
+  // ตรวจสอบประวัติการเบิกจ่ายปีเก่า (2568, 2569) และปีปัจจุบัน (2570) ทั้ง มน. และ คณะฯ
+  const priorClaimStatus = useMemo(() => {
+    return checkArticlePriorClaim(articleTitle, doi, nuDisbursements);
+  }, [articleTitle, doi, nuDisbursements]);
+
   // Mandatory regulation compliance checkboxes - เริ่มต้นเป็น false (unchecked) ต้องเลือกทุกข้อจึงจะส่งได้
   const [medNuAffiliationDeclared, setMedNuAffiliationDeclared] = useState(false);
   const [notForGraduation, setNotForGraduation] = useState(false);
@@ -299,8 +308,9 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
     return [medNuAffiliationDeclared, notForGraduation, within24Months, notPreviouslyClaimed].filter(Boolean).length;
   }, [medNuAffiliationDeclared, notForGraduation, within24Months, notPreviouslyClaimed]);
 
+  const isPriorPaidBoth = priorClaimStatus.summaryBadge.status === 'paid_both';
   const allCompliant = complianceCount === 4;
-  const isSubmitDisabled = !allCompliant || !pdpaConsentAccepted || (duplicateResult?.isDuplicate ?? false) || isCheckingDuplicate;
+  const isSubmitDisabled = !allCompliant || !pdpaConsentAccepted || (duplicateResult?.isDuplicate ?? false) || isPriorPaidBoth || isCheckingDuplicate;
 
   // Uploaded files simulation
   const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: boolean }>({
@@ -1016,7 +1026,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
               </div>
 
               {/* Real-time Duplicate Status Banner */}
-              <div className="sm:col-span-3">
+              <div className="sm:col-span-3 space-y-2">
                 {duplicateResult?.isDuplicate ? (
                   <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl flex items-start gap-2.5 text-rose-900 shadow-sm animate-shake">
                     <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
@@ -1039,6 +1049,55 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
                     <span>✓ ผ่านการตรวจสอบ: บทความนี้ยังไม่เคยมีประวัติการขอรับเงินรางวัลหรือค่าตีพิมพ์ในระบบ Cloudflare D1</span>
                   </div>
                 ) : null}
+
+                {/* Historical Prior Claim Banner (ปีเก่า 2568, 2569 และปีปัจจุบัน 2570 ของ มน. และ คณะฯ) */}
+                {(articleTitle.trim().length >= 10 || doi.trim()) && priorClaimStatus.summaryBadge.status !== 'not_claimed' && (
+                  <div className={`p-3 rounded-xl border flex items-start gap-2.5 text-xs shadow-sm ${
+                    priorClaimStatus.summaryBadge.status === 'paid_both'
+                      ? 'bg-rose-50 border-rose-300 text-rose-950'
+                      : priorClaimStatus.summaryBadge.status === 'paid_nu_only'
+                      ? 'bg-blue-50 border-blue-300 text-blue-950'
+                      : priorClaimStatus.summaryBadge.status === 'paid_faculty_only'
+                      ? 'bg-purple-50 border-purple-300 text-purple-950'
+                      : 'bg-amber-50 border-amber-300 text-amber-950'
+                  }`}>
+                    {priorClaimStatus.summaryBadge.status === 'paid_both' && <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />}
+                    {priorClaimStatus.summaryBadge.status === 'paid_nu_only' && <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />}
+                    {priorClaimStatus.summaryBadge.status === 'paid_faculty_only' && <Building className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />}
+                    {priorClaimStatus.summaryBadge.status === 'in_progress' && <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />}
+                    
+                    <div className="space-y-1">
+                      <div className="font-bold flex items-center gap-1.5">
+                        <span>ประวัติการเบิกจ่ายปีเก่าและปีปัจจุบัน (DRI NU & คณะแพทยศาสตร์):</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          priorClaimStatus.summaryBadge.status === 'paid_both'
+                            ? 'bg-rose-200 text-rose-900'
+                            : priorClaimStatus.summaryBadge.status === 'paid_nu_only'
+                            ? 'bg-blue-200 text-blue-900'
+                            : priorClaimStatus.summaryBadge.status === 'paid_faculty_only'
+                            ? 'bg-purple-200 text-purple-900'
+                            : 'bg-amber-200 text-amber-900'
+                        }`}>
+                          {priorClaimStatus.summaryBadge.label}
+                        </span>
+                      </div>
+                      <p className="leading-relaxed opacity-90">{priorClaimStatus.summaryBadge.details}</p>
+                      <div className="flex flex-wrap gap-2 pt-0.5 text-[11px] font-mono">
+                        <span className="bg-white/80 px-2 py-0.5 rounded border border-black/10">
+                          {priorClaimStatus.nuStatusText}
+                        </span>
+                        <span className="bg-white/80 px-2 py-0.5 rounded border border-black/10">
+                          {priorClaimStatus.facultyStatusText}
+                        </span>
+                      </div>
+                      {priorClaimStatus.summaryBadge.status === 'paid_both' && (
+                        <p className="text-rose-700 font-semibold pt-0.5">
+                          ⚠️ บทความนี้ได้รับการอนุมัติเบิกจ่ายครบทั้งมหาวิทยาลัยและคณะฯ แล้ว ไม่สามารถยื่นขอรับเงินซ้ำได้อีก
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
