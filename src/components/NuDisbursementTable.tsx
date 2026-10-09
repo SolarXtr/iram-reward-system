@@ -417,6 +417,22 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                   </div>
                 </th>
 
+                {/* Sortable: ยอดรวม คณะฯ */}
+                <th 
+                  onClick={() => handleSort('facultyTotalAmount')}
+                  className="py-3 px-3 w-28 text-right cursor-pointer hover:bg-slate-100 transition-colors select-none text-purple-950 bg-purple-50/50"
+                  title="คลิกเพื่อจัดเรียงตามยอดรวม คณะฯ"
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    <span>ยอดรวม คณะฯ</span>
+                    {sortField === 'facultyTotalAmount' ? (
+                      sortDirection === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-purple-700" /> : <ArrowUp className="w-3.5 h-3.5 text-purple-700" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    )}
+                  </div>
+                </th>
+
                 <th className="py-3 px-3 w-36 text-center">สถานะ คณะฯ</th>
                 {canEdit && <th className="py-3 px-3 w-16 text-center">จัดการ</th>}
               </tr>
@@ -424,7 +440,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
             <tbody className="divide-y divide-slate-100 bg-white">
               {filteredAndSortedRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={canEdit ? 11 : 10} className="py-8 text-center text-slate-400">
+                  <td colSpan={canEdit ? 12 : 11} className="py-8 text-center text-slate-400">
                     <Info className="w-5 h-5 mx-auto mb-1 text-slate-300" />
                     <span>ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</span>
                   </td>
@@ -476,13 +492,26 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         {getStatusBadge(r)}
                       </td>
+                      {/* วันที่อนุมัติ มน. (กรณีไม่เข้าเกณฑ์ มน. หรือยังไม่ได้เบิก มน. ต้องไม่มีวันอนุมัติ) */}
                       <td className="py-2.5 px-3 font-mono text-[11px] whitespace-nowrap text-blue-900">
-                        {r.approvedDate ? (
-                          <span className="font-semibold">✓ {r.approvedDate}</span>
-                        ) : (
-                          <span className="text-slate-300">-</span>
-                        )}
+                        {(() => {
+                          const isNuPaid = Boolean(r.status?.includes('จ่ายเงินแล้ว') || r.isNuPaidConfirmed);
+                          const isFacPaid = Boolean(r.facultyStatus === 'paid' || r.disbursementVoucherNo || r.fiscalYear === 2569);
+                          const hasNuClaim = (r.totalAmount || 0) > 0 || isNuPaid;
+                          const isNotEligibleNu = isFacPaid && !isNuPaid && !hasNuClaim;
+
+                          if (isNotEligibleNu || !hasNuClaim) {
+                            return <span className="text-slate-300">-</span>;
+                          }
+                          return r.approvedDate ? (
+                            <span className="font-semibold">✓ {r.approvedDate}</span>
+                          ) : (
+                            <span className="text-slate-300">-</span>
+                          );
+                        })()}
                       </td>
+
+                      {/* วันที่จ่ายเงิน มน. */}
                       <td className="py-2.5 px-3 font-mono text-[11px] whitespace-nowrap text-emerald-900">
                         {r.paymentDate ? (
                           <div>
@@ -497,8 +526,19 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                           <span className="text-slate-300">-</span>
                         )}
                       </td>
+
+                      {/* ยอดรวม มน. */}
                       <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800 whitespace-nowrap">
                         {r.totalAmount ? `฿${r.totalAmount.toLocaleString()}` : '-'}
+                      </td>
+
+                      {/* ยอดรวม คณะฯ */}
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-purple-900 bg-purple-50/20 whitespace-nowrap">
+                        {r.facultyTotalAmount && r.facultyTotalAmount > 0 
+                          ? `฿${r.facultyTotalAmount.toLocaleString()}` 
+                          : matchedFaculty?.totalClaimedAmount 
+                          ? `฿${matchedFaculty.totalClaimedAmount.toLocaleString()}`
+                          : '-'}
                       </td>
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         {r.facultyStatus === 'paid' || r.disbursementVoucherNo ? (
