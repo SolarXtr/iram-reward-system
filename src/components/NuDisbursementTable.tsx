@@ -185,10 +185,22 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
 
     if (isNuPaid) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300" title="ยืนยันการจ่ายเงินแล้วจากระบบ มน.">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>จ่ายเงินแล้ว</span>
-        </span>
+        <div className="inline-flex flex-col items-center">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300" title="ยืนยันการจ่ายเงินแล้วจากระบบ มน.">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>จ่ายเงินแล้ว</span>
+          </span>
+          {r.paymentDate && (
+            <span className="text-[10px] text-emerald-800 font-mono font-semibold mt-0.5" title="วันที่โอน/จ่ายเงินของ มน.">
+              ✓ {r.paymentDate}
+            </span>
+          )}
+          {r.nuDisbursementVoucherNo && (
+            <span className="text-[9px] text-slate-500 font-mono leading-tight" title="เลขที่ฎีกา/คำสั่งจ่ายของ มน.">
+              {r.nuDisbursementVoucherNo}
+            </span>
+          )}
+        </div>
       );
     }
     if (status.includes('ส่งการเงินรวมศูนย์')) {
@@ -397,7 +409,6 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                 </th>
 
                 <th className="py-3 px-3 w-32 text-center">สถานะ มน.</th>
-                <th className="py-3 px-3 w-32">วันที่จ่ายเงิน มน.</th>
 
                 {/* Sortable: ยอดรวม มน. */}
                 <th 
@@ -438,7 +449,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
             <tbody className="divide-y divide-slate-100 bg-white">
               {filteredAndSortedRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={canEdit ? 10 : 9} className="py-8 text-center text-slate-400">
+                  <td colSpan={canEdit ? 9 : 8} className="py-8 text-center text-slate-400">
                     <Info className="w-5 h-5 mx-auto mb-1 text-slate-300" />
                     <span>ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</span>
                   </td>
@@ -484,22 +495,6 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                       </td>
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         {getStatusBadge(r)}
-                      </td>
-
-                      {/* วันที่จ่ายเงิน มน. */}
-                      <td className="py-2.5 px-3 font-mono text-[11px] whitespace-nowrap text-emerald-900">
-                        {r.paymentDate ? (
-                          <div>
-                            <span className="font-semibold">✓ {r.paymentDate}</span>
-                            {r.nuDisbursementVoucherNo && (
-                              <span className="text-[10px] text-slate-500 font-mono block">
-                                {r.nuDisbursementVoucherNo}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-slate-300">-</span>
-                        )}
                       </td>
 
                       {/* ยอดรวม มน. */}
