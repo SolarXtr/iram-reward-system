@@ -516,7 +516,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                           <div className="inline-flex flex-col items-center">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                              <span>เบิกจ่ายแล้ว</span>
+                              <span>จ่ายเงินแล้ว</span>
                             </span>
                             {r.disbursementVoucherNo && (
                               <span className="text-[10px] text-slate-600 font-mono mt-0.5" title="เลขที่ฎีกาเบิกจ่ายของคณะฯ">

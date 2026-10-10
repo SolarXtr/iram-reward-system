@@ -4,6 +4,7 @@ import { DashboardView } from './components/DashboardView';
 import { QuotaPlannerView } from './components/QuotaPlannerView';
 import { KanbanBoard } from './components/KanbanBoard';
 import { TableView } from './components/TableView';
+import { ArticleMasterTable } from './components/ArticleMasterTable';
 import { CalendarView } from './components/CalendarView';
 import { LineNotificationModal } from './components/LineNotificationModal';
 import { SubmissionFormModal } from './components/SubmissionFormModal';
@@ -327,11 +328,11 @@ export default function App() {
     if (!currentUser) return;
     setCurrentRole(newRole);
     const roleAllowedTabs: Record<UserRole, ActiveTab[]> = {
-      researcher: ['dashboard', 'quota_planner', 'table', 'calendar'],
-      finance: ['dashboard', 'table', 'calendar'],
-      executive: ['dashboard', 'table', 'calendar'],
-      coordinator: ['dashboard', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
-      admin: ['dashboard', 'quota_planner', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
+      researcher: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar'],
+      finance: ['dashboard', 'article_table', 'table', 'calendar'],
+      executive: ['dashboard', 'article_table', 'table', 'calendar'],
+      coordinator: ['dashboard', 'article_table', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
+      admin: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
     };
     const allowed = roleAllowedTabs[newRole] || ['dashboard'];
     if (!allowed.includes(activeTab)) {
@@ -810,6 +811,19 @@ export default function App() {
             onVerifyPayment={(app) => setPaymentApp(app)}
             currentRole={currentRole}
             onShowAlert={showToast}
+          />
+        )}
+
+        {/* Tab: Unified Article Master Table (All Roles) */}
+        {activeTab === 'article_table' && !isGuest && (
+          <ArticleMasterTable
+            nuDisbursements={nuDisbursements}
+            applications={applications}
+            currentUser={currentUser}
+            currentRole={currentRole}
+            onViewApplication={(app) => setTimelineApp(app)}
+            onPrintApplication={(app) => setPrintApp(app)}
+            onOpenNewSubmission={handleOpenNewSubmission}
           />
         )}
 

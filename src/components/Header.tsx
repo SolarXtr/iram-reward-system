@@ -19,13 +19,14 @@ import {
   Lock,
   LogOut,
   LogIn,
-  Sparkles
+  Sparkles,
+  BookOpen
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 import { LINE_NOTIFICATION_SYSTEM_ENABLED } from '../data/lineNotificationService';
 
 export type { UserRole };
-export type ActiveTab = 'dashboard' | 'quota_planner' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management';
+export type ActiveTab = 'dashboard' | 'quota_planner' | 'article_table' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -288,6 +289,24 @@ export const Header: React.FC<HeaderProps> = ({
                   )}
                 </button>
               )}
+
+              {/* Tab: Article Master Table (All Roles - Researcher sees own, Staff sees all) */}
+              <button
+                onClick={() => setActiveTab('article_table')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
+                  activeTab === 'article_table'
+                    ? 'bg-slate-800 text-amber-400 border border-slate-700'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 text-amber-400" />
+                <span>
+                  {currentRole === 'researcher' ? 'ตารางบทความของฉัน' : 'ตารางบทความรวม (มน. & คณะ)'}
+                </span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  ใหม่
+                </span>
+              </button>
 
               {/* Tab 2: Kanban (Coordinator and Admin ONLY) */}
               {(currentRole === 'coordinator' || currentRole === 'admin') && (
