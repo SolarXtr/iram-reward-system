@@ -13,10 +13,11 @@ import {
   Printer, 
   Banknote,
   Send,
-  MessageSquare
+  MessageSquare,
+  RotateCcw
 } from 'lucide-react';
 import { UserRole } from './Header';
-import { ResearchApplication, WorkflowStepId } from '../types';
+import { ResearchApplication, UserProfile, WorkflowStepId } from '../types';
 import { formatBaht } from '../data/regulations';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from '../data/initialData';
 
@@ -27,8 +28,10 @@ interface TimelineTrackerModalProps {
   onAdvanceStep: (id: string, nextStep: WorkflowStepId, note?: string) => void;
   onPrint: (app: ResearchApplication) => void;
   onVerifyPayment: (app: ResearchApplication) => void;
+  onReturnToDraft?: (app: ResearchApplication) => void;
   canEdit: boolean; // if staff/coordinator/finance
   currentRole?: UserRole;
+  currentUser?: UserProfile | null;
 }
 
 export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
@@ -38,8 +41,10 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
   onAdvanceStep,
   onPrint,
   onVerifyPayment,
+  onReturnToDraft,
   canEdit,
   currentRole = 'coordinator',
+  currentUser,
 }) => {
   if (!isOpen || !application) return null;
 
@@ -83,6 +88,17 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
     }
   };
 
+  const isMyApp = Boolean(
+    (currentUser?.email && application.email && application.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+    (currentUser?.name && application.applicantName && application.applicantName.toLowerCase() === currentUser.name.toLowerCase())
+  );
+
+  const canReturnToDraft =
+    Boolean(onReturnToDraft) &&
+    application.status !== 'draft' &&
+    application.status !== 'paid' &&
+    (currentRole === 'admin' || currentRole === 'coordinator' || (currentRole === 'researcher' && isMyApp));
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -102,6 +118,21 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {canReturnToDraft && (
+              <button
+                onClick={() => {
+                  if (window.confirm(`ต้องการส่งคืนคำขอ ${application.trackingNo} ย้อนกลับไปไว้ใน "รายการเตรียมเบิก" เพื่อแก้ไขหรือไม่?`)) {
+                    onReturnToDraft?.(application);
+                  }
+                }}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+                title="ส่งคืนคำขอนี้กลับไปที่รายการเตรียมเบิกเพื่อแก้ไขข้อมูล"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>ส่งคืนเพื่อแก้ไข</span>
+              </button>
+            )}
+
             <button
               onClick={() => onPrint(application)}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-semibold rounded-lg text-xs flex items-center gap-1.5 border border-slate-700 transition-colors"

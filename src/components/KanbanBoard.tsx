@@ -10,7 +10,8 @@ import {
   User, 
   Building2, 
   Banknote,
-  Send
+  Send,
+  RotateCcw
 } from 'lucide-react';
 import { UserRole } from './Header';
 import { ApplicationStatus, ResearchApplication, WorkflowStepId } from '../types';
@@ -22,6 +23,7 @@ interface KanbanBoardProps {
   onViewApplication: (app: ResearchApplication) => void;
   onPrintApplication: (app: ResearchApplication) => void;
   onVerifyPayment: (app: ResearchApplication) => void;
+  onReturnToDraft?: (app: ResearchApplication) => void;
   currentRole?: UserRole;
   onShowAlert?: (msg: string) => void;
 }
@@ -96,6 +98,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onViewApplication,
   onPrintApplication,
   onVerifyPayment,
+  onReturnToDraft,
   currentRole = 'coordinator',
   onShowAlert,
 }) => {
@@ -285,6 +288,20 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                           >
                             <Printer className="w-3.5 h-3.5" />
                           </button>
+
+                          {onReturnToDraft && (currentRole === 'coordinator' || currentRole === 'admin') && app.status !== 'draft' && app.status !== 'paid' && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`ต้องการส่งคืนคำขอ ${app.trackingNo} ย้อนกลับไปไว้ใน "รายการเตรียมเบิก" เพื่อแก้ไขหรือไม่?`)) {
+                                  onReturnToDraft(app);
+                                }
+                              }}
+                              className="p-1 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded"
+                              title="ส่งคืนไปรายการเตรียมเบิกเพื่อแก้ไข"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
+                          )}
 
                           {app.status === 'paid' && (
                             <button

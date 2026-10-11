@@ -15,7 +15,8 @@ import {
   Building2,
   UserCheck,
   ShieldCheck,
-  Lock
+  Lock,
+  RotateCcw
 } from 'lucide-react';
 import { ApplicationStatus, ResearchApplication, UserRole } from '../types';
 import { 
@@ -32,6 +33,7 @@ interface TableViewProps {
   onViewApplication: (app: ResearchApplication) => void;
   onPrintApplication: (app: ResearchApplication) => void;
   onVerifyPayment: (app: ResearchApplication) => void;
+  onReturnToDraft?: (app: ResearchApplication) => void;
   currentUserEmail?: string;
   currentUserName?: string;
   currentRole?: UserRole;
@@ -43,6 +45,7 @@ export const TableView: React.FC<TableViewProps> = ({
   onViewApplication,
   onPrintApplication,
   onVerifyPayment,
+  onReturnToDraft,
   currentUserEmail = 'tinnakornh@nu.ac.th',
   currentUserName = 'นายทินกรณ์ หาญณรงค์',
   currentRole = 'researcher',
@@ -90,6 +93,27 @@ export const TableView: React.FC<TableViewProps> = ({
     const updated = { ...original, ...editForm, updatedAt: new Date().toISOString().split('T')[0] };
     onSaveRow(updated);
     setEditingId(null);
+  };
+
+  const isMyApp = (app: ResearchApplication) => {
+    const lastName = (currentUserName || '').trim().split(' ').pop()?.toLowerCase();
+    return Boolean(
+      (currentUserEmail && app.email && app.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
+      (currentUserName && app.applicantName && (
+        app.applicantName.toLowerCase().includes(currentUserName.toLowerCase()) ||
+        currentUserName.toLowerCase().includes(app.applicantName.toLowerCase()) ||
+        (lastName && app.applicantName.toLowerCase().includes(lastName))
+      ))
+    );
+  };
+
+  const handleReturnClick = (app: ResearchApplication) => {
+    const confirmMsg = `ส่งคืนคำขอ "${app.trackingNo} - ${app.articleTitle}" ย้อนกลับไปไว้ใน "รายการเตรียมเบิก" เพื่อแก้ไขข้อมูล ใช่หรือไม่?`;
+    if (window.confirm(confirmMsg)) {
+      if (onReturnToDraft) {
+        onReturnToDraft(app);
+      }
+    }
   };
 
   // Filtering
@@ -594,6 +618,24 @@ export const TableView: React.FC<TableViewProps> = ({
                             >
                               <Printer className="w-3.5 h-3.5" />
                             </button>
+                            {/* ส่งคืนไปรายการเตรียมเบิกเพื่อแก้ไข */}
+                            {(() => {
+                              const canReturn = (
+                                (currentRole === 'admin' || currentRole === 'coordinator' || (currentRole === 'researcher' && isMyApp(app))) &&
+                                app.status !== 'draft' &&
+                                app.status !== 'paid'
+                              );
+                              if (!canReturn) return null;
+                              return (
+                                <button
+                                  onClick={() => handleReturnClick(app)}
+                                  className="p-1 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded transition-colors"
+                                  title="ส่งคืนรายการนี้ ย้อนกลับไปไว้ใน 'รายการเตรียมเบิก' เพื่อแก้ไข"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                </button>
+                              );
+                            })()}
                             {isPaid && (
                               <button
                                 onClick={() => onVerifyPayment(app)}

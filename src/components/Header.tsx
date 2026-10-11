@@ -122,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
       icon: Sparkles,
       badge: draftsCount > 0 ? `${draftsCount} ร่าง` : undefined,
       badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-      roles: ['researcher', 'admin'],
+      roles: ['researcher', 'coordinator', 'admin'],
     },
     {
       id: 'article_table',

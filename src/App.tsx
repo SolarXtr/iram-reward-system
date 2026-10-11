@@ -332,7 +332,7 @@ export default function App() {
       researcher: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar'],
       finance: ['dashboard', 'article_table', 'table', 'calendar'],
       executive: ['dashboard', 'article_table', 'table', 'calendar'],
-      coordinator: ['dashboard', 'article_table', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
+      coordinator: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
       admin: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
     };
     const allowed = roleAllowedTabs[newRole] || ['dashboard'];
@@ -403,6 +403,8 @@ export default function App() {
       updatedAt: today,
     };
 
+    const isExistingApp = applications.some((a) => a.id === finalId);
+
     setApplications((prev) => {
       const existingIdx = prev.findIndex((a) => a.id === finalId);
       if (existingIdx >= 0) {
@@ -417,6 +419,11 @@ export default function App() {
     setEditingDraftApp(null);
 
     if (isActuallyDraft) {
+      if (isExistingApp) {
+        updateRewardApplicationInD1(finalId, finalApp).catch((e) => console.warn('D1 update draft error:', e));
+      } else {
+        createRewardApplicationInD1(finalApp).catch((e) => console.warn('D1 create draft error:', e));
+      }
       showToast(`💾 บันทึกร่างเตรียมเบิกรางวัล "${finalApp.articleTitle || 'ฉบับร่าง'}" สำเร็จ! ตรวจสอบได้ที่เมนู "เตรียมเบิกรางวัล & วงเงิน"`);
       return;
     }
@@ -424,32 +431,103 @@ export default function App() {
     triggerLineMilestoneNotification(finalApp, 'application_submitted');
 
     // Cloudflare D1 Database Sync
-    createRewardApplicationInD1(finalApp)
+    const d1Promise = isExistingApp
+      ? updateRewardApplicationInD1(finalId, finalApp)
+      : createRewardApplicationInD1(finalApp);
+
+    d1Promise
       .then(() => {
         showToast(`✅ ยื่นคำขอ ${finalApp.trackingNo} ลง Cloudflare D1 สำเร็จเรียบร้อย!`);
       })
       .catch((err) => {
-        console.error('D1 create error:', err);
+        console.error('D1 create/update error:', err);
         showToast(`⚠️ บันทึกข้อมูลในเครื่องแล้ว แต่การซิงก์เข้า Cloudflare D1 ขัดข้อง: ${err.message}`);
       });
   };
 
   // Draft Management Handlers
   const handleEditDraft = (draftApp: ResearchApplication) => {
+    // Researchers can only edit their own draft applications
+    if (currentRole === 'researcher') {
+      const isMine =
+        (currentUser?.email && draftApp.email && draftApp.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+        (currentUser?.name && draftApp.applicantName && draftApp.applicantName.toLowerCase() === currentUser.name.toLowerCase());
+      if (!isMine) {
+        showToast('⚠️ คุณสามารถแก้ไขได้เฉพาะคำขอของตนเองเท่านั้น');
+        return;
+      }
+    }
     setEditingDraftApp(draftApp);
     setIsSubmissionModalOpen(true);
   };
 
+  // Return submitted/in-progress application back to Draft in QuotaPlannerView
+  const handleReturnToDraft = (app: ResearchApplication) => {
+    if (currentRole === 'researcher') {
+      const isMine =
+        (currentUser?.email && app.email && app.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+        (currentUser?.name && app.applicantName && app.applicantName.toLowerCase() === currentUser.name.toLowerCase());
+      if (!isMine) {
+        showToast('⚠️ คุณสามารถส่งคืนเพื่อแก้ไขได้เฉพาะคำขอของตนเองเท่านั้น');
+        return;
+      }
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const updatedTimeline = (app.timeline || []).map((step, idx) => {
+      if (idx === 0) {
+        return {
+          ...step,
+          status: 'in_progress' as const,
+          note: `ส่งคืนไปยังรายการเตรียมเบิกเพื่อแก้ไข (${today} โดย ${currentUser?.name || 'ผู้ใช้งาน'})`,
+        };
+      }
+      return {
+        ...step,
+        status: 'pending' as const,
+        completedAt: undefined,
+      };
+    });
+
+    const returnedApp: ResearchApplication = {
+      ...app,
+      status: 'draft',
+      currentStep: 1,
+      updatedAt: today,
+      timeline: updatedTimeline,
+    };
+
+    setApplications((prev) => prev.map((a) => (a.id === app.id ? returnedApp : a)));
+
+    // Sync status change to D1
+    updateRewardApplicationInD1(app.id, {
+      status: 'draft',
+      currentStep: 1,
+      updatedAt: today,
+      timeline: updatedTimeline,
+    }).catch((e) => console.warn('D1 return to draft error:', e));
+
+    showToast(`↩️ ส่งคืนคำขอ ${app.trackingNo} ย้อนกลับไปไว้ใน "รายการเตรียมเบิก" เพื่อแก้ไขเรียบร้อยแล้ว`);
+
+    if (timelineApp && timelineApp.id === app.id) {
+      setTimelineApp(null);
+    }
+  };
+
   const handleSubmitDraft = (draftApp: ResearchApplication) => {
     const today = new Date().toISOString().split('T')[0];
-    const newTrackingNo = generateNextTrackingNo(
-      draftApp.fiscalYear,
-      applications.map((a) => a.trackingNo)
-    );
+    // Preserve existing tracking number if it was already assigned (e.g. returned from submitted)
+    const targetTrackingNo =
+      draftApp.trackingNo && draftApp.trackingNo !== 'DRAFT'
+        ? draftApp.trackingNo
+        : generateNextTrackingNo(
+            draftApp.fiscalYear,
+            applications.map((a) => a.trackingNo)
+          );
 
     const submittedApp: ResearchApplication = {
       ...draftApp,
-      trackingNo: newTrackingNo,
+      trackingNo: targetTrackingNo,
       status: 'submitted',
       currentStep: 2,
       updatedAt: today,
@@ -465,9 +543,10 @@ export default function App() {
     );
 
     triggerLineMilestoneNotification(submittedApp, 'application_submitted');
-    createRewardApplicationInD1(submittedApp)
+    updateRewardApplicationInD1(submittedApp.id, submittedApp)
+      .catch(() => createRewardApplicationInD1(submittedApp))
       .then(() => {
-        showToast(`🚀 ส่งเบิกคำขอสำเร็จ! รหัสติดตามงานใหม่: ${submittedApp.trackingNo}`);
+        showToast(`🚀 ส่งเบิกคำขอสำเร็จ! รหัสติดตามงาน: ${submittedApp.trackingNo}`);
       })
       .catch((err) => {
         console.warn('D1 sync draft submit:', err);
@@ -482,8 +561,13 @@ export default function App() {
 
     const updatedDrafts: ResearchApplication[] = [];
     draftApps.forEach((draft) => {
-      const nextTrackingNo = generateNextTrackingNo(draft.fiscalYear, currentTrackingList);
-      currentTrackingList.push(nextTrackingNo);
+      const nextTrackingNo =
+        draft.trackingNo && draft.trackingNo !== 'DRAFT'
+          ? draft.trackingNo
+          : generateNextTrackingNo(draft.fiscalYear, currentTrackingList);
+      if (!currentTrackingList.includes(nextTrackingNo)) {
+        currentTrackingList.push(nextTrackingNo);
+      }
 
       const submitted: ResearchApplication = {
         ...draft,
@@ -498,7 +582,9 @@ export default function App() {
         })),
       };
       updatedDrafts.push(submitted);
-      createRewardApplicationInD1(submitted).catch((e) => console.warn('D1 batch submit error:', e));
+      updateRewardApplicationInD1(submitted.id, submitted)
+        .catch(() => createRewardApplicationInD1(submitted))
+        .catch((e) => console.warn('D1 batch submit error:', e));
     });
 
     const updatedMap = new Map(updatedDrafts.map((d) => [d.id, d]));
@@ -835,12 +921,13 @@ export default function App() {
           />
         )}
 
-        {/* Tab 1.5: Quota & 24-Month Expiry Planner View (Researcher & Admin) */}
+        {/* Tab 1.5: Quota & 24-Month Expiry Planner View (Researcher, Coordinator & Admin) */}
         {activeTab === 'quota_planner' && !isGuest && (
           <QuotaPlannerView
             applications={applications}
             nuDisbursements={nuDisbursements}
             currentUser={currentUser}
+            currentRole={currentRole}
             onOpenNewSubmission={handleOpenNewSubmission}
             onEditDraft={handleEditDraft}
             onSubmitDraft={handleSubmitDraft}
@@ -858,6 +945,7 @@ export default function App() {
             onViewApplication={(app) => setTimelineApp(app)}
             onPrintApplication={(app) => setPrintApp(app)}
             onVerifyPayment={(app) => setPaymentApp(app)}
+            onReturnToDraft={handleReturnToDraft}
             currentRole={currentRole}
             onShowAlert={showToast}
           />
@@ -886,6 +974,7 @@ export default function App() {
             onViewApplication={(app) => setTimelineApp(app)}
             onPrintApplication={(app) => setPrintApp(app)}
             onVerifyPayment={(app) => setPaymentApp(app)}
+            onReturnToDraft={handleReturnToDraft}
             currentUserEmail={currentUser?.email || ''}
             currentUserName={currentUser?.name || ''}
             currentRole={currentRole}
@@ -1017,8 +1106,10 @@ export default function App() {
         onAdvanceStep={handleAdvanceTimelineStep}
         onPrint={(app) => setPrintApp(app)}
         onVerifyPayment={(app) => setPaymentApp(app)}
+        onReturnToDraft={handleReturnToDraft}
         canEdit={currentRole === 'coordinator' || currentRole === 'finance' || currentRole === 'admin'}
         currentRole={currentRole}
+        currentUser={currentUser}
       />
 
       {/* MODAL 3: Official Printable Documents (AWP69 / Memo / Receipt) */}

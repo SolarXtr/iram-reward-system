@@ -35,6 +35,7 @@ interface QuotaPlannerViewProps {
   applications: ResearchApplication[];
   nuDisbursements: NuDisbursementRecord[];
   currentUser?: UserProfile | null;
+  currentRole?: UserRole;
   onOpenNewSubmission: () => void;
   onEditDraft: (draftApp: ResearchApplication) => void;
   onSubmitDraft: (draftApp: ResearchApplication) => void;
@@ -47,6 +48,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
   applications,
   nuDisbursements,
   currentUser,
+  currentRole = 'researcher',
   onOpenNewSubmission,
   onEditDraft,
   onSubmitDraft,
@@ -111,17 +113,33 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
   const nuUsed = nuPaid + nuPending;
   const nuRemaining = Math.max(0, MAX_NU_QUOTA - nuUsed);
 
+  const isStaffOrAdmin = currentRole === 'admin' || currentRole === 'coordinator';
+  const [draftScopeFilter, setDraftScopeFilter] = useState<'all' | 'mine'>(isStaffOrAdmin ? 'all' : 'mine');
+
+  const allDraftsCount = useMemo(() => applications.filter((a) => a.status === 'draft').length, [applications]);
+  const myDraftsCount = useMemo(() => applications.filter((a) => isMyApplication(a) && a.status === 'draft').length, [applications, userEmail, userLastName]);
+
   // 3. Draft/Prepared applications (status === 'draft')
-  // STRICT REQUIREMENT: Only show drafts! (Never show submitted applications here)
+  // Researcher can ONLY see their own applications: "นักวิจัย แก้ไขได้เฉพาะคำขอของตัวเอง"
   const myDraftApps = useMemo(() => {
-    const drafts = applications.filter((a) => isMyApplication(a) && a.status === 'draft');
+    const drafts = applications.filter((a) => {
+      if (a.status !== 'draft') return false;
+      if (currentRole === 'researcher') {
+        return isMyApplication(a);
+      }
+      if (isStaffOrAdmin && draftScopeFilter === 'all') {
+        return true;
+      }
+      return isMyApplication(a);
+    });
+
     // SORTING: Oldest publishedDate first (highest 24-month urgency!)
     return drafts.sort((a, b) => {
       const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
       const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
       return dateA - dateB;
     });
-  }, [applications, userEmail, userLastName]);
+  }, [applications, userEmail, userLastName, currentRole, draftScopeFilter, isStaffOrAdmin]);
 
   // Selected drafts for simulation
   const selectedDraftsList = useMemo(() => {
@@ -422,6 +440,32 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
 
           {/* Action Tools */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Scope Toggle for Coordinator / Admin */}
+            {isStaffOrAdmin && (
+              <div className="bg-slate-200/90 p-0.5 rounded-lg flex items-center text-xs mr-1">
+                <button
+                  onClick={() => setDraftScopeFilter('all')}
+                  className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                    draftScopeFilter === 'all'
+                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ร่างทั้งหมด ({allDraftsCount})
+                </button>
+                <button
+                  onClick={() => setDraftScopeFilter('mine')}
+                  className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                    draftScopeFilter === 'mine'
+                      ? 'bg-white text-blue-700 shadow-2xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  เฉพาะของฉัน ({myDraftsCount})
+                </button>
+              </div>
+            )}
+
             {myDraftApps.length > 0 && (
               <>
                 <button
@@ -578,6 +622,27 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                             <span className="font-mono text-slate-400 text-[10px]">DOI: {draft.doi}</span>
                           )}
                         </div>
+
+                        {/* If draft has a returned tracking number, show badge */}
+                        {draft.trackingNo && draft.trackingNo !== 'DRAFT' && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 font-mono shadow-2xs" title="รายการนี้ถูกส่งคืนจากตารางคำขอเพื่อแก้ไข โดยจะคงรหัสเดิมเมื่อส่งเบิกใหม่">
+                              <RotateCcw className="w-2.5 h-2.5 text-amber-700" />
+                              <span>ส่งคืนแก้ไข (รหัสคำขอเดิม: {draft.trackingNo})</span>
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Researcher info if staff/admin viewing all */}
+                        {(isStaffOrAdmin || draftScopeFilter === 'all') && (
+                          <div className="text-[10px] text-slate-600 mt-1 flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 w-fit">
+                            <span className="text-slate-400">ผู้ขอรับทุน:</span>
+                            <span className="font-semibold text-slate-800">{draft.applicantName || 'ไม่ระบุชื่อ'}</span>
+                            <span className="text-slate-400">•</span>
+                            <span>{draft.department || 'คณะแพทยศาสตร์'}</span>
+                          </div>
+                        )}
+
                         {/* Status Check (มน. & คณะ ทั้งปีเก่า 2568, 2569 และปีปัจจุบัน 2570) */}
                         {(() => {
                           const priorClaim = checkArticlePriorClaim(draft.articleTitle, draft.doi, nuDisbursements);
@@ -651,43 +716,69 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
 
                       {/* Action buttons */}
                       <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {/* Submit Now */}
-                          <button
-                            onClick={() => onSubmitDraft(draft)}
-                            title="ส่งคำขอออนไลน์เข้าระบบตรวจเอกสารทันที"
-                            className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors cursor-pointer"
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                          </button>
+                        {(() => {
+                          const canEditThisDraft = isStaffOrAdmin || isMyApplication(draft);
 
-                          {/* Edit Draft */}
-                          <button
-                            onClick={() => onEditDraft(draft)}
-                            title="แก้ไขข้อมูลบทความนี้"
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
+                          return (
+                            <div className="flex items-center justify-center gap-1.5">
+                              {/* Submit Now */}
+                              <button
+                                onClick={() => canEditThisDraft && onSubmitDraft(draft)}
+                                disabled={!canEditThisDraft}
+                                title={canEditThisDraft ? "ส่งคำขอออนไลน์เข้าระบบตรวจเอกสารทันที" : "นักวิจัยสามารถส่งคำขอได้เฉพาะของตนเองเท่านั้น"}
+                                className={`p-1.5 rounded-lg border transition-colors ${
+                                  canEditThisDraft 
+                                    ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 cursor-pointer'
+                                    : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
+                                }`}
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                              </button>
 
-                          {/* Carry-over to Next Fiscal Year */}
-                          <button
-                            onClick={() => onCarryOverDraft(draft.id, (draft.fiscalYear || selectedFiscalYear) + 1)}
-                            title={`เลื่อนไปเบิกปีงบประมาณถัดไป (${(draft.fiscalYear || selectedFiscalYear) + 1})`}
-                            className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-colors cursor-pointer"
-                          >
-                            <CalendarDays className="w-3.5 h-3.5" />
-                          </button>
+                              {/* Edit Draft */}
+                              <button
+                                onClick={() => canEditThisDraft && onEditDraft(draft)}
+                                disabled={!canEditThisDraft}
+                                title={canEditThisDraft ? "แก้ไขข้อมูลบทความนี้" : "นักวิจัยสามารถแก้ไขได้เฉพาะคำขอของตนเองเท่านั้น"}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  canEditThisDraft
+                                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer'
+                                    : 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-50'
+                                }`}
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
 
-                          {/* Delete Draft */}
-                          <button
-                            onClick={() => onDeleteDraft(draft.id)}
-                            title="ลบร่างบทความนี้"
-                            className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                              {/* Carry-over to Next Fiscal Year */}
+                              <button
+                                onClick={() => canEditThisDraft && onCarryOverDraft(draft.id, (draft.fiscalYear || selectedFiscalYear) + 1)}
+                                disabled={!canEditThisDraft}
+                                title={canEditThisDraft ? `เลื่อนไปเบิกปีงบประมาณถัดไป (${(draft.fiscalYear || selectedFiscalYear) + 1})` : "นักวิจัยสามารถจัดการได้เฉพาะคำขอของตนเอง"}
+                                className={`p-1.5 rounded-lg border transition-colors ${
+                                  canEditThisDraft
+                                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 cursor-pointer'
+                                    : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
+                                }`}
+                              >
+                                <CalendarDays className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Delete Draft */}
+                              <button
+                                onClick={() => canEditThisDraft && onDeleteDraft(draft.id)}
+                                disabled={!canEditThisDraft}
+                                title={canEditThisDraft ? "ลบร่างบทความนี้" : "นักวิจัยสามารถจัดการได้เฉพาะคำขอของตนเอง"}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  canEditThisDraft
+                                    ? 'hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer'
+                                    : 'text-slate-300 cursor-not-allowed opacity-40'
+                                }`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );
