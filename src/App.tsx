@@ -873,6 +873,8 @@ export default function App() {
             onViewApplication={(app) => setTimelineApp(app)}
             onPrintApplication={(app) => setPrintApp(app)}
             onOpenNewSubmission={handleOpenNewSubmission}
+            onUpdateNuRecord={handleUpdateNuRecord}
+            onUpdateFacultyApp={handleSaveTableRow}
           />
         )}
 

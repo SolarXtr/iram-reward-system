@@ -23,10 +23,12 @@ import {
   Info,
   DollarSign,
   PlusCircle,
-  X
+  X,
+  Pencil
 } from 'lucide-react';
 import { NuDisbursementRecord, ResearchApplication, UserProfile, UserRole } from '../types';
 import { formatBaht } from '../data/regulations';
+import { ArticleMasterEditModal } from './ArticleMasterEditModal';
 
 export interface UnifiedArticleRow {
   id: string;
@@ -88,6 +90,8 @@ interface ArticleMasterTableProps {
   onViewApplication?: (app: ResearchApplication) => void;
   onPrintApplication?: (app: ResearchApplication) => void;
   onOpenNewSubmission?: () => void;
+  onUpdateNuRecord?: (updated: NuDisbursementRecord) => void;
+  onUpdateFacultyApp?: (updated: ResearchApplication) => void;
 }
 
 // Normalizer for fuzzy matching titles
@@ -104,6 +108,8 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
   onViewApplication,
   onPrintApplication,
   onOpenNewSubmission,
+  onUpdateNuRecord,
+  onUpdateFacultyApp,
 }) => {
   // Filters & State
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -117,8 +123,9 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
   const [sortField, setSortField] = useState<'fiscalYear' | 'articleTitle' | 'researcherName' | 'grandTotalAmount' | 'category'>('fiscalYear');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  // Detail Modal
+  // Detail Modal & Edit Modal
   const [selectedArticle, setSelectedArticle] = useState<UnifiedArticleRow | null>(null);
+  const [editingArticle, setEditingArticle] = useState<UnifiedArticleRow | null>(null);
 
   // Check roles
   const canViewAll = ['admin', 'coordinator', 'executive', 'finance'].includes(currentRole);
@@ -734,6 +741,22 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
         </div>
       </div>
 
+      {/* Admin Mode Guide Banner */}
+      {currentRole === 'admin' && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/90 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-blue-900 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0"></span>
+            <span className="font-bold font-prompt text-blue-950">สิทธิ์ผู้ดูแลระบบ (Admin Edit Enabled):</span>
+            <span className="text-blue-800">
+              ท่านสามารถคลิกไอคอนดินสอ <span className="inline-flex items-center gap-1 font-bold bg-white text-blue-700 px-1.5 py-0.5 rounded border border-blue-300 shadow-2xs"><Pencil className="w-3 h-3" /> แก้ไข</span> ในคอลัมน์ "จัดการ" เพื่อปรับปรุงสถานะ เลขฎีกา วันที่โอน และยอดเงิน ทั้ง มน. และ คณะฯ ได้โดยตรง
+            </span>
+          </div>
+          <span className="text-[10px] text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full font-mono shrink-0">
+            Cloudflare D1 & Cache Sync
+          </span>
+        </div>
+      )}
+
       {/* 4. Main Master Article Table */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -818,7 +841,7 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
                   </div>
                 </th>
 
-                <th className="py-3 px-2 w-16 text-center">ดูข้อมูล</th>
+                <th className="py-3 px-2 w-20 text-center">จัดการ</th>
               </tr>
             </thead>
 
@@ -1030,13 +1053,24 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
 
                       {/* 10. Actions */}
                       <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                        <button
-                          onClick={() => setSelectedArticle(art)}
-                          className="p-1.5 text-slate-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                          title="ดูรายละเอียดข้อมูลการเบิกจ่าย"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => setSelectedArticle(art)}
+                            className="p-1.5 text-slate-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                            title="ดูรายละเอียดข้อมูลการเบิกจ่าย"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {currentRole === 'admin' && (
+                            <button
+                              onClick={() => setEditingArticle(art)}
+                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer border border-blue-200 shadow-2xs"
+                              title="แก้ไขข้อมูลการเบิกจ่าย (สถานะ มน. และ คณะฯ)"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1196,6 +1230,19 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
 
             {/* Actions in Modal */}
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              {currentRole === 'admin' && (
+                <button
+                  onClick={() => {
+                    const toEdit = selectedArticle;
+                    setSelectedArticle(null);
+                    setEditingArticle(toEdit);
+                  }}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs mr-auto"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span>แก้ไขข้อมูล มน. และ คณะฯ</span>
+                </button>
+              )}
               {selectedArticle.rawApp && onPrintApplication && (
                 <button
                   onClick={() => {
@@ -1230,6 +1277,25 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
 
           </div>
         </div>
+      )}
+
+      {/* 6. Admin Edit Modal */}
+      {currentRole === 'admin' && editingArticle && (
+        <ArticleMasterEditModal
+          isOpen={!!editingArticle}
+          onClose={() => setEditingArticle(null)}
+          article={editingArticle}
+          onSaveNu={(updatedNu) => {
+            if (onUpdateNuRecord) {
+              onUpdateNuRecord(updatedNu);
+            }
+          }}
+          onSaveFaculty={(updatedApp) => {
+            if (onUpdateFacultyApp) {
+              onUpdateFacultyApp(updatedApp);
+            }
+          }}
+        />
       )}
 
     </div>
