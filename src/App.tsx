@@ -984,14 +984,9 @@ export default function App() {
       <footer className="bg-white border-t border-slate-200 py-6 text-xs text-slate-500 mt-auto">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-700">คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</span>
+            <span className="font-semibold text-slate-700">งานวิจัย คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</span>
             <span>•</span>
-            <span>งานวิจัยและบริการวิชาการ (โทร. 0-5596-7844)</span>
-          </div>
-          <div className="flex items-center gap-4 text-slate-400">
-            <span>ประกาศฯ ลงวันที่ 27 พฤษภาคม พ.ศ. 2567</span>
-            <span>•</span>
-            <span>เชื่อมต่อ Cloudflare D1 & LINE OA</span>
+            <span>หน่วยบริหารและจัดการงานวิจัย (โทร. 0-5596-7928)</span>
           </div>
         </div>
       </footer>

@@ -207,19 +207,17 @@ export const Header: React.FC<HeaderProps> = ({
             {isGuest ? null : (
               /* AUTHENTICATED MODE: Role switcher, Profile, D1, Submission, Logout */
               <>
-                {/* Search input: Show for coordinator, finance, executive, admin (hide for researcher to keep clean) */}
-                {currentRole !== 'researcher' && (
-                  <div className="relative hidden md:block w-48 lg:w-56">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="ค้นหา AWP.., ชื่อ, วารสาร..."
-                      className="w-full pl-9 pr-3 py-1.5 bg-slate-800/90 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-                    />
-                  </div>
-                )}
+                {/* Search input: Show for ALL users */}
+                <div className="relative hidden md:block w-48 lg:w-56">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="ค้นหา AWP.., ชื่อ, วารสาร..."
+                    className="w-full pl-9 pr-3 py-1.5 bg-slate-800/90 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
+                  />
+                </div>
 
                 {/* Role Switcher: Only display if account has multiple roles or is Admin */}
                 {(userRoles.length > 1 || isProfileAdmin) && (
@@ -296,6 +294,18 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 )}
 
+                {/* Cloudflare D1 Connection Status: Show for Admin */}
+                {currentRole === 'admin' && (
+                  <div
+                    className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/70 text-emerald-300 border border-emerald-700/60 shadow-xs text-xs"
+                    title="เชื่อมต่อฐานข้อมูล Cloudflare D1 (iram-db) เรียบร้อยแล้ว"
+                  >
+                    <Database className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="font-medium">Cloudflare D1</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse" />
+                  </div>
+                )}
+
                 {/* User Profile / SSO Account Button */}
                 <button
                   onClick={onOpenProfile}
@@ -315,18 +325,6 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 </button>
-
-                {/* Primary Action Button: Show for Researcher and Coordinator only (Hidden for Admin/Finance/Executive) */}
-                {(currentRole === 'researcher' || currentRole === 'coordinator') && (
-                  <button
-                    id="btn-new-submission"
-                    onClick={onOpenNewSubmission}
-                    className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold px-3 py-1.5 rounded-lg text-xs shadow-md transition-all transform active:scale-95"
-                  >
-                    <PlusCircle className="w-4 h-4 text-slate-950" />
-                    <span className="hidden sm:inline">ยื่นคำขอใหม่</span>
-                  </button>
-                )}
 
                 {/* Logout Button */}
                 <button
