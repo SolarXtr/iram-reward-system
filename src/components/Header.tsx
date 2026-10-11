@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   FileText, 
@@ -82,6 +82,13 @@ export const Header: React.FC<HeaderProps> = ({
     ? currentUser.roles 
     : (currentUser?.role ? [currentUser.role] : ['researcher']);
   const isProfileAdmin = userRoles.includes('admin') || currentUser?.role === 'admin';
+
+  // Mobile & Tablet collapsible menu state for non-admin roles
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [currentRole]);
 
   // Nav Tabs Definition for all roles
   interface NavTabDef {
@@ -396,35 +403,107 @@ export const Header: React.FC<HeaderProps> = ({
                     </span>
                   </button>
                 ) : (
-                  /* Non-Admin Roles: Show normal tabs */
-                  <nav className="flex items-center space-x-1 text-xs overflow-x-auto scrollbar-none py-0.5">
-                    {availableTabs.map((tab) => {
-                      const isActive = activeTab === tab.id;
-                      const Icon = tab.icon;
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer ${
-                            isActive
-                              ? 'bg-slate-800 text-amber-400 border border-slate-700 shadow-xs font-semibold'
-                              : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                          }`}
-                          title={tab.label}
-                        >
-                          <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
-                          <span>{tab.shortLabel}</span>
-                          {tab.badge && (
-                            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold border shrink-0 ${tab.badgeColor || 'bg-amber-500/20 text-amber-300 border-amber-500/30'}`}>
-                              {tab.badge}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </nav>
+                  /* Non-Admin Roles: Show normal tabs on PC, and collapsible button on Tablet/Mobile */
+                  <>
+                    {/* PC Screen (lg+): Display normal horizontal tabs on header as before */}
+                    <nav className="hidden lg:flex items-center space-x-1 text-xs overflow-x-auto scrollbar-none py-0.5">
+                      {availableTabs.map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        const Icon = tab.icon;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer ${
+                              isActive
+                                ? 'bg-slate-800 text-amber-400 border border-slate-700 shadow-xs font-semibold'
+                                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                            }`}
+                            title={tab.label}
+                          >
+                            <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
+                            <span>{tab.shortLabel}</span>
+                            {tab.badge && (
+                              <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold border shrink-0 ${tab.badgeColor || 'bg-amber-500/20 text-amber-300 border-amber-500/30'}`}>
+                                {tab.badge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </nav>
+
+                    {/* Tablet/Mobile Screen (< lg): Collapsible toggle button */}
+                    <button
+                      onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                      className={`lg:hidden flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 shadow-xs cursor-pointer ${
+                        isMobileMenuOpen
+                          ? 'bg-amber-600 text-white border border-amber-500 shadow-md ring-2 ring-amber-500/30'
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-amber-500/40'
+                      }`}
+                      title={isMobileMenuOpen ? 'ย่อเมนู' : 'ขยายเมนู'}
+                    >
+                      <Menu className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span className="font-prompt">เมนู</span>
+                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-900 text-amber-300 border border-amber-500/30 font-mono shrink-0">
+                        {availableTabs.length}
+                      </span>
+                      <span className="text-[10px] text-amber-300 ml-0.5">
+                        {isMobileMenuOpen ? '▲' : '▼'}
+                      </span>
+                    </button>
+                  </>
                 )}
 
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Collapsible Mobile / Tablet Menu Panel for Non-Admin Roles */}
+        {!isGuest && currentRole !== 'admin' && isMobileMenuOpen && (
+          <div className="lg:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-150 shadow-xl">
+            <div className="max-w-[1600px] mx-auto">
+              <div className="text-[11px] font-semibold text-slate-400 mb-2 font-prompt flex items-center justify-between">
+                <span>เลือกเมนูการทำงาน:</span>
+                <span className="text-[10px] text-slate-400">ทั้งหมด {availableTabs.length} เมนู</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {availableTabs.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-amber-500/15 border border-amber-500/50 text-amber-300 font-semibold shadow-xs'
+                          : 'bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`p-1.5 rounded-lg shrink-0 ${
+                          isActive ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs truncate">{tab.label}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{tab.description}</div>
+                        </div>
+                      </div>
+                      {tab.badge && (
+                        <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[9px] font-bold border shrink-0 ${tab.badgeColor || 'bg-amber-500/20 text-amber-300 border-amber-500/30'}`}>
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
