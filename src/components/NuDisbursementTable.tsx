@@ -65,8 +65,8 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
   // สิทธิ์การมองเห็นข้อมูลทั้งหมดของคณะแพทยศาสตร์ (Admin, Coordinator, Executive, Finance)
   const canViewAll = ['admin', 'coordinator', 'executive', 'finance'].includes(currentRole);
 
-  // สิทธิ์การนำเข้าและแก้ไขข้อมูล (Admin และ Coordinator เท่านั้น)
-  const canEdit = currentRole === 'admin' || currentRole === 'coordinator';
+  // สิทธิ์การนำเข้าและแก้ไขข้อมูล (เฉพาะผู้ดูแลระบบ Admin เท่านั้น)
+  const canEdit = currentRole === 'admin';
 
   // Role Scoping: Researcher sees only their own articles; Admin/Coordinator/Executive/Finance see all
   const scopedRecords = useMemo(() => {
@@ -409,8 +409,6 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                   </div>
                 </th>
 
-                <th className="py-3 px-3 w-32 text-center">สถานะ มน.</th>
-
                 {/* Sortable: ยอดรวม มน. */}
                 <th 
                   onClick={() => handleSort('totalAmount')}
@@ -426,6 +424,8 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                     )}
                   </div>
                 </th>
+
+                <th className="py-3 px-3 w-32 text-center">สถานะ มน.</th>
 
                 {/* Sortable: ยอดรวม คณะฯ */}
                 <th 
@@ -494,13 +494,14 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                       <td className="py-2.5 px-3 text-slate-800 font-medium leading-tight">
                         {r.researcherName}
                       </td>
-                      <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                        {getStatusBadge(r)}
-                      </td>
-
                       {/* ยอดรวม มน. */}
                       <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800 whitespace-nowrap">
                         {r.totalAmount ? `฿${r.totalAmount.toLocaleString()}` : '-'}
+                      </td>
+
+                      {/* สถานะ มน. */}
+                      <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                        {getStatusBadge(r)}
                       </td>
 
                       {/* ยอดรวม คณะฯ */}
