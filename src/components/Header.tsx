@@ -182,9 +182,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-lg">
       {/* Top Banner / Identity Bar */}
-      <div className={`mx-auto px-4 sm:px-6 lg:px-8 transition-all ${
-        currentRole === 'admin' && isAdminMenuExpanded ? 'max-w-[1720px]' : 'max-w-7xl'
-      }`}>
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`flex items-center justify-between h-16 ${!isGuest ? 'border-b border-slate-800/80' : ''}`}>
           {/* Logo & University Title */}
           <div className="flex items-center gap-3.5">

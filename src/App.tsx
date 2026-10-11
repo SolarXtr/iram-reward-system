@@ -804,12 +804,10 @@ export default function App() {
       />
 
       {/* Main Workspace Canvas */}
-      <main className={`flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 transition-all ${
-        currentRole === 'admin' && isAdminMenuExpanded ? 'max-w-[1720px]' : 'max-w-7xl'
-      }`}>
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-start gap-6">
           {/* Main Content Area */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 transition-all duration-200">
             
             {/* Toast Alert */}
         {toastMessage && (
@@ -984,7 +982,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-6 text-xs text-slate-500 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</span>
             <span>•</span>
