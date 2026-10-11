@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Building2, 
   FileText, 
@@ -20,7 +20,13 @@ import {
   LogOut,
   LogIn,
   Sparkles,
-  BookOpen
+  BookOpen,
+  Menu,
+  X,
+  LayoutGrid,
+  ChevronRight,
+  PanelRightClose,
+  PanelRightOpen
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 import { LINE_NOTIFICATION_SYSTEM_ENABLED } from '../data/lineNotificationService';
@@ -46,6 +52,8 @@ interface HeaderProps {
   isSheetsConnected?: boolean;
   googleUser?: any;
   onGoogleSignIn?: () => void;
+  isAdminMenuExpanded?: boolean;
+  onToggleAdminMenu?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -66,12 +74,110 @@ export const Header: React.FC<HeaderProps> = ({
   isSheetsConnected = false,
   googleUser,
   onGoogleSignIn,
+  isAdminMenuExpanded = true,
+  onToggleAdminMenu,
 }) => {
   const isGuest = !currentUser;
   const userRoles: UserRole[] = currentUser?.roles && currentUser.roles.length > 0 
     ? currentUser.roles 
     : (currentUser?.role ? [currentUser.role] : ['researcher']);
   const isProfileAdmin = userRoles.includes('admin') || currentUser?.role === 'admin';
+
+  // Nav Tabs Definition for all roles
+  interface NavTabDef {
+    id: ActiveTab;
+    label: string;
+    shortLabel: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: string;
+    badgeColor?: string;
+    roles: UserRole[];
+  }
+
+  const allNavTabs: NavTabDef[] = [
+    {
+      id: 'dashboard',
+      label: currentRole === 'researcher' ? 'แดชบอร์ดคำขอของฉัน' :
+             currentRole === 'coordinator' ? 'แดชบอร์ดภาพรวมคณะ' :
+             currentRole === 'finance' ? 'แดชบอร์ดงานการเงิน' :
+             currentRole === 'executive' ? 'แดชบอร์ดสรุปผู้บริหาร' : 'แดชบอร์ดสรุปสถานะ',
+      shortLabel: 'แดชบอร์ด',
+      description: 'ภาพรวมสถิติและสถานะคำขอรับทุนทั้งหมด',
+      icon: LayoutDashboard,
+      roles: ['researcher', 'coordinator', 'finance', 'executive', 'admin'],
+    },
+    {
+      id: 'quota_planner',
+      label: 'เตรียมเบิกรางวัล & วงเงิน',
+      shortLabel: 'เตรียมเบิก & วงเงิน',
+      description: 'วางแผนเบิกรางวัลและเช็คสิทธิ์ 24 เดือน',
+      icon: Sparkles,
+      badge: draftsCount > 0 ? `${draftsCount} ร่าง` : undefined,
+      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+      roles: ['researcher', 'admin'],
+    },
+    {
+      id: 'article_table',
+      label: currentRole === 'researcher' ? 'ตารางบทความของฉัน' : 'ตารางบทความรวม (มน. & คณะ)',
+      shortLabel: 'ตารางบทความรวม',
+      description: 'ตารางบทความรวม 3 หมวด (มน. & คณะ)',
+      icon: BookOpen,
+      badge: 'ใหม่',
+      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+      roles: ['researcher', 'coordinator', 'finance', 'executive', 'admin'],
+    },
+    {
+      id: 'kanban',
+      label: 'ติดตามแบบลากวาง (Kanban)',
+      shortLabel: 'ติดตามแบบ Kanban',
+      description: 'กระดานติดตามงานและขั้นตอน 12 ระดับ',
+      icon: KanbanSquare,
+      roles: ['coordinator', 'admin'],
+    },
+    {
+      id: 'table',
+      label: currentRole === 'researcher' ? 'ตารางคำขอของฉัน' :
+             currentRole === 'coordinator' ? 'ตารางข้อมูลรวมทั้งคณะ' :
+             currentRole === 'finance' ? 'ตารางบันทึกเลขฎีกา/เงินโอน' :
+             currentRole === 'executive' ? 'ตารางสรุปคำขอ' : 'ตารางแก้ไขข้อมูลทั้งหมด',
+      shortLabel: 'ตารางข้อมูล',
+      description: 'ตารางจัดการและส่งออกข้อมูลทั้งหมด',
+      icon: TableProperties,
+      roles: ['researcher', 'coordinator', 'finance', 'executive', 'admin'],
+    },
+    {
+      id: 'calendar',
+      label: currentRole === 'researcher' ? 'ปฏิทินรอบเงินโอน' : 'ปฏิทินรอบเบิกจ่าย (Google Calendar)',
+      shortLabel: 'ปฏิทินรอบเบิกจ่าย',
+      description: 'ปฏิทินรอบเบิกจ่ายและการเงิน',
+      icon: Calendar,
+      roles: ['researcher', 'coordinator', 'finance', 'executive', 'admin'],
+    },
+    {
+      id: 'line_oa',
+      label: 'LINE OA (@414jvrca)',
+      shortLabel: 'LINE OA',
+      description: 'ระบบแจ้งเตือนผ่าน LINE Official Account',
+      icon: Bell,
+      badge: '4 Triggers',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      roles: LINE_NOTIFICATION_SYSTEM_ENABLED ? ['coordinator', 'admin'] : [],
+    },
+    {
+      id: 'user_management',
+      label: 'จัดการผู้ใช้งาน (Users)',
+      shortLabel: 'จัดการผู้ใช้งาน',
+      description: 'ระบบจัดการบัญชีผู้ใช้งาน และกำหนดสิทธิ์ (Admin Console)',
+      icon: Users,
+      badge: 'Admin',
+      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+      roles: ['admin'],
+    },
+  ];
+
+  const availableTabs = allNavTabs.filter(tab => tab.roles.includes(currentRole));
+  const activeTabItem = availableTabs.find(tab => tab.id === activeTab) || availableTabs[0];
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-lg">
@@ -210,20 +316,8 @@ export const Header: React.FC<HeaderProps> = ({
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 </button>
 
-                {/* Cloudflare D1 Database Connection Status: Show ONLY for Admin */}
-                {currentRole === 'admin' && (
-                  <div
-                    className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-emerald-950/70 text-emerald-300 border-emerald-700/60 shadow-sm text-xs"
-                    title="เชื่อมต่อฐานข้อมูล Cloudflare D1 (iram-db) เรียบร้อยแล้ว"
-                  >
-                    <Database className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="font-medium">Cloudflare D1</span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
-                  </div>
-                )}
-
-                {/* Primary Action Button: Show for Researcher, Coordinator, Admin (Hide for Finance & Executive) */}
-                {(currentRole === 'researcher' || currentRole === 'coordinator' || currentRole === 'admin') && (
+                {/* Primary Action Button: Show for Researcher and Coordinator only (Hidden for Admin/Finance/Executive) */}
+                {(currentRole === 'researcher' || currentRole === 'coordinator') && (
                   <button
                     id="btn-new-submission"
                     onClick={onOpenNewSubmission}
@@ -249,163 +343,91 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Navigation Tabs Bar: Only rendered for authenticated users */}
         {!isGuest && (
-          <div className="flex items-center justify-between overflow-x-auto py-2 scrollbar-none">
-            <nav className="flex items-center space-x-1 sm:space-x-2 text-xs">
-              {/* Tab 1: Dashboard (All Roles) */}
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'dashboard'
-                    ? 'bg-slate-800 text-amber-400 border border-slate-700'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                <span>
-                  {currentRole === 'researcher' && 'แดชบอร์ดคำขอของฉัน'}
-                  {currentRole === 'coordinator' && 'แดชบอร์ดภาพรวมคณะ'}
-                  {currentRole === 'finance' && 'แดชบอร์ดงานการเงิน'}
-                  {currentRole === 'executive' && 'แดชบอร์ดสรุปผู้บริหาร'}
-                  {currentRole === 'admin' && 'แดชบอร์ดสรุปสถานะ'}
-                </span>
-              </button>
-
-              {/* Tab: Quota Planner (เตรียมเบิกรางวัล & ตรวจสอบวงเงิน - Researcher & Admin) */}
-              {(currentRole === 'researcher' || currentRole === 'admin') && (
-                <button
-                  onClick={() => setActiveTab('quota_planner')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                    activeTab === 'quota_planner'
-                      ? 'bg-slate-800 text-amber-400 border border-slate-700'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>เตรียมเบิกรางวัล & วงเงิน</span>
-                  {draftsCount > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      {draftsCount} ร่าง
-                    </span>
+          <div className="py-2 border-t border-slate-800/80">
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              
+              {/* Left Side: Active Page Context & Compact Role Pill */}
+              <div className="flex items-center gap-2 min-w-0 shrink-0">
+                <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/80 text-xs shrink-0 shadow-xs">
+                  {activeTabItem && (
+                    <>
+                      <activeTabItem.icon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="text-slate-400 font-medium text-[11px] hidden sm:inline">หน้าปัจจุบัน:</span>
+                      <span className="font-semibold text-amber-300 truncate max-w-[150px] sm:max-w-[240px]">
+                        {activeTabItem.label}
+                      </span>
+                    </>
                   )}
-                </button>
-              )}
+                </div>
 
-              {/* Tab: Article Master Table (All Roles - Researcher sees own, Staff sees all) */}
-              <button
-                onClick={() => setActiveTab('article_table')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'article_table'
-                    ? 'bg-slate-800 text-amber-400 border border-slate-700'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <BookOpen className="w-4 h-4 text-amber-400" />
-                <span>
-                  {currentRole === 'researcher' ? 'ตารางบทความของฉัน' : 'ตารางบทความรวม (มน. & คณะ)'}
-                </span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  ใหม่
-                </span>
-              </button>
-
-              {/* Tab 2: Kanban (Coordinator and Admin ONLY) */}
-              {(currentRole === 'coordinator' || currentRole === 'admin') && (
-                <button
-                  onClick={() => setActiveTab('kanban')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                    activeTab === 'kanban'
-                      ? 'bg-slate-800 text-amber-400 border border-slate-700'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-                  }`}
-                >
-                  <KanbanSquare className="w-4 h-4" />
-                  <span>ติดตามแบบลากวาง (Kanban)</span>
-                </button>
-              )}
-
-              {/* Tab 3: Table View (All Roles) */}
-              <button
-                onClick={() => setActiveTab('table')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'table'
-                    ? 'bg-slate-800 text-amber-400 border border-slate-700'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <TableProperties className="w-4 h-4" />
-                <span>
-                  {currentRole === 'researcher' && 'ตารางคำขอของฉัน'}
-                  {currentRole === 'coordinator' && 'ตารางข้อมูลรวมทั้งคณะ'}
-                  {currentRole === 'finance' && 'ตารางบันทึกเลขฎีกา/เงินโอน'}
-                  {currentRole === 'executive' && 'ตารางสรุปคำขอ'}
-                  {currentRole === 'admin' && 'ตารางแก้ไขข้อมูลทั้งหมด'}
-                </span>
-              </button>
-
-              {/* Tab 4: Calendar (All Roles) */}
-              <button
-                onClick={() => setActiveTab('calendar')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                  activeTab === 'calendar'
-                    ? 'bg-slate-800 text-amber-400 border border-slate-700'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <Calendar className="w-4 h-4" />
-                <span>
-                  {currentRole === 'researcher' ? 'ปฏิทินรอบเงินโอน' : 'ปฏิทินรอบเบิกจ่าย (Google Calendar)'}
-                </span>
-              </button>
-
-              {/* Tab 5: LINE OA (Coordinator and Admin ONLY - แสดงเฉพาะเมื่อเปิดใช้งานระบบ) */}
-              {(LINE_NOTIFICATION_SYSTEM_ENABLED && (currentRole === 'coordinator' || currentRole === 'admin')) && (
-                <button
-                  onClick={() => setActiveTab('line_oa')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                    activeTab === 'line_oa'
-                      ? 'bg-slate-800 text-emerald-400 border border-emerald-500/40'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-                  }`}
-                >
-                  <Bell className="w-4 h-4 text-emerald-400" />
-                  <span>LINE OA (@414jvrca)</span>
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    4 Triggers
+                {/* Role Status (Clean, Non-squished!) */}
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 text-slate-400 text-[11px] border border-slate-800 shrink-0 whitespace-nowrap">
+                  <UserCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>สิทธิ์:</span>
+                  <span className="font-semibold text-slate-200">
+                    {currentRole === 'researcher' && 'นักวิจัย'}
+                    {currentRole === 'coordinator' && 'เจ้าหน้าที่วิจัย'}
+                    {currentRole === 'finance' && 'การเงิน'}
+                    {currentRole === 'executive' && 'ผู้บริหาร'}
+                    {currentRole === 'admin' && 'ผู้ดูแลระบบ (Admin)'}
                   </span>
-                </button>
-              )}
+                </div>
+              </div>
 
-              {/* Tab 6: User Management (Admin ONLY) */}
-              {currentRole === 'admin' && (
-                <button
-                  onClick={() => setActiveTab('user_management')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
-                    activeTab === 'user_management'
-                      ? 'bg-slate-800 text-purple-400 border border-purple-500/50'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-                  }`}
-                  title="ระบบจัดการบัญชีผู้ใช้งาน และกำหนดสิทธิ์ (Admin Console)"
-                >
-                  <Users className="w-4 h-4 text-purple-400" />
-                  <span>จัดการผู้ใช้งาน (Users)</span>
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    Admin
-                  </span>
-                </button>
-              )}
-            </nav>
+              {/* Right Side: Tab Menu Controls */}
+              <div className="flex items-center gap-1.5 ml-auto shrink-0 justify-end">
+                
+                {currentRole === 'admin' ? (
+                  /* Admin Role: Show ONLY the Admin Menu button on the right (No duplicate tabs, No separate collapse button) */
+                  <button
+                    onClick={onToggleAdminMenu}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 shadow-sm cursor-pointer ${
+                      isAdminMenuExpanded
+                        ? 'bg-purple-600 text-white border border-purple-400 shadow-md ring-2 ring-purple-500/30'
+                        : 'bg-slate-800 hover:bg-slate-700 text-purple-200 border border-purple-500/40 hover:border-purple-400/70 hover:text-white'
+                    }`}
+                    title={isAdminMenuExpanded ? 'คลิกเพื่อย่อเมนูผู้ดูแลระบบ' : 'คลิกเพื่อขยายเมนูผู้ดูแลระบบ'}
+                  >
+                    <Menu className="w-4 h-4 text-purple-200 shrink-0" />
+                    <span className="font-prompt">เมนูผู้ดูแลระบบ</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-950 text-purple-200 border border-purple-400/40 font-mono shrink-0">
+                      {availableTabs.length}
+                    </span>
+                    <span className="text-[10px] text-purple-200 ml-0.5">
+                      {isAdminMenuExpanded ? '▼' : '◀'}
+                    </span>
+                  </button>
+                ) : (
+                  /* Non-Admin Roles: Show normal tabs */
+                  <nav className="flex items-center space-x-1 text-xs overflow-x-auto scrollbar-none py-0.5">
+                    {availableTabs.map((tab) => {
+                      const isActive = activeTab === tab.id;
+                      const Icon = tab.icon;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer ${
+                            isActive
+                              ? 'bg-slate-800 text-amber-400 border border-slate-700 shadow-xs font-semibold'
+                              : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                          }`}
+                          title={tab.label}
+                        >
+                          <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
+                          <span>{tab.shortLabel}</span>
+                          {tab.badge && (
+                            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold border shrink-0 ${tab.badgeColor || 'bg-amber-500/20 text-amber-300 border-amber-500/30'}`}>
+                              {tab.badge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </nav>
+                )}
 
-            {/* Current User Role Badge */}
-            <div className="hidden lg:flex items-center gap-2 text-xs text-slate-400 pl-4 border-l border-slate-800">
-              <UserCheck className="w-4 h-4 text-amber-400" />
-              <span>สิทธิ์ปัจจุบัน:</span>
-              <span className="font-semibold text-slate-200">
-                {currentRole === 'researcher' && 'เจ้าหน้าที่วิจัย/นักวิจัย (ขอรับทุน)'}
-                {currentRole === 'coordinator' && 'ผู้ประสานงานวิจัย (ตรวจเอกสาร)'}
-                {currentRole === 'finance' && 'เจ้าหน้าที่การเงิน (เบิกจ่าย)'}
-                {currentRole === 'executive' && 'ผู้บริหาร (หัวหน้าภาค / รองคณบดี / คณบดี)'}
-                {currentRole === 'admin' && 'ผู้ดูแลระบบ (Admin - ตรวจสอบและบริหารจัดการทุกสิทธิ์)'}
-              </span>
+              </div>
             </div>
           </div>
         )}

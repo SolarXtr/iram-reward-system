@@ -5,6 +5,7 @@ import { QuotaPlannerView } from './components/QuotaPlannerView';
 import { KanbanBoard } from './components/KanbanBoard';
 import { TableView } from './components/TableView';
 import { ArticleMasterTable } from './components/ArticleMasterTable';
+import { AdminRightSideMenu } from './components/AdminRightSideMenu';
 import { CalendarView } from './components/CalendarView';
 import { LineNotificationModal } from './components/LineNotificationModal';
 import { SubmissionFormModal } from './components/SubmissionFormModal';
@@ -732,6 +733,25 @@ export default function App() {
     return true;
   }).length;
 
+  // Admin right-side docked menu expanded state
+  const [isAdminMenuExpanded, setIsAdminMenuExpanded] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('iram_admin_menu_expanded');
+      if (saved !== null) return saved === 'true';
+    } catch (e) {}
+    return true; // Default to expanded: "แสดงรายการเมนู แบบขยาย"
+  });
+
+  const handleToggleAdminMenu = () => {
+    setIsAdminMenuExpanded(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('iram_admin_menu_expanded', String(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900">
       
@@ -755,12 +775,19 @@ export default function App() {
         }}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
+        isAdminMenuExpanded={isAdminMenuExpanded}
+        onToggleAdminMenu={handleToggleAdminMenu}
       />
 
       {/* Main Workspace Canvas */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        
-        {/* Toast Alert */}
+      <main className={`flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 transition-all ${
+        currentRole === 'admin' && isAdminMenuExpanded ? 'max-w-[1720px]' : 'max-w-7xl'
+      }`}>
+        <div className="flex items-start gap-6">
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0">
+            
+            {/* Toast Alert */}
         {toastMessage && (
           <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -906,6 +933,22 @@ export default function App() {
             </button>
           </div>
         ) : null}
+
+          </div>
+
+          {/* Right-Side Admin Menu (Docked side-by-side, NOT a floating modal) */}
+          {currentRole === 'admin' && isAdminMenuExpanded && !isGuest && (
+            <aside className="w-72 xl:w-80 shrink-0 sticky top-20 self-start animate-in fade-in slide-in-from-right-3 duration-150">
+              <AdminRightSideMenu
+                activeTab={activeTab}
+                setActiveTab={handleTabChange}
+                draftsCount={myDraftsCount}
+                currentUser={currentUser}
+                onCollapse={handleToggleAdminMenu}
+              />
+            </aside>
+          )}
+        </div>
 
       </main>
 
