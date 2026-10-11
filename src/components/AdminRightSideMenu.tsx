@@ -99,9 +99,9 @@ export const AdminRightSideMenu: React.FC<AdminRightSideMenuProps> = ({
   ];
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden font-sans text-white">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden font-sans text-white flex flex-col max-h-full">
       {/* Header */}
-      <div className="p-4 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between">
+      <div className="p-4 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center p-0.5 shadow-sm">
             <Crown className="w-4 h-4 text-white" />
@@ -127,7 +127,7 @@ export const AdminRightSideMenu: React.FC<AdminRightSideMenuProps> = ({
       </div>
 
       {/* Menu List */}
-      <div className="p-2 space-y-1 max-h-[calc(100vh-16rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
+      <div className="p-2 space-y-1 flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
         {adminMenuItems.map((item) => {
           const isActive = activeTab === item.id;
           const Icon = item.icon;

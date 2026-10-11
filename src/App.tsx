@@ -752,6 +752,30 @@ export default function App() {
     });
   };
 
+  // Measure header height dynamically to ensure sticky right-side admin menu is NEVER covered by sticky header
+  const [headerHeight, setHeaderHeight] = useState<number>(114);
+
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      const headerEl = document.querySelector('header');
+      if (headerEl) {
+        setHeaderHeight(headerEl.offsetHeight);
+      }
+    };
+    updateHeaderHeight();
+    window.addEventListener('resize', updateHeaderHeight);
+    const headerEl = document.querySelector('header');
+    let observer: ResizeObserver | null = null;
+    if (headerEl && typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(updateHeaderHeight);
+      observer.observe(headerEl);
+    }
+    return () => {
+      window.removeEventListener('resize', updateHeaderHeight);
+      if (observer) observer.disconnect();
+    };
+  }, [currentRole, isAdminMenuExpanded]);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900">
       
@@ -938,7 +962,13 @@ export default function App() {
 
           {/* Right-Side Admin Menu (Docked side-by-side, NOT a floating modal) */}
           {currentRole === 'admin' && isAdminMenuExpanded && !isGuest && (
-            <aside className="w-72 xl:w-80 shrink-0 sticky top-20 self-start animate-in fade-in slide-in-from-right-3 duration-150">
+            <aside 
+              className="w-72 xl:w-80 shrink-0 sticky top-[138px] self-start animate-in fade-in slide-in-from-right-3 duration-150 z-30"
+              style={{
+                top: `${headerHeight + 24}px`,
+                maxHeight: `calc(100vh - ${headerHeight + 36}px)`,
+              }}
+            >
               <AdminRightSideMenu
                 activeTab={activeTab}
                 setActiveTab={handleTabChange}
