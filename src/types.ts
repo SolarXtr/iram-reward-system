@@ -247,6 +247,7 @@ export interface UserProfile {
   roles?: UserRole[]; // e.g. ['researcher', 'coordinator', 'admin']
   isNuAccount: boolean;
   status?: 'active' | 'suspended';
+  isPendingProfile?: boolean; // ผู้ใช้ใหม่ที่รอเปิดสิทธิ์นักวิจัยและยืนยันข้อมูลสังกัด
   createdAt?: string;
   lastLoginAt?: string;
 }

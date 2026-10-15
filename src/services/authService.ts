@@ -109,6 +109,7 @@ export function processNuGoogleLogin(googleUser: {
     roles: ['researcher'],
     isNuAccount: true,
     status: 'active',
+    isPendingProfile: true, // ผู้ใช้ใหม่ รอเปิดสิทธิ์และยืนยันข้อมูลสังกัด
     createdAt: new Date().toISOString().split('T')[0],
     lastLoginAt: new Date().toISOString(),
   };

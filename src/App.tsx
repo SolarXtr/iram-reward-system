@@ -15,6 +15,7 @@ import { PaymentVerificationModal } from './components/PaymentVerificationModal'
 import { UserProfileModal } from './components/UserProfileModal';
 import { UserManagementView } from './components/UserManagementView';
 import { LoginModal } from './components/LoginModal';
+import { ResearcherActivationModal } from './components/ResearcherActivationModal';
 import { INITIAL_APPLICATIONS, OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
 import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, ResearchApplication, UserProfile, WorkflowStepId, NuDisbursementRecord } from './types';
 import { generateNextTrackingNo } from './data/regulations';
@@ -108,12 +109,20 @@ export default function App() {
   // Modals state
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isActivationModalOpen, setIsActivationModalOpen] = useState(false);
   const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
   const [timelineApp, setTimelineApp] = useState<ResearchApplication | null>(null);
   const [printApp, setPrintApp] = useState<ResearchApplication | null>(null);
   const [paymentApp, setPaymentApp] = useState<ResearchApplication | null>(null);
   const [editingDraftApp, setEditingDraftApp] = useState<ResearchApplication | null>(null);
   const [isLoadingD1, setIsLoadingD1] = useState(false);
+
+  // Auto-open Researcher Activation Modal if logged-in user is in Pending Profile state
+  useEffect(() => {
+    if (currentUser?.isPendingProfile) {
+      setIsActivationModalOpen(true);
+    }
+  }, [currentUser]);
 
   // Enforce Guest Mode to remain on dashboard tab
   useEffect(() => {
@@ -317,21 +326,59 @@ export default function App() {
     setCurrentAuthUser(user);
     setCurrentRole(user.role);
     setActiveTab('dashboard');
-    showToast(`ยินดีต้อนรับ ${user.name} (${user.email}) เข้าสู่ระบบในสิทธิ์: ${user.role}`);
+    if (user.isPendingProfile) {
+      setIsActivationModalOpen(true);
+      showToast(`ยินดีต้อนรับ ${user.name} กรุณากรอกข้อมูลส่วนบุคคลเพื่อเปิดสิทธิ์นักวิจัย`);
+    } else {
+      showToast(`ยินดีต้อนรับ ${user.name} (${user.email}) เข้าสู่ระบบในสิทธิ์: ${user.role}`);
+    }
   };
 
   const handleLogout = async () => {
     await logoutNuUser();
     setCurrentUser(null);
+    setIsActivationModalOpen(false);
     setCurrentRole('researcher');
     setActiveTab('dashboard');
     showToast('ออกจากระบบเรียบร้อยแล้ว เข้าสู่โหมดผู้เยี่ยมชมทั่วไป (Guest Mode)');
+  };
+
+  const handleActivateResearcher = async (updatedProfile: UserProfile) => {
+    // 1. Save locally and update state
+    const nextUsers = upsertRegisteredUser(updatedProfile);
+    setRegisteredUsers(nextUsers);
+    setCurrentUser(updatedProfile);
+    setCurrentAuthUser(updatedProfile);
+    saveStoredUserProfile(updatedProfile);
+    setCurrentRole('researcher');
+    setIsActivationModalOpen(false);
+
+    // 2. Synchronize to Cloudflare D1
+    try {
+      await createUserInD1(updatedProfile);
+      showToast(`✅ ยืนยันข้อมูลสังกัดและเปิดสิทธิ์นักวิจัยให้ ${updatedProfile.name} เรียบร้อยแล้ว!`);
+    } catch (err: any) {
+      console.warn('D1 user creation warning:', err);
+      // Attempt profile update fallback if user already existed in D1
+      try {
+        await updateUserProfileInD1(updatedProfile.id, updatedProfile);
+        showToast(`✅ อัปเดตข้อมูลสังกัดและเปิดสิทธิ์นักวิจัยลง Cloudflare D1 สำเร็จ`);
+      } catch (err2) {
+        console.error('D1 update fallback error:', err2);
+        showToast(`บันทึกข้อมูลในระบบเรียบร้อยแล้ว (ออฟไลน์โหมด)`);
+      }
+    }
   };
 
   const handleOpenNewSubmission = () => {
     if (!currentUser) {
       setIsLoginModalOpen(true);
       showToast('กรุณาเข้าสู่ระบบด้วย NU Account (@nu.ac.th) ก่อนยื่นคำขอรับทุน');
+      return;
+    }
+    if (currentUser.isPendingProfile) {
+      setIsActivationModalOpen(true);
+      showToast('กรุณากรอกข้อมูลส่วนบุคคลและเปิดสิทธิ์นักวิจัยก่อนยื่นคำขอรับทุน');
       return;
     }
     setEditingDraftApp(null);
@@ -909,6 +956,7 @@ export default function App() {
         onLogout={handleLogout}
         isAdminMenuExpanded={isAdminMenuExpanded}
         onToggleAdminMenu={handleToggleAdminMenu}
+        onOpenActivationModal={() => setIsActivationModalOpen(true)}
       />
 
       {/* Main Workspace Canvas */}
@@ -916,6 +964,40 @@ export default function App() {
         <div className="flex items-start gap-6">
           {/* Main Content Area */}
           <div className="flex-1 min-w-0 transition-all duration-200">
+
+            {/* Pending Researcher Verification Banner */}
+            {currentUser?.isPendingProfile && (
+              <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-200">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-bold flex items-center justify-center shrink-0 shadow-sm">
+                    <Bell className="w-5 h-5 text-slate-950" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm font-prompt text-amber-950">
+                      กรอกข้อมูลส่วนบุคคลให้ครบถ้วน / เปิดสิทธิ์ยื่นคำขอค่า page charge / เงินรางวัล
+                    </h4>
+                    <p className="text-xs text-amber-900/80 mt-0.5">
+                      โปรดยืนยันสังกัดภาควิชาและข้อมูลติดต่อเพื่อเปิดสิทธิ์นักวิจัยในการสร้างคำขอและบันทึกร่าง
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                  <button
+                    onClick={() => setIsActivationModalOpen(true)}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-md transition-all font-prompt cursor-pointer"
+                  >
+                    เปิดใช้งานสิทธิ์นักวิจัย
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="px-3 py-2 border border-amber-300 text-amber-900 hover:bg-amber-100/60 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                  >
+                    ยกเลิก (ออกจากระบบ)
+                  </button>
+                </div>
+              </div>
+            )}
             
             {/* Toast Alert */}
         {toastMessage && (
@@ -1178,6 +1260,16 @@ export default function App() {
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
       />
+
+      {/* MODAL 7: Researcher Activation Modal (Pending Approval / Self-Service Role) */}
+      {isActivationModalOpen && currentUser && (
+        <ResearcherActivationModal
+          isOpen={isActivationModalOpen}
+          currentUser={currentUser}
+          onActivate={handleActivateResearcher}
+          onLogout={handleLogout}
+        />
+      )}
 
     </div>
   );

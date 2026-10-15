@@ -54,6 +54,7 @@ interface HeaderProps {
   onGoogleSignIn?: () => void;
   isAdminMenuExpanded?: boolean;
   onToggleAdminMenu?: () => void;
+  onOpenActivationModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -76,6 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
   onGoogleSignIn,
   isAdminMenuExpanded = true,
   onToggleAdminMenu,
+  onOpenActivationModal,
 }) => {
   const isGuest = !currentUser;
   const userRoles: UserRole[] = currentUser?.roles && currentUser.roles.length > 0 
@@ -315,9 +317,13 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* User Profile / SSO Account Button */}
                 <button
-                  onClick={onOpenProfile}
-                  className="flex items-center gap-2 px-2.5 py-1 bg-slate-800/90 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700/80 transition-all text-xs"
-                  title="ดูโปรไฟล์บัญชีผู้ใช้และมาตรการคุ้มครองข้อมูล PDPA"
+                  onClick={currentUser?.isPendingProfile && onOpenActivationModal ? onOpenActivationModal : onOpenProfile}
+                  className={`flex items-center gap-2 px-2.5 py-1 rounded-lg border transition-all text-xs ${
+                    currentUser?.isPendingProfile 
+                      ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-500/50 ring-1 ring-amber-400/40' 
+                      : 'bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80'
+                  }`}
+                  title={currentUser?.isPendingProfile ? 'คลิกเพื่อเปิดใช้งานสิทธิ์นักวิจัย' : 'ดูโปรไฟล์บัญชีผู้ใช้และมาตรการคุ้มครองข้อมูล PDPA'}
                 >
                   <div className="w-6 h-6 rounded-full bg-amber-500/30 text-amber-300 font-bold flex items-center justify-center text-[11px] border border-amber-400/40">
                     {currentUser?.name ? currentUser.name.charAt(currentUser.name.indexOf(' ') > 0 ? currentUser.name.indexOf(' ') + 1 : 0) : 'น'}
@@ -330,13 +336,30 @@ export const Header: React.FC<HeaderProps> = ({
                       {currentUser?.email}
                     </div>
                   </div>
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  {currentUser?.isPendingProfile ? (
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500 text-slate-950 font-prompt">
+                      รอเปิดสิทธิ์
+                    </span>
+                  ) : (
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  )}
                 </button>
+
+                {/* If Pending Profile, show Quick Activation Button */}
+                {currentUser?.isPendingProfile && onOpenActivationModal && (
+                  <button
+                    onClick={onOpenActivationModal}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-lg text-xs shadow-sm transition-all font-prompt animate-pulse cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                    <span>เปิดสิทธิ์นักวิจัย</span>
+                  </button>
+                )}
 
                 {/* Logout Button */}
                 <button
                   onClick={onLogout}
-                  className="p-1.5 bg-slate-800/80 hover:bg-rose-950/50 text-slate-400 hover:text-rose-300 rounded-lg border border-slate-700/70 transition-colors"
+                  className="p-1.5 bg-slate-800/80 hover:bg-rose-950/50 text-slate-400 hover:text-rose-300 rounded-lg border border-slate-700/70 transition-colors cursor-pointer"
                   title="ออกจากระบบ (Logout)"
                 >
                   <LogOut className="w-4 h-4" />
@@ -370,11 +393,17 @@ export const Header: React.FC<HeaderProps> = ({
                   <UserCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>สิทธิ์:</span>
                   <span className="font-semibold text-slate-200">
-                    {currentRole === 'researcher' && 'นักวิจัย'}
-                    {currentRole === 'coordinator' && 'เจ้าหน้าที่วิจัย'}
-                    {currentRole === 'finance' && 'การเงิน'}
-                    {currentRole === 'executive' && 'ผู้บริหาร'}
-                    {currentRole === 'admin' && 'ผู้ดูแลระบบ (Admin)'}
+                    {currentUser?.isPendingProfile ? (
+                      <span className="text-amber-400 font-bold">รอเปิดสิทธิ์นักวิจัย</span>
+                    ) : (
+                      <>
+                        {currentRole === 'researcher' && 'นักวิจัย'}
+                        {currentRole === 'coordinator' && 'เจ้าหน้าที่วิจัย'}
+                        {currentRole === 'finance' && 'การเงิน'}
+                        {currentRole === 'executive' && 'ผู้บริหาร'}
+                        {currentRole === 'admin' && 'ผู้ดูแลระบบ (Admin)'}
+                      </>
+                    )}
                   </span>
                 </div>
               </div>
