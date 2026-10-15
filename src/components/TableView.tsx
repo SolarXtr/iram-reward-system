@@ -158,6 +158,11 @@ export const TableView: React.FC<TableViewProps> = ({
     }
 
     return true;
+  }).sort((a, b) => {
+    // เรียงวันที่อัปเดตล่าสุดก่อน (วันที่ส่งล่าสุดขึ้นก่อน)
+    const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+    const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+    return dateB - dateA;
   });
 
   const exportToCsv = () => {
@@ -620,11 +625,22 @@ export const TableView: React.FC<TableViewProps> = ({
                             </button>
                             {/* ส่งคืนไปรายการเตรียมเบิกเพื่อแก้ไข */}
                             {(() => {
-                              const canReturn = (
-                                (currentRole === 'admin' || currentRole === 'coordinator' || (currentRole === 'researcher' && isMyApp(app))) &&
+                              // finance และ executive ไม่มีสิทธิ์ส่งคืน
+                              if (currentRole === 'finance' || currentRole === 'executive') return null;
+
+                              // researcher ส่งคืนได้เฉพาะ submitted && เป็นของตัวเอง
+                              const researcherCanReturn =
+                                currentRole === 'researcher' &&
+                                isMyApp(app) &&
+                                app.status === 'submitted';
+
+                              // coordinator/admin ส่งคืนได้ทุกสถานะยกเว้น paid/draft
+                              const staffCanReturn =
+                                (currentRole === 'admin' || currentRole === 'coordinator') &&
                                 app.status !== 'draft' &&
-                                app.status !== 'paid'
-                              );
+                                app.status !== 'paid';
+
+                              const canReturn = researcherCanReturn || staffCanReturn;
                               if (!canReturn) return null;
                               return (
                                 <button

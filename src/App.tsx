@@ -532,12 +532,23 @@ export default function App() {
 
   // Return submitted/in-progress application back to Draft in QuotaPlannerView
   const handleReturnToDraft = (app: ResearchApplication) => {
+    // finance และ executive ไม่มีสิทธิ์ส่งคืน (ตาม sitemap P-05)
+    if (currentRole === 'finance' || currentRole === 'executive') {
+      showToast('⚠️ บทบาทของคุณไม่มีสิทธิ์ส่งคืนคำขอเพื่อแก้ไข');
+      return;
+    }
+
     if (currentRole === 'researcher') {
       const isMine =
         (currentUser?.email && app.email && app.email.toLowerCase() === currentUser.email.toLowerCase()) ||
         (currentUser?.name && app.applicantName && app.applicantName.toLowerCase() === currentUser.name.toLowerCase());
       if (!isMine) {
         showToast('⚠️ คุณสามารถส่งคืนเพื่อแก้ไขได้เฉพาะคำขอของตนเองเท่านั้น');
+        return;
+      }
+      // researcher ส่งคืนได้เฉพาะสถานะ submitted เท่านั้น (ยังไม่ผ่านเจ้าหน้าที่)
+      if (app.status !== 'submitted') {
+        showToast('⚠️ ไม่สามารถส่งคืนได้ — คำขอผ่านการตรวจสอบเจ้าหน้าที่แล้ว กรุณาติดต่อผู้ประสานงานวิจัย');
         return;
       }
     }
@@ -682,6 +693,23 @@ export default function App() {
       })
     );
     showToast(`🗓️ เลื่อนรายการไปเตรียมเบิกในปีงบประมาณ ${targetFiscalYear} เรียบร้อยแล้ว`);
+  };
+
+  // Undo Carry-Over: ส่งคืน draft ที่เลื่อนปีกลับมาปีงบประมาณที่ระบุ (currentFiscalYear)
+  const handleUndoCarryOver = (id: string, currentFiscalYear: number) => {
+    setApplications((prev) =>
+      prev.map((a) => {
+        if (a.id !== id) return a;
+        return {
+          ...a,
+          fiscalYear: currentFiscalYear,
+          isCarryOverToNextYear: false,
+          plannedFiscalYear: currentFiscalYear,
+          updatedAt: new Date().toISOString().split('T')[0],
+        };
+      })
+    );
+    showToast(`↩️ ย้ายรายการกลับมาเตรียมเบิกในปีงบประมาณ ${currentFiscalYear} เรียบร้อยแล้ว`);
   };
 
   // 2. Drag-and-Drop / Kanban status update
@@ -1025,8 +1053,8 @@ export default function App() {
           />
         )}
 
-        {/* Tab 1.5: Quota & 24-Month Expiry Planner View (Researcher, Coordinator & Admin) */}
-        {activeTab === 'quota_planner' && !isGuest && (
+        {/* Tab 1.5: Quota & 24-Month Expiry Planner View (Researcher, Coordinator & Admin ONLY — ไม่แสดงสำหรับ finance, executive) */}
+        {activeTab === 'quota_planner' && !isGuest && currentRole !== 'finance' && currentRole !== 'executive' && (
           <QuotaPlannerView
             applications={applications}
             nuDisbursements={nuDisbursements}
@@ -1038,6 +1066,7 @@ export default function App() {
             onSubmitSelectedDrafts={handleSubmitSelectedDrafts}
             onDeleteDraft={handleDeleteDraft}
             onCarryOverDraft={handleCarryOverDraft}
+            onUndoCarryOver={handleUndoCarryOver}
           />
         )}
 

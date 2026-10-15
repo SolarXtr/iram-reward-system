@@ -42,6 +42,7 @@ interface QuotaPlannerViewProps {
   onSubmitSelectedDrafts: (draftApps: ResearchApplication[]) => void;
   onDeleteDraft: (id: string) => void;
   onCarryOverDraft: (id: string, targetFiscalYear: number) => void;
+  onUndoCarryOver: (id: string, currentFiscalYear: number) => void;
 }
 
 export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
@@ -55,6 +56,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
   onSubmitSelectedDrafts,
   onDeleteDraft,
   onCarryOverDraft,
+  onUndoCarryOver,
 }) => {
   // Selected fiscal year for quota planning (Default: 2570)
   const [selectedFiscalYear, setSelectedFiscalYear] = useState<number>(2570);
@@ -749,19 +751,40 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
 
-                              {/* Carry-over to Next Fiscal Year */}
-                              <button
-                                onClick={() => canEditThisDraft && onCarryOverDraft(draft.id, (draft.fiscalYear || selectedFiscalYear) + 1)}
-                                disabled={!canEditThisDraft}
-                                title={canEditThisDraft ? `เลื่อนไปเบิกปีงบประมาณถัดไป (${(draft.fiscalYear || selectedFiscalYear) + 1})` : "นักวิจัยสามารถจัดการได้เฉพาะคำขอของตนเอง"}
-                                className={`p-1.5 rounded-lg border transition-colors ${
-                                  canEditThisDraft
-                                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 cursor-pointer'
-                                    : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
-                                }`}
-                              >
-                                <CalendarDays className="w-3.5 h-3.5" />
-                              </button>
+                              {/* Carry-over to Next Fiscal Year / Undo Carry-Over */}
+                              {draft.isCarryOverToNextYear ? (
+                                // ปุ่ม Undo: ส่งคืนกลับมาปีก่อนหน้า
+                                <button
+                                  onClick={() => canEditThisDraft && onUndoCarryOver(draft.id, (draft.fiscalYear || selectedFiscalYear) - 1)}
+                                  disabled={!canEditThisDraft}
+                                  title={canEditThisDraft
+                                    ? `↩️ ส่งคืนกลับมาปีงบประมาณ ${(draft.fiscalYear || selectedFiscalYear) - 1} (ยกเลิกการเลื่อนปี)`
+                                    : 'นักวิจัยสามารถจัดการได้เฉพาะคำขอของตนเอง'}
+                                  className={`p-1.5 rounded-lg border transition-colors ${
+                                    canEditThisDraft
+                                      ? 'bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-300 cursor-pointer'
+                                      : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
+                                  }`}
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                </button>
+                              ) : (
+                                // ปุ่ม Carry-Over: เลื่อนไปปีถัดไป
+                                <button
+                                  onClick={() => canEditThisDraft && onCarryOverDraft(draft.id, (draft.fiscalYear || selectedFiscalYear) + 1)}
+                                  disabled={!canEditThisDraft}
+                                  title={canEditThisDraft
+                                    ? `เลื่อนไปเบิกปีงบประมาณถัดไป (${(draft.fiscalYear || selectedFiscalYear) + 1})`
+                                    : 'นักวิจัยสามารถจัดการได้เฉพาะคำขอของตนเอง'}
+                                  className={`p-1.5 rounded-lg border transition-colors ${
+                                    canEditThisDraft
+                                      ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 cursor-pointer'
+                                      : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
+                                  }`}
+                                >
+                                  <CalendarDays className="w-3.5 h-3.5" />
+                                </button>
+                              )}
 
                               {/* Delete Draft */}
                               <button

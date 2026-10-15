@@ -65,8 +65,8 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
   // สิทธิ์การมองเห็นข้อมูลทั้งหมดของคณะแพทยศาสตร์ (Admin, Coordinator, Executive, Finance)
   const canViewAll = ['admin', 'coordinator', 'executive', 'finance'].includes(currentRole);
 
-  // สิทธิ์การนำเข้าและแก้ไขข้อมูล (เฉพาะผู้ดูแลระบบ Admin เท่านั้น)
-  const canEdit = currentRole === 'admin';
+  // สิทธิ์การนำเข้าและแก้ไขข้อมูล (Admin และ Coordinator — ตามสเปค P-03 ใน sitemap)
+  const canEdit = currentRole === 'admin' || currentRole === 'coordinator';
 
   // Role Scoping: Researcher sees only their own articles; Admin/Coordinator/Executive/Finance see all
   const scopedRecords = useMemo(() => {
@@ -228,6 +228,37 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
     );
   };
 
+  // G-07: Export CSV สำหรับ canViewAll roles
+  const exportToCsv = () => {
+    const headers = [
+      'ลำดับ', 'วันที่ยื่น มน.', 'ชื่อผลงาน/บทความ', 'นักวิจัย',
+      'ยอดรวม มน. (บาท)', 'สถานะ มน.', 'วันที่จ่ายเงิน มน.',
+      'ยอดรวม คณะฯ (บาท)', 'สถานะ คณะฯ', 'เลขฎีกา คณะฯ',
+      'ปีงบประมาณ', 'รหัสคำขอคณะฯ'
+    ];
+    const rows = filteredAndSortedRecords.map((r, idx) => [
+      idx + 1,
+      `"${r.submissionDate || ''}"`,
+      `"${(r.articleTitle || '').replace(/"/g, '""')}"`,
+      `"${r.researcherName || ''}"`,
+      r.totalAmount || 0,
+      `"${r.status || ''}"`,
+      `"${r.paymentDate || ''}"`,
+      r.facultyTotalAmount || 0,
+      `"${r.facultyStatus || ''}"`,
+      `"${r.disbursementVoucherNo || ''}"`,
+      r.fiscalYear || '',
+      `"${r.matchedFacultyTrackingNo || r.facultyTrackingNo || ''}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const link = document.createElement('a');
+    link.setAttribute('href', encodeURI(csvContent));
+    link.setAttribute('download', `dri_nu_tracking_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden space-y-4 p-5 sm:p-6 font-sans">
       
@@ -267,6 +298,18 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span>โหมดตรวจสอบข้อมูลภาพรวม (อ่านอย่างเดียว)</span>
             </span>
+          )}
+
+          {/* G-07: Export CSV สำหรับทุก role ที่มีสิทธิ์ดูข้อมูล */}
+          {canViewAll && (
+            <button
+              onClick={exportToCsv}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition-colors shrink-0"
+              title="ส่งออกข้อมูลตาราง DRI NU Tracking เป็นไฟล์ CSV"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>ส่งออก CSV</span>
+            </button>
           )}
         </div>
       </div>
