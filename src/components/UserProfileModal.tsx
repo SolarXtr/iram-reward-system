@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   User, 
@@ -40,9 +40,23 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onSaveProfile,
   onSwitchUser,
 }) => {
-  const isAdmin = currentUser.role === 'admin' || (currentUser.roles && currentUser.roles.includes('admin'));
+  const safeUser: UserProfile = currentUser || {
+    id: 'guest',
+    name: '',
+    academicPosition: '',
+    department: '',
+    phone: '',
+    email: '',
+    bankName: 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร',
+    bankAccountNo: '',
+    idCardNo: '',
+    role: 'researcher',
+    isNuAccount: true,
+  };
+
+  const isAdmin = safeUser.role === 'admin' || (safeUser.roles && safeUser.roles.includes('admin'));
   const accountList = (users && users.length > 0) ? users : getStoredUsersRegistry();
-  const [formData, setFormData] = useState<UserProfile>({ ...currentUser });
+  const [formData, setFormData] = useState<UserProfile>({ ...safeUser });
   const [showSensitiveData, setShowSensitiveData] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -188,7 +202,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <input
                 type="text"
                 required
-                value={formData.name}
+                value={formData.name || ''}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
@@ -198,7 +212,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <label className="block font-medium text-slate-700 mb-1">ตำแหน่งทางวิชาการ/ตำแหน่งงาน</label>
               <input
                 type="text"
-                value={formData.academicPosition}
+                value={formData.academicPosition || ''}
                 onChange={(e) => setFormData({ ...formData, academicPosition: e.target.value })}
                 placeholder="เช่น เจ้าหน้าที่วิจัย, ผู้ช่วยศาสตราจารย์"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -221,7 +235,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <input
                 type="text"
                 required
-                value={formData.department}
+                value={formData.department || ''}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
@@ -234,7 +248,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <input
                   type="text"
                   required
-                  value={formData.phone}
+                  value={formData.phone || ''}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="เช่น 5588"
                   className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -249,7 +263,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <input
                   type="email"
                   required
-                  value={formData.email}
+                  value={formData.email || ''}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-8 pr-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-xs font-mono text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
@@ -296,8 +310,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     maxLength={17}
                     value={
                       showSensitiveData
-                        ? formData.idCardNo
-                        : maskThaiCitizenId(formData.idCardNo)
+                        ? (formData.idCardNo || '')
+                        : maskThaiCitizenId(formData.idCardNo || '')
                     }
                     onChange={(e) => {
                       const val = formatThaiCitizenId(e.target.value);
@@ -320,8 +334,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     maxLength={13}
                     value={
                       showSensitiveData
-                        ? formData.bankAccountNo
-                        : maskBankAccountNo(formData.bankAccountNo)
+                        ? (formData.bankAccountNo || '')
+                        : maskBankAccountNo(formData.bankAccountNo || '')
                     }
                     onChange={(e) => {
                       const val = formatKrungsriAccountNo(e.target.value);
