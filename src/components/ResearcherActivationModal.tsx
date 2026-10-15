@@ -182,10 +182,10 @@ export const ResearcherActivationModal: React.FC<ResearcherActivationModalProps>
               <span className="text-[11px] font-semibold text-amber-400/90 tracking-wider uppercase font-prompt block">
                 คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร
               </span>
-              <h3 className="text-base sm:text-lg font-bold text-white font-prompt">
+              <h3 className="text-sm sm:text-base font-bold text-white font-prompt leading-snug">
                 {step === 'notice' 
-                  ? 'ตรวจสอบสิทธิ์ผู้ใช้งานและยืนยันตัวตน' 
-                  : 'แบบฟอร์มยืนยันสังกัดและข้อมูลติดต่อ'}
+                  ? 'กรอกข้อมูลส่วนบุคคลให้ครบถ้วน / เปิดสิทธิ์ยื่นคำขอค่า page charge / เงินรางวัล' 
+                  : 'แบบฟอร์มยืนยันสังกัดและข้อมูลติดต่อ (เปิดสิทธิ์นักวิจัย)'}
               </h3>
             </div>
           </div>
