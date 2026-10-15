@@ -46,6 +46,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [showSensitiveData, setShowSensitiveData] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Synchronize formData whenever currentUser prop updates
+  useEffect(() => {
+    if (currentUser) {
+      setFormData({ ...currentUser });
+    }
+  }, [currentUser]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSaveProfile(formData);
@@ -127,7 +134,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     type="button"
                     onClick={() => handleSelectAccount(user)}
                     className={`p-2 rounded-lg border text-left transition-all ${
-                      formData.email === user.email
+                      (formData.id && user.id === formData.id) || (formData.email && user.email && formData.email.toLowerCase() === user.email.toLowerCase())
                         ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100/80'
                     }`}

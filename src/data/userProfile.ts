@@ -185,20 +185,15 @@ export function getStoredUserProfile(): UserProfile {
     const saved = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Auto-migrate if old profile name is detected or old administrativePosition
-      if (
-        parsed.name === 'ดร.ทินกร หอมดี' || 
-        parsed.email === 'tinnakornh@nu.ac.th' || 
-        !parsed.administrativePosition ||
-        parsed.administrativePosition.includes('รักษาการ')
-      ) {
+      // Auto-migrate if legacy prototype name is detected
+      if (parsed.name === 'ดร.ทินกร หอมดี') {
         const migrated: UserProfile = {
           ...DEFAULT_LOGGED_IN_USER,
           ...parsed,
-          name: parsed.name === 'ดร.ทินกร หอมดี' ? DEFAULT_LOGGED_IN_USER.name : (parsed.name || DEFAULT_LOGGED_IN_USER.name),
-          academicPosition: (parsed.academicPosition === 'อาจารย์ ดร.' || !parsed.academicPosition) ? DEFAULT_LOGGED_IN_USER.academicPosition : parsed.academicPosition,
+          name: DEFAULT_LOGGED_IN_USER.name,
+          academicPosition: DEFAULT_LOGGED_IN_USER.academicPosition,
           administrativePosition: DEFAULT_LOGGED_IN_USER.administrativePosition,
-          department: (parsed.department === 'สถานวิทยาศาสตร์คลินิก' || !parsed.department) ? DEFAULT_LOGGED_IN_USER.department : parsed.department,
+          department: DEFAULT_LOGGED_IN_USER.department,
           roles: DEFAULT_LOGGED_IN_USER.roles,
         };
         localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(migrated));
@@ -264,7 +259,9 @@ export function saveStoredUsersRegistry(users: UserProfile[]): void {
 
 export function upsertRegisteredUser(user: UserProfile): UserProfile[] {
   const currentUsers = getStoredUsersRegistry();
-  const index = currentUsers.findIndex((u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
+  const index = currentUsers.findIndex(
+    (u) => (user.id && u.id === user.id) || (u.email && user.email && u.email.toLowerCase() === user.email.toLowerCase())
+  );
   let updatedUsers: UserProfile[];
   if (index >= 0) {
     updatedUsers = [...currentUsers];

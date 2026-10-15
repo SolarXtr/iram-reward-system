@@ -146,6 +146,23 @@ export default function App() {
       .then((d1Users) => {
         if (Array.isArray(d1Users) && d1Users.length > 0) {
           setRegisteredUsers(d1Users);
+
+          // Synchronize active currentUser with latest verified record from D1
+          setCurrentUser((prev) => {
+            if (!prev) return prev;
+            const match = d1Users.find(
+              (u) => (prev.id && u.id === prev.id) ||
+                     (prev.name && u.name && prev.name.trim() === u.name.trim()) ||
+                     (prev.email && u.email && prev.email.toLowerCase() === u.email.toLowerCase())
+            );
+            if (match) {
+              const merged: UserProfile = { ...prev, ...match };
+              setCurrentAuthUser(merged);
+              saveStoredUserProfile(merged);
+              return merged;
+            }
+            return prev;
+          });
         }
       })
       .catch((err) => console.warn('D1 users fetch warning:', err));
@@ -245,7 +262,12 @@ export default function App() {
   const handleUpdateRegisteredUser = async (updatedUser: UserProfile) => {
     const nextUsers = upsertRegisteredUser(updatedUser);
     setRegisteredUsers(nextUsers);
-    if (currentUser && (currentUser.id === updatedUser.id || currentUser.email.toLowerCase() === updatedUser.email.toLowerCase())) {
+    const isCurrent = currentUser && (
+      (currentUser.id && currentUser.id === updatedUser.id) ||
+      (currentUser.name && updatedUser.name && currentUser.name.trim() === updatedUser.name.trim()) ||
+      (currentUser.email && updatedUser.email && currentUser.email.toLowerCase() === updatedUser.email.toLowerCase())
+    );
+    if (isCurrent) {
       setCurrentUser(updatedUser);
       setCurrentAuthUser(updatedUser);
       saveStoredUserProfile(updatedUser);
