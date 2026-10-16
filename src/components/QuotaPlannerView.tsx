@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Scale, 
   Calendar, 
@@ -99,10 +99,11 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
   const MAX_NU_QUOTA = 100000;
   const myNuRecords = useMemo(() => {
     return nuDisbursements.filter((r) => {
+      const recordFiscalYear = r.fiscalYear ?? selectedFiscalYear;
       const matchesName = userLastName && r.researcherName && r.researcherName.toLowerCase().includes(userLastName);
-      return Boolean(matchesName);
+      return Boolean(matchesName && recordFiscalYear === selectedFiscalYear);
     });
-  }, [nuDisbursements, userLastName]);
+  }, [nuDisbursements, userLastName, selectedFiscalYear]);
 
   const nuPaid = myNuRecords
     .filter((r) => r.status === 'จ่ายเงินแล้ว')
@@ -118,14 +119,28 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
   const isStaffOrAdmin = currentRole === 'admin' || currentRole === 'coordinator';
   const [draftScopeFilter, setDraftScopeFilter] = useState<'all' | 'mine'>(isStaffOrAdmin ? 'all' : 'mine');
 
-  const allDraftsCount = useMemo(() => applications.filter((a) => a.status === 'draft').length, [applications]);
-  const myDraftsCount = useMemo(() => applications.filter((a) => isMyApplication(a) && a.status === 'draft').length, [applications, userEmail, userLastName]);
+  useEffect(() => {
+    setSelectedDraftIds(new Set());
+  }, [selectedFiscalYear]);
+
+  const allDraftsCount = useMemo(() => {
+    return applications.filter((a) => a.status === 'draft' && (a.fiscalYear || selectedFiscalYear) === selectedFiscalYear).length;
+  }, [applications, selectedFiscalYear]);
+
+  const myDraftsCount = useMemo(() => {
+    return applications.filter((a) => {
+      if (a.status !== 'draft') return false;
+      if ((a.fiscalYear || selectedFiscalYear) !== selectedFiscalYear) return false;
+      return isMyApplication(a);
+    }).length;
+  }, [applications, userEmail, userLastName, selectedFiscalYear]);
 
   // 3. Draft/Prepared applications (status === 'draft')
   // Researcher can ONLY see their own applications: "นักวิจัย แก้ไขได้เฉพาะคำขอของตัวเอง"
   const myDraftApps = useMemo(() => {
     const drafts = applications.filter((a) => {
       if (a.status !== 'draft') return false;
+      if ((a.fiscalYear || selectedFiscalYear) !== selectedFiscalYear) return false;
       if (currentRole === 'researcher') {
         return isMyApplication(a);
       }
