@@ -251,20 +251,29 @@ export default function App() {
   // User Management Registry state & handlers
   const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(() => getStoredUsersRegistry());
 
-  const handleSaveProfile = async (updated: UserProfile) => {
-    saveStoredUserProfile(updated);
-    setCurrentUser(updated);
-    setCurrentAuthUser(updated);
-    const nextUsers = upsertRegisteredUser(updated);
-    setRegisteredUsers(nextUsers);
-    showToast('บันทึกข้อมูลโปรไฟล์ตั้งต้นและมาตรการคุ้มครองข้อมูล PDPA เรียบร้อยแล้ว');
-
-    // Cloudflare D1 Cloud Sync
+  const handleSaveProfile = async (updated: UserProfile): Promise<boolean> => {
     try {
-      await updateUserProfileInD1(updated.id, updated);
-      showToast('✅ ซิงก์ข้อมูลโปรไฟล์ขึ้น Cloudflare D1 (irUser) เรียบร้อยแล้ว');
-    } catch (e: any) {
-      console.warn('D1 profile sync warning:', e);
+      saveStoredUserProfile(updated);
+      setCurrentUser(updated);
+      setCurrentAuthUser(updated);
+      const nextUsers = upsertRegisteredUser(updated);
+      setRegisteredUsers(nextUsers);
+      showToast('บันทึกข้อมูลโปรไฟล์ตั้งต้นและมาตรการคุ้มครองข้อมูล PDPA เรียบร้อยแล้ว');
+
+      // Cloudflare D1 Cloud Sync
+      try {
+        await updateUserProfileInD1(updated.id, updated);
+        showToast('✅ ซิงก์ข้อมูลโปรไฟล์ขึ้น Cloudflare D1 (irUser) เรียบร้อยแล้ว');
+        return true;
+      } catch (e: any) {
+        console.warn('D1 profile sync warning:', e);
+        showToast('ข้อมูลถูกบันทึกในเครื่องเรียบร้อยแล้ว แต่การซิงก์ข้อมูลกับ Cloudflare D1 ล้มเหลว กรุณาลองอีกครั้ง');
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to save profile locally:', error);
+      showToast('บันทึกข้อมูลโปรไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+      return false;
     }
   };
 

@@ -29,7 +29,7 @@ interface UserProfileModalProps {
   currentUser: UserProfile;
   users?: UserProfile[];
   onClose: () => void;
-  onSaveProfile: (updated: UserProfile) => void;
+  onSaveProfile: (updated: UserProfile) => Promise<boolean> | boolean;
   onSwitchUser?: (user: UserProfile) => void;
 }
 
@@ -59,6 +59,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [formData, setFormData] = useState<UserProfile>({ ...safeUser });
   const [showSensitiveData, setShowSensitiveData] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Synchronize formData whenever currentUser prop updates
   useEffect(() => {
@@ -67,14 +69,29 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     }
   }, [currentUser]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveProfile(formData);
-    setSavedSuccess(true);
-    setTimeout(() => {
-      setSavedSuccess(false);
-      onClose();
-    }, 1200);
+    setSaveError(null);
+    setIsSaving(true);
+
+    try {
+      const result = await Promise.resolve(onSaveProfile(formData));
+      if (result === false) {
+        setSaveError('บันทึกข้อมูลในเครื่องเรียบร้อยแล้ว แต่การซิงก์ข้อมูลกับระบบคลาวด์ล้มเหลว กรุณาลองอีกครั้ง');
+        return;
+      }
+
+      setSavedSuccess(true);
+      setTimeout(() => {
+        setSavedSuccess(false);
+        onClose();
+      }, 1200);
+    } catch (error) {
+      console.error('Profile save failed:', error);
+      setSaveError('บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSelectAccount = (user: UserProfile) => {
@@ -126,6 +143,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center gap-2 text-emerald-800 font-medium">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               <span>บันทึกข้อมูลโปรไฟล์ตั้งต้นเรียบร้อยแล้ว</span>
+            </div>
+          )}
+
+          {saveError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 font-medium text-xs">
+              {saveError}
             </div>
           )}
 
@@ -379,10 +402,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex items-center gap-1.5 px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg text-xs shadow-md transition-all"
+              disabled={isSaving}
+              className="flex items-center gap-1.5 px-5 py-2 bg-blue-700 hover:bg-blue-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg text-xs shadow-md transition-all"
             >
-              <Save className="w-4 h-4" />
-              <span>บันทึกข้อมูลโปรไฟล์</span>
+              <Save className={`w-4 h-4 ${isSaving ? 'animate-pulse' : ''}`} />
+              <span>{isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูลโปรไฟล์'}</span>
             </button>
           </div>
         </form>
