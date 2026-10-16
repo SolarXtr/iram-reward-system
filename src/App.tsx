@@ -258,7 +258,6 @@ export default function App() {
       setCurrentAuthUser(updated);
       const nextUsers = upsertRegisteredUser(updated);
       setRegisteredUsers(nextUsers);
-      showToast('บันทึกข้อมูลโปรไฟล์ตั้งต้นและมาตรการคุ้มครองข้อมูล PDPA เรียบร้อยแล้ว');
 
       // Cloudflare D1 Cloud Sync
       try {
@@ -267,7 +266,8 @@ export default function App() {
         return true;
       } catch (e: any) {
         console.warn('D1 profile sync warning:', e);
-        showToast('ข้อมูลถูกบันทึกในเครื่องเรียบร้อยแล้ว แต่การซิงก์ข้อมูลกับ Cloudflare D1 ล้มเหลว กรุณาลองอีกครั้ง');
+        const reason = e instanceof Error ? e.message : 'ไม่ทราบสาเหตุ';
+        showToast(`บันทึกในเครื่องแล้ว แต่ซิงก์ Cloudflare D1 ไม่สำเร็จ: ${reason}`);
         return false;
       }
     } catch (error) {

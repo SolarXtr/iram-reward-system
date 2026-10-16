@@ -63,24 +63,42 @@ export async function fetchUserProfileByEmailFromD1(email: string): Promise<User
  * Update an existing user profile in Cloudflare D1 (irUser + irResearcherProfile)
  */
 export async function updateUserProfileInD1(userId: string, updates: Partial<UserProfile>): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/profile/${encodeURIComponent(userId)}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updates),
-    });
+  let lastError: Error = new Error('Cloud sync failed');
 
-    if (!response.ok) {
-      throw new Error(`Failed to update profile: HTTP ${response.status}`);
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/profile/${encodeURIComponent(userId)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (response.ok) {
+        return true;
+      }
+
+      lastError = new Error(`Failed to update profile: HTTP ${response.status}`);
+
+      if (attempt === 0 && (response.status === 429 || response.status >= 500)) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        continue;
+      }
+
+      throw lastError;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Cloud sync failed');
+      if (attempt === 0 && !(error instanceof Error && error.message.startsWith('Failed to update profile: HTTP'))) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        continue;
+      }
+      throw lastError;
     }
-
-    return true;
-  } catch (error) {
-    console.error('Error updating user profile in D1:', error);
-    throw error;
   }
+
+  console.error('Error updating user profile in D1:', lastError);
+  throw lastError;
 }
 
 /**
