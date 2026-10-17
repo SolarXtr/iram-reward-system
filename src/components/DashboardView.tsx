@@ -68,6 +68,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const submittedAppsOnly = React.useMemo(() => {
     return authorizedApplications.filter((application) => application.status !== 'draft');
   }, [authorizedApplications]);
+  const hasStatistics = submittedAppsOnly.length > 0;
 
   const totalApplications = submittedAppsOnly.length;
   const totalRequestedAmount = submittedAppsOnly.reduce((acc, application) => acc + (application.totalClaimedAmount || 0), 0);
@@ -152,9 +153,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {!isGuest && (
-        <>
-      {/* KPI Cards: Aggregate Statistics (Safe for Public) */}
+      {!hasStatistics && (
+        <p className="text-xs text-slate-500" role="status">
+          ยังไม่มีข้อมูลสรุปที่เปิดเผยได้
+        </p>
+      )}
+
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Approved Amount */}
         <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
@@ -168,11 +173,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold text-slate-900 tracking-tight font-prompt">
-              {formatBaht(isResearcher ? personalClaimedTotal : totalRequestedAmount)}
+              {hasStatistics ? formatBaht(isResearcher ? personalClaimedTotal : totalRequestedAmount) : '—'}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
               <span>
-                {isResearcher ? `จำนวน ${totalApplications} เรื่อง` : `ทั้งหมด ${totalApplications} โครงการ`}
+                {hasStatistics ? (isResearcher ? `จำนวน ${totalApplications} เรื่อง` : `ทั้งหมด ${totalApplications} โครงการ`) : 'ไม่มีข้อมูล'}
               </span>
             </div>
           </div>
@@ -188,10 +193,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold text-emerald-700 tracking-tight font-prompt">
-              {formatBaht(totalPaidAmount)}
+              {hasStatistics ? formatBaht(totalPaidAmount) : '—'}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-              <span>โอนเข้าบัญชีธนาคาร {countPaid} รายการ</span>
+              <span>{hasStatistics ? `โอนเข้าบัญชีธนาคาร ${countPaid} รายการ` : 'ไม่มีข้อมูล'}</span>
             </div>
           </div>
         </div>
@@ -206,10 +211,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold text-amber-700 tracking-tight font-prompt">
-              {formatBaht(totalPendingAmount)}
+              {hasStatistics ? formatBaht(totalPendingAmount) : '—'}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-amber-600 font-medium">
-              <span>รอพิจารณา {countPending} รายการ</span>
+              <span>{hasStatistics ? `รอพิจารณา ${countPending} รายการ` : 'ไม่มีข้อมูล'}</span>
             </div>
           </div>
         </div>
@@ -224,10 +229,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="mt-3">
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-purple-700 font-semibold">รางวัล: {formatBaht(totalRewardsOnly)}</span>
+              <span className="text-xs text-purple-700 font-semibold">รางวัล: {hasStatistics ? formatBaht(totalRewardsOnly) : '—'}</span>
             </div>
             <div className="flex justify-between items-baseline mt-1">
-              <span className="text-xs text-indigo-700 font-semibold">ค่าตีพิมพ์: {formatBaht(totalPageChargesOnly)}</span>
+              <span className="text-xs text-indigo-700 font-semibold">ค่าตีพิมพ์: {hasStatistics ? formatBaht(totalPageChargesOnly) : '—'}</span>
             </div>
             <div className="w-full bg-slate-100 rounded-full h-2 mt-2 flex overflow-hidden">
               <div 
@@ -271,7 +276,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   35,000 บ.
                 </span>
               </div>
-              <div className="text-2xl font-bold text-blue-950 mt-2 font-prompt">{q1Tier1Count}</div>
+              <div className="text-2xl font-bold text-blue-950 mt-2 font-prompt">{hasStatistics ? q1Tier1Count : '—'}</div>
               <div className="text-[11px] text-blue-700/80 mt-1">บทความชั้นนำระดับโลก</div>
             </div>
 
@@ -282,7 +287,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   25,000 บ.
                 </span>
               </div>
-              <div className="text-2xl font-bold text-teal-950 mt-2 font-prompt">{q1Count}</div>
+              <div className="text-2xl font-bold text-teal-950 mt-2 font-prompt">{hasStatistics ? q1Count : '—'}</div>
               <div className="text-[11px] text-teal-700/80 mt-1">วารสารนานาชาติ Q1</div>
             </div>
 
@@ -293,7 +298,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   15,000 บ.
                 </span>
               </div>
-              <div className="text-2xl font-bold text-amber-950 mt-2 font-prompt">{q2Count}</div>
+              <div className="text-2xl font-bold text-amber-950 mt-2 font-prompt">{hasStatistics ? q2Count : '—'}</div>
               <div className="text-[11px] text-amber-700/80 mt-1">วารสารนานาชาติ Q2</div>
             </div>
 
@@ -304,7 +309,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   5,000 บ.
                 </span>
               </div>
-              <div className="text-2xl font-bold text-slate-900 mt-2 font-prompt">{q3Count + q4Count}</div>
+              <div className="text-2xl font-bold text-slate-900 mt-2 font-prompt">{hasStatistics ? q3Count + q4Count : '—'}</div>
               <div className="text-[11px] text-slate-500 mt-1">นานาชาติ Q3 และ Q4</div>
             </div>
 
@@ -315,7 +320,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   1,000 - 2,000 บ.
                 </span>
               </div>
-              <div className="text-2xl font-bold text-emerald-950 mt-2 font-prompt">{tciCount}</div>
+              <div className="text-2xl font-bold text-emerald-950 mt-2 font-prompt">{hasStatistics ? tciCount : '—'}</div>
               <div className="text-[11px] text-emerald-700/80 mt-1">วารสารวิชาการระดับชาติผ่านเกณฑ์ TCI</div>
             </div>
           </div>
@@ -382,21 +387,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex justify-between items-center text-xs">
               <span className="text-slate-500">อัตราโอนเงินสำเร็จ:</span>
               <span className="font-bold text-emerald-600">
-                {Math.round((countPaid / (totalApplications || 1)) * 100)}%
+                {hasStatistics ? `${Math.round((countPaid / totalApplications) * 100)}%` : '—'}
               </span>
             </div>
             <div className="w-full bg-slate-100 h-2 rounded-full mt-1.5 overflow-hidden">
               <div 
                 className="bg-emerald-600 h-full rounded-full transition-all duration-500" 
-                style={{ width: `${(countPaid / (totalApplications || 1)) * 100}%` }}
+                style={{ width: `${hasStatistics ? (countPaid / totalApplications) * 100 : 0}%` }}
               />
             </div>
           </div>
         </div>
       </div>
-        </>
-      )}
-
       {/* GUEST MODE: Show Overview Call-to-Action only (table completely hidden) */}
       {isGuest ? (
         <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200/80 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
