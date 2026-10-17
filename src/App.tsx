@@ -16,7 +16,7 @@ import { UserProfileModal } from './components/UserProfileModal';
 import { UserManagementView } from './components/UserManagementView';
 import { LoginModal } from './components/LoginModal';
 import { ResearcherActivationModal } from './components/ResearcherActivationModal';
-import { INITIAL_APPLICATIONS, OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
+import { OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
 import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, ResearchApplication, UserProfile, WorkflowStepId, NuDisbursementRecord } from './types';
 import { generateNextTrackingNo } from './data/regulations';
 import { 
@@ -57,45 +57,12 @@ import {
 } from './services/userService';
 import { Bell, CheckCircle2 } from 'lucide-react';
 
-const STORAGE_KEY = 'med_nu_research_apps_v1';
-
 export default function App() {
-  // Load applications from localStorage or fallback to INITIAL_APPLICATIONS
-  const [applications, setApplications] = useState<ResearchApplication[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const seenIds = new Set<string>();
-          return parsed.map((app: any, index: number) => {
-            let id = app && typeof app.id === 'string' && app.id.trim() ? app.id : null;
-            if (!id || seenIds.has(id)) {
-              id = `app-saved-${index + 1}-${Math.random().toString(36).substring(2, 7)}`;
-            }
-            seenIds.add(id);
-            return {
-              ...app,
-              id,
-              trackingNo: app.trackingNo || `AWP69-${String(60 + index).padStart(3, '0')}`,
-            };
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load saved applications:', e);
-    }
-    return INITIAL_APPLICATIONS;
-  });
+  const [applications, setApplications] = useState<ResearchApplication[]>([]);
 
-  // Save changes
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
-    } catch (e) {
-      console.error('Failed to persist applications:', e);
-    }
-  }, [applications]);
+    localStorage.removeItem('med_nu_research_apps_v1');
+  }, []);
 
   // Active authenticated user profile (null = Guest Mode)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getCurrentAuthUser());
@@ -131,23 +98,33 @@ export default function App() {
     }
   }, [currentUser, activeTab]);
 
-  // Load applications from Cloudflare D1 on mount
+  // Load applications only for authenticated users; never cache personal records in localStorage.
   useEffect(() => {
+    if (!currentUser) {
+      setApplications([]);
+      setIsLoadingD1(false);
+      return;
+    }
+
+    let cancelled = false;
     const loadFromD1 = async () => {
       setIsLoadingD1(true);
       try {
         const d1Data = await fetchRewardApplicationsFromD1();
-        if (Array.isArray(d1Data) && d1Data.length > 0) {
+        if (!cancelled && Array.isArray(d1Data)) {
           setApplications(d1Data);
         }
       } catch (err) {
-        console.warn('Using local applications cache, D1 fetch error:', err);
+        console.warn('Failed to load applications from D1:', err);
       } finally {
-        setIsLoadingD1(false);
+        if (!cancelled) setIsLoadingD1(false);
       }
     };
     loadFromD1();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id]);
 
   // Load registered users from Cloudflare D1 (irUser) on mount
   useEffect(() => {
@@ -887,15 +864,13 @@ export default function App() {
   // Data isolation for researcher: strictly restrict to own applications 100%
   const isAppOwnedByUser = (app: ResearchApplication) => {
     if (!currentUser) return false;
-    if (currentUser.email && app.email && app.email.toLowerCase() === currentUser.email.toLowerCase()) return true;
-    if (currentUser.name && app.applicantName && app.applicantName.toLowerCase().includes(currentUser.name.toLowerCase())) return true;
-    return false;
+    const userEmail = currentUser.email?.trim().toLowerCase();
+    const applicationEmail = app.email?.trim().toLowerCase();
+    return Boolean(userEmail && applicationEmail && applicationEmail === userEmail);
   };
 
   const roleScopedApplications = applications.filter((app) => {
-    if (isGuest) {
-      return true;
-    }
+    if (isGuest) return false;
     if (currentRole === 'researcher') {
       return isAppOwnedByUser(app);
     }
@@ -1047,7 +1022,8 @@ export default function App() {
         {/* Tab 1: Dashboard View */}
         {activeTab === 'dashboard' && (
           <DashboardView
-            applications={isGuest ? applications : displayApplications}
+            applications={isGuest ? [] : displayApplications}
+            statisticsApplications={isGuest ? [] : roleScopedApplications}
             onViewApplication={(app) => setTimelineApp(app)}
             onPrintApplication={(app) => setPrintApp(app)}
             onVerifyPayment={(app) => setPaymentApp(app)}

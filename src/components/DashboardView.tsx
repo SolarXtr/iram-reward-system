@@ -27,6 +27,7 @@ import { NuDisbursementTable } from './NuDisbursementTable';
 
 interface DashboardViewProps {
   applications: ResearchApplication[];
+  statisticsApplications?: ResearchApplication[];
   onViewApplication: (app: ResearchApplication) => void;
   onPrintApplication: (app: ResearchApplication) => void;
   onVerifyPayment: (app: ResearchApplication) => void;
@@ -42,6 +43,7 @@ interface DashboardViewProps {
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   applications,
+  statisticsApplications,
   onViewApplication,
   onPrintApplication,
   onVerifyPayment,
@@ -55,68 +57,61 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigateToPlanner,
 }) => {
   const isGuest = !currentUser;
+  const isResearcher = currentRole === 'researcher';
+  const userEmail = currentUser?.email?.trim().toLowerCase() || '';
+  const isMyApplication = (application: ResearchApplication) => {
+    const applicationEmail = application.email?.trim().toLowerCase();
+    return Boolean(userEmail && applicationEmail && applicationEmail === userEmail);
+  };
 
-  // Filter out drafts for official general statistics
+  const authorizedApplications = isGuest ? [] : statisticsApplications ?? applications;
   const submittedAppsOnly = React.useMemo(() => {
-    return applications.filter((a) => a.status !== 'draft');
-  }, [applications]);
+    return authorizedApplications.filter((application) => application.status !== 'draft');
+  }, [authorizedApplications]);
 
-  // Aggregate statistics for entire faculty
   const totalApplications = submittedAppsOnly.length;
-  const totalApprovedAmount = submittedAppsOnly.reduce((acc, a) => acc + (a.totalClaimedAmount || 0), 0);
+  const totalRequestedAmount = submittedAppsOnly.reduce((acc, application) => acc + (application.totalClaimedAmount || 0), 0);
   const totalPaidAmount = submittedAppsOnly
-    .filter((a) => a.status === 'paid')
-    .reduce((acc, a) => acc + (a.actualPaidAmount || a.totalClaimedAmount || 0), 0);
+    .filter((application) => application.status === 'paid')
+    .reduce((acc, application) => acc + (application.actualPaidAmount || application.totalClaimedAmount || 0), 0);
+  const pendingStatuses = ['submitted', 'staff_verified', 'researcher_signed', 'admin_review', 'budget_verified', 'dean_approved', 'finance_processing'];
   const totalPendingAmount = submittedAppsOnly
-    .filter((a) => a.status !== 'paid' && a.status !== 'rejected')
-    .reduce((acc, a) => acc + (a.totalClaimedAmount || 0), 0);
+    .filter((application) => pendingStatuses.includes(application.status))
+    .reduce((acc, application) => acc + (application.totalClaimedAmount || 0), 0);
 
-  const totalRewardsOnly = submittedAppsOnly.reduce((acc, a) => acc + (a.claimedRewardAmount || 0), 0);
-  const totalPageChargesOnly = submittedAppsOnly.reduce((acc, a) => acc + (a.approvedPageChargeAmount || 0), 0);
+  const totalRewardsOnly = submittedAppsOnly.reduce((acc, application) => acc + (application.claimedRewardAmount || 0), 0);
+  const totalPageChargesOnly = submittedAppsOnly.reduce((acc, application) => acc + (application.approvedPageChargeAmount || 0), 0);
 
   // Status counts
-  const countPaid = submittedAppsOnly.filter((a) => a.status === 'paid').length;
-  const countInReview = submittedAppsOnly.filter((a) => ['staff_verified', 'researcher_signed', 'admin_review', 'budget_verified', 'dean_approved', 'finance_processing'].includes(a.status)).length;
-  const countSubmitted = submittedAppsOnly.filter((a) => a.status === 'submitted').length;
+  const countPaid = submittedAppsOnly.filter((application) => application.status === 'paid').length;
+  const countPending = submittedAppsOnly.filter((application) => pendingStatuses.includes(application.status)).length;
 
   // Quartile distribution
-  const q1Tier1Count = submittedAppsOnly.filter((a) => a.quartile === 'Q1_Tier1' || a.isTier1Top10).length;
-  const q1Count = submittedAppsOnly.filter((a) => a.quartile === 'Q1' && !a.isTier1Top10).length;
-  const q2Count = submittedAppsOnly.filter((a) => a.quartile === 'Q2').length;
-  const q3Count = submittedAppsOnly.filter((a) => a.quartile === 'Q3').length;
-  const q4Count = submittedAppsOnly.filter((a) => a.quartile === 'Q4').length;
-  const tciCount = submittedAppsOnly.filter((a) => a.quartile === 'TCI_1' || a.quartile === 'TCI_2').length;
-
-  // Filtered applications based on logged-in role (excluding drafts from recent applications table)
-  const isResearcher = currentUser?.role === 'researcher';
-  const userLastName = currentUser?.name.trim().split(' ').pop()?.toLowerCase() || '';
-  const userEmail = currentUser?.email?.toLowerCase() || '';
-
-  const isMyApplication = (a: ResearchApplication) => {
-    const matchesEmail = userEmail && a.email && a.email.toLowerCase() === userEmail;
-    const matchesName = userLastName && a.applicantName && a.applicantName.toLowerCase().includes(userLastName);
-    return Boolean(matchesEmail || matchesName);
-  };
+  const q1Tier1Count = submittedAppsOnly.filter((application) => application.quartile === 'Q1_Tier1' || application.isTier1Top10).length;
+  const q1Count = submittedAppsOnly.filter((application) => application.quartile === 'Q1' && !application.isTier1Top10).length;
+  const q2Count = submittedAppsOnly.filter((application) => application.quartile === 'Q2').length;
+  const q3Count = submittedAppsOnly.filter((application) => application.quartile === 'Q3').length;
+  const q4Count = submittedAppsOnly.filter((application) => application.quartile === 'Q4').length;
+  const tciCount = submittedAppsOnly.filter((application) => application.quartile === 'TCI_1' || application.quartile === 'TCI_2').length;
 
   const displayedApplications = React.useMemo(() => {
     if (isGuest) return [];
-    if (isResearcher && currentUser) {
-      return submittedAppsOnly.filter(isMyApplication);
-    }
-    return submittedAppsOnly;
-  }, [submittedAppsOnly, isGuest, isResearcher, currentUser, userLastName, userEmail]);
+    return applications.filter((application) =>
+      application.status !== 'draft' && (!isResearcher || isMyApplication(application))
+    );
+  }, [applications, isGuest, isResearcher, userEmail]);
 
   // Drafts count for current researcher
   const myDraftsCount = React.useMemo(() => {
     if (!isResearcher) return 0;
-    return applications.filter((a) => isMyApplication(a) && a.status === 'draft').length;
-  }, [applications, isResearcher, userLastName, userEmail]);
+    return authorizedApplications.filter((application) => isMyApplication(application) && application.status === 'draft').length;
+  }, [authorizedApplications, isResearcher, userEmail]);
 
   // Researcher personal quota calculation
   const personalClaimedTotal = React.useMemo(() => {
     if (!isResearcher) return 0;
-    return displayedApplications.reduce((acc, a) => acc + (a.totalClaimedAmount || 0), 0);
-  }, [displayedApplications, isResearcher]);
+    return submittedAppsOnly.reduce((acc, application) => acc + (application.totalClaimedAmount || 0), 0);
+  }, [submittedAppsOnly, isResearcher]);
   const personalRemainingQuota = Math.max(0, 150000 - personalClaimedTotal);
 
   return (
@@ -157,13 +152,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
+      {!isGuest && (
+        <>
       {/* KPI Cards: Aggregate Statistics (Safe for Public) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Approved Amount */}
         <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500">
-              {isResearcher ? 'ยอดคำขอของฉันรวม' : 'งบประมาณอนุมัติรวม'}
+              {isResearcher ? 'ยอดคำขอของฉันรวม' : 'ยอดคำขอรวม'}
             </span>
             <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
               <Banknote className="w-5 h-5" />
@@ -171,11 +168,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold text-slate-900 tracking-tight font-prompt">
-              {formatBaht(isResearcher ? personalClaimedTotal : totalApprovedAmount)}
+              {formatBaht(isResearcher ? personalClaimedTotal : totalRequestedAmount)}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
               <span>
-                {isResearcher ? `จำนวน ${displayedApplications.length} เรื่อง` : `ทั้งหมด ${totalApplications} โครงการ`}
+                {isResearcher ? `จำนวน ${totalApplications} เรื่อง` : `ทั้งหมด ${totalApplications} โครงการ`}
               </span>
             </div>
           </div>
@@ -212,7 +209,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {formatBaht(totalPendingAmount)}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-amber-600 font-medium">
-              <span>รอพิจารณา {countInReview + countSubmitted} รายการ</span>
+              <span>รอพิจารณา {countPending} รายการ</span>
             </div>
           </div>
         </div>
@@ -235,12 +232,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="w-full bg-slate-100 rounded-full h-2 mt-2 flex overflow-hidden">
               <div 
                 className="bg-purple-600 h-full" 
-                style={{ width: `${(totalRewardsOnly / (totalApprovedAmount || 1)) * 100}%` }}
+                style={{ width: `${(totalRewardsOnly / (totalRequestedAmount || 1)) * 100}%` }}
                 title="เงินรางวัล"
               />
               <div 
                 className="bg-indigo-500 h-full" 
-                style={{ width: `${(totalPageChargesOnly / (totalApprovedAmount || 1)) * 100}%` }}
+                style={{ width: `${(totalPageChargesOnly / (totalRequestedAmount || 1)) * 100}%` }}
                 title="ค่าตีพิมพ์ (Page Charge)"
               />
             </div>
@@ -397,6 +394,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       </div>
+        </>
+      )}
 
       {/* GUEST MODE: Show Overview Call-to-Action only (table completely hidden) */}
       {isGuest ? (
