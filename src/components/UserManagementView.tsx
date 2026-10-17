@@ -37,9 +37,9 @@ import { UserProfile, UserRole } from '../types';
 interface UserManagementViewProps {
   users: UserProfile[];
   currentLoggedInUser: UserProfile;
-  onUpdateUser: (user: UserProfile) => void;
-  onCreateUser: (user: UserProfile) => void;
-  onDeleteUser: (userId: string) => void;
+  onUpdateUser: (user: UserProfile) => Promise<boolean> | boolean | void;
+  onCreateUser: (user: UserProfile) => Promise<boolean> | boolean | void;
+  onDeleteUser: (userId: string) => Promise<boolean> | boolean | void;
   onSwitchUser: (user: UserProfile) => void;
   onShowAlert?: (msg: string) => void;
   onBackToDashboard?: () => void;
@@ -109,6 +109,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [isSavingUser, setIsSavingUser] = useState(false);
 
   // Delete Confirm State
   const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserProfile | null>(null);
@@ -345,7 +346,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   };
 
   // Submit Modal Form
-  const handleSubmitForm = (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name?.trim() || !formData.email?.trim() || !formData.department?.trim()) {
       alert('กรุณากรอกชื่อ-นามสกุล, อีเมล, และภาควิชาให้ครบถ้วน');
@@ -371,46 +372,73 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       lastLoginAt: editingUser?.lastLoginAt,
     };
 
-    if (editingUser) {
-      onUpdateUser(payload);
-    } else {
-      onCreateUser(payload);
+    setIsSavingUser(true);
+    try {
+      const saved = editingUser
+        ? await onUpdateUser(payload)
+        : await onCreateUser(payload);
+      if (saved === false) return;
+      setIsModalOpen(false);
+    } catch (error) {
+      onShowAlert?.(error instanceof Error ? error.message : 'บันทึกข้อมูลผู้ใช้ไม่สำเร็จ');
+    } finally {
+      setIsSavingUser(false);
     }
-    setIsModalOpen(false);
   };
 
   // Quick Role Change from Table Dropdown
-  const handleQuickRoleChange = (user: UserProfile, newRole: UserRole) => {
+  const handleQuickRoleChange = async (user: UserProfile, newRole: UserRole) => {
     const updatedRoles = Array.from(new Set([newRole, ...(user.roles || [])]));
     const updated: UserProfile = {
       ...user,
       role: newRole,
       roles: updatedRoles,
     };
-    onUpdateUser(updated);
-    if (onShowAlert) {
-      onShowAlert(`เปลี่ยนบทบาทของ ${user.name} เป็น "${ROLE_CONFIG[newRole].label}" เรียบร้อยแล้ว`);
+    setIsSavingUser(true);
+    try {
+      const saved = await onUpdateUser(updated);
+      if (saved !== false) {
+        onShowAlert?.(`เปลี่ยนบทบาทของ ${user.name} เป็น "${ROLE_CONFIG[newRole].label}" เรียบร้อยแล้ว`);
+      }
+    } catch (error) {
+      onShowAlert?.(error instanceof Error ? error.message : 'เปลี่ยนบทบาทไม่สำเร็จ');
+    } finally {
+      setIsSavingUser(false);
     }
   };
 
   // Quick Status Toggle (Active / Suspended)
-  const handleToggleStatus = (user: UserProfile) => {
+  const handleToggleStatus = async (user: UserProfile) => {
     const nextStatus = user.status === 'suspended' ? 'active' : 'suspended';
     const updated: UserProfile = {
       ...user,
       status: nextStatus,
     };
-    onUpdateUser(updated);
-    if (onShowAlert) {
-      onShowAlert(`เปลี่ยนสถานะของ ${user.name} เป็น ${nextStatus === 'active' ? 'เปิดใช้งาน' : 'ระงับชั่วคราว'} เรียบร้อยแล้ว`);
+    setIsSavingUser(true);
+    try {
+      const saved = await onUpdateUser(updated);
+      if (saved !== false) {
+        onShowAlert?.(`เปลี่ยนสถานะของ ${user.name} เป็น ${nextStatus === 'active' ? 'เปิดใช้งาน' : 'ระงับชั่วคราว'} เรียบร้อยแล้ว`);
+      }
+    } catch (error) {
+      onShowAlert?.(error instanceof Error ? error.message : 'เปลี่ยนสถานะไม่สำเร็จ');
+    } finally {
+      setIsSavingUser(false);
     }
   };
 
   // Delete User Confirmation
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deleteConfirmUser) return;
-    onDeleteUser(deleteConfirmUser.id);
-    setDeleteConfirmUser(null);
+    setIsSavingUser(true);
+    try {
+      const deleted = await onDeleteUser(deleteConfirmUser.id);
+      if (deleted !== false) setDeleteConfirmUser(null);
+    } catch (error) {
+      onShowAlert?.(error instanceof Error ? error.message : 'ลบผู้ใช้ไม่สำเร็จ');
+    } finally {
+      setIsSavingUser(false);
+    }
   };
 
   // Masking helpers for PDPA
@@ -1149,15 +1177,17 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
+                  disabled={isSavingUser}
                   className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-medium hover:bg-slate-100 transition-colors"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
+                  disabled={isSavingUser}
                   className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/30 transition-all"
                 >
-                  {editingUser ? 'บันทึกการแก้ไข' : 'เพิ่มผู้ใช้'}
+                  {isSavingUser ? 'กำลังบันทึก...' : editingUser ? 'บันทึกการแก้ไข' : 'เพิ่มผู้ใช้'}
                 </button>
               </div>
             </form>
@@ -1188,6 +1218,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               <button
                 type="button"
                 onClick={() => setDeleteConfirmUser(null)}
+                disabled={isSavingUser}
                 className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-medium hover:bg-slate-100 transition-colors"
               >
                 ยกเลิก
@@ -1195,9 +1226,10 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               <button
                 type="button"
                 onClick={handleConfirmDelete}
+                disabled={isSavingUser}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/30 transition-all"
               >
-                ยืนยันการลบ
+                {isSavingUser ? 'กำลังลบ...' : 'ยืนยันการลบ'}
               </button>
             </div>
           </div>

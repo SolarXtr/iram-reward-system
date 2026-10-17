@@ -77,7 +77,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     try {
       const result = await Promise.resolve(onSaveProfile(formData));
       if (result === false) {
-        setSaveError('บันทึกข้อมูลในเครื่องเรียบร้อยแล้ว แต่การซิงก์ข้อมูลกับระบบคลาวด์ล้มเหลว กรุณาลองอีกครั้ง');
+        setSaveError('บันทึกข้อมูลลงระบบไม่สำเร็จ ข้อมูลเดิมยังไม่ถูกเปลี่ยน กรุณาลองอีกครั้ง');
         return;
       }
 

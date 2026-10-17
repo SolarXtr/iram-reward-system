@@ -5,6 +5,7 @@
  */
 
 import { UserProfile } from '../types';
+import { auth } from './googleAuth';
 import { 
   getStoredUsersRegistry, 
   saveStoredUsersRegistry, 
@@ -15,13 +16,26 @@ import {
 
 const API_BASE_URL = 'https://iram-backend.tinnakornh.workers.dev/api/users';
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) {
+    throw new Error('กรุณาเข้าสู่ระบบใหม่ก่อนจัดการข้อมูลผู้ใช้');
+  }
+
+  return {
+    Authorization: `Bearer ${await firebaseUser.getIdToken()}`,
+  };
+}
+
 /**
  * Fetch all users from Cloudflare D1 (irUser + irResearcherProfile)
  * Fallback to localStorage if offline.
  */
 export async function fetchUsersFromD1(): Promise<UserProfile[]> {
   try {
-    const response = await fetch(API_BASE_URL);
+    const response = await fetch(API_BASE_URL, {
+      headers: await getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch users: HTTP ${response.status}`);
     }
@@ -43,7 +57,9 @@ export async function fetchUsersFromD1(): Promise<UserProfile[]> {
 export async function fetchUserProfileByEmailFromD1(email: string): Promise<UserProfile | null> {
   if (!email) return null;
   try {
-    const response = await fetch(`${API_BASE_URL}/profile/${encodeURIComponent(email.trim().toLowerCase())}`);
+    const response = await fetch(`${API_BASE_URL}/profile/${encodeURIComponent(email.trim().toLowerCase())}`, {
+      headers: await getAuthHeaders(),
+    });
     if (response.status === 404) {
       return null;
     }
@@ -70,6 +86,7 @@ export async function updateUserProfileInD1(userId: string, updates: Partial<Use
       const response = await fetch(`${API_BASE_URL}/profile/${encodeURIComponent(userId)}`, {
         method: 'PUT',
         headers: {
+          ...await getAuthHeaders(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updates),
@@ -109,19 +126,38 @@ export async function createUserInD1(user: Partial<UserProfile>): Promise<{ id: 
     const response = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: {
+        ...await getAuthHeaders(),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(user),
     });
 
-    const result = await response.json();
+    const result: unknown = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(result.error || `HTTP error ${response.status}`);
+      const errorMessage = result && typeof result === 'object' && 'error' in result
+        ? String(result.error)
+        : `HTTP error ${response.status}`;
+      throw new Error(errorMessage);
     }
 
-    return result;
+    if (!result || typeof result !== 'object' || !('id' in result) || !('email' in result)) {
+      throw new Error('Invalid user creation response from D1');
+    }
+
+    return result as { id: string; email: string };
   } catch (error) {
     console.error('Failed to create user in D1:', error);
     throw error;
+  }
+}
+
+export async function deleteUserFromD1(userId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/profile/${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
+    headers: await getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete user: HTTP ${response.status}`);
   }
 }

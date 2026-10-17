@@ -54,7 +54,8 @@ import {
 import {
   fetchUsersFromD1,
   updateUserProfileInD1,
-  createUserInD1
+  createUserInD1,
+  deleteUserFromD1
 } from './services/userService';
 import { Bell, CheckCircle2 } from 'lucide-react';
 
@@ -155,11 +156,14 @@ export default function App() {
     };
   }, [currentUser?.id]);
 
-  // Load registered users from Cloudflare D1 (irUser) on mount
+  // Load registered users from D1 only after authentication.
   useEffect(() => {
+    if (!currentUser) return;
+
+    let cancelled = false;
     fetchUsersFromD1()
       .then((d1Users) => {
-        if (Array.isArray(d1Users) && d1Users.length > 0) {
+        if (!cancelled && Array.isArray(d1Users) && d1Users.length > 0) {
           setRegisteredUsers(d1Users);
 
           // Synchronize active currentUser with latest verified record from D1
@@ -181,7 +185,10 @@ export default function App() {
         }
       })
       .catch((err) => console.warn('D1 users fetch warning:', err));
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id]);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -259,73 +266,69 @@ export default function App() {
 
   const handleSaveProfile = async (updated: UserProfile): Promise<boolean> => {
     try {
+      await updateUserProfileInD1(updated.id, updated);
       saveStoredUserProfile(updated);
       setCurrentUser(updated);
       setCurrentAuthUser(updated);
       const nextUsers = upsertRegisteredUser(updated);
       setRegisteredUsers(nextUsers);
-
-      // Cloudflare D1 Cloud Sync
-      try {
-        await updateUserProfileInD1(updated.id, updated);
-        showToast('✅ ซิงก์ข้อมูลโปรไฟล์ขึ้น Cloudflare D1 (irUser) เรียบร้อยแล้ว');
-        return true;
-      } catch (e: any) {
-        console.warn('D1 profile sync warning:', e);
-        const reason = e instanceof Error ? e.message : 'ไม่ทราบสาเหตุ';
-        showToast(`บันทึกในเครื่องแล้ว แต่ซิงก์ Cloudflare D1 ไม่สำเร็จ: ${reason}`);
-        return false;
-      }
+      showToast('บันทึกข้อมูลโปรไฟล์ลง Cloudflare D1 เรียบร้อยแล้ว');
+      return true;
     } catch (error) {
-      console.error('Failed to save profile locally:', error);
-      showToast('บันทึกข้อมูลโปรไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+      console.error('Failed to save profile to D1:', error);
+      const reason = error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
+      showToast(`บันทึกโปรไฟล์ลง D1 ไม่สำเร็จ: ${reason}`);
       return false;
     }
   };
 
-  const handleUpdateRegisteredUser = async (updatedUser: UserProfile) => {
-    const nextUsers = upsertRegisteredUser(updatedUser);
-    setRegisteredUsers(nextUsers);
-    const isCurrent = currentUser && (
-      (currentUser.id && currentUser.id === updatedUser.id) ||
-      (currentUser.name && updatedUser.name && currentUser.name.trim() === updatedUser.name.trim()) ||
-      (currentUser.email && updatedUser.email && currentUser.email.toLowerCase() === updatedUser.email.toLowerCase())
-    );
-    if (isCurrent) {
-      setCurrentUser(updatedUser);
-      setCurrentAuthUser(updatedUser);
-      saveStoredUserProfile(updatedUser);
-    }
-    showToast(`อัปเดตข้อมูลผู้ใช้งาน ${updatedUser.name} เรียบร้อยแล้ว`);
-
-    // Cloudflare D1 Cloud Sync
+  const handleUpdateRegisteredUser = async (updatedUser: UserProfile): Promise<boolean> => {
     try {
       await updateUserProfileInD1(updatedUser.id, updatedUser);
-      showToast(`✅ อัปเดตข้อมูล ${updatedUser.name} ลง Cloudflare D1 (irUser) เรียบร้อย`);
-    } catch (e: any) {
-      console.warn('D1 update user warning:', e);
+      const nextUsers = upsertRegisteredUser(updatedUser);
+      setRegisteredUsers(nextUsers);
+      if (currentUser?.id === updatedUser.id) {
+        setCurrentUser(updatedUser);
+        setCurrentAuthUser(updatedUser);
+        saveStoredUserProfile(updatedUser);
+      }
+      showToast(`อัปเดตข้อมูล ${updatedUser.name} ใน D1 เรียบร้อยแล้ว`);
+      return true;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
+      showToast(`อัปเดตข้อมูลใน D1 ไม่สำเร็จ: ${reason}`);
+      return false;
     }
   };
 
-  const handleCreateRegisteredUser = async (newUser: UserProfile) => {
-    const nextUsers = upsertRegisteredUser(newUser);
-    setRegisteredUsers(nextUsers);
-    showToast(`เพิ่มผู้ใช้งาน ${newUser.name} เข้าสู่ระบบเรียบร้อยแล้ว`);
-
-    // Cloudflare D1 Cloud Sync
+  const handleCreateRegisteredUser = async (newUser: UserProfile): Promise<boolean> => {
     try {
-      await createUserInD1(newUser);
-      showToast(`✅ เพิ่มผู้ใช้งาน ${newUser.name} เข้าสู่ Cloudflare D1 (irUser) สำเร็จ`);
-    } catch (e: any) {
-      console.warn('D1 create user warning:', e);
+      const createdUser = await createUserInD1(newUser);
+      const savedUser = { ...newUser, id: createdUser.id || newUser.id };
+      const nextUsers = upsertRegisteredUser(savedUser);
+      setRegisteredUsers(nextUsers);
+      showToast(`เพิ่มผู้ใช้งาน ${savedUser.name} ลง D1 เรียบร้อยแล้ว`);
+      return true;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
+      showToast(`เพิ่มผู้ใช้งานลง D1 ไม่สำเร็จ: ${reason}`);
+      return false;
     }
   };
 
-  const handleDeleteRegisteredUser = (userId: string) => {
-    const userToDelete = registeredUsers.find((u) => u.id === userId);
-    const nextUsers = deleteRegisteredUser(userId);
-    setRegisteredUsers(nextUsers);
-    showToast(`ลบผู้ใช้งาน ${userToDelete?.name || userId} เรียบร้อยแล้ว`);
+  const handleDeleteRegisteredUser = async (userId: string): Promise<boolean> => {
+    try {
+      await deleteUserFromD1(userId);
+      const userToDelete = registeredUsers.find((user) => user.id === userId);
+      const nextUsers = deleteRegisteredUser(userId);
+      setRegisteredUsers(nextUsers);
+      showToast(`ลบผู้ใช้งาน ${userToDelete?.name || userId} จาก D1 เรียบร้อยแล้ว`);
+      return true;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
+      showToast(`ลบผู้ใช้งานจาก D1 ไม่สำเร็จ: ${reason}`);
+      return false;
+    }
   };
 
   const handleSwitchUserFromConsole = (user: UserProfile) => {
