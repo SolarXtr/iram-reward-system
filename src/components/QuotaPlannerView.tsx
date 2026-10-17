@@ -23,7 +23,7 @@ import {
   Building,
   RotateCcw
 } from 'lucide-react';
-import { ResearchApplication, UserProfile, NuDisbursementRecord } from '../types';
+import { ResearchApplication, UserProfile, NuDisbursementRecord, UserRole } from '../types';
 import { 
   formatBaht, 
   checkPublication24MonthExpiry, 
@@ -663,7 +663,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                         {/* Status Check (มน. & คณะ ทั้งปีเก่า 2568, 2569 และปีปัจจุบัน 2570) */}
                         {(() => {
                           const priorClaim = checkArticlePriorClaim(draft.articleTitle, draft.doi, nuDisbursements);
-                          if (priorClaim.summaryBadge.status === 'not_claimed') {
+                          if (priorClaim.summaryBadge.status === 'unclaimed') {
                             return (
                               <div className="mt-1.5 flex items-center gap-1.5">
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">

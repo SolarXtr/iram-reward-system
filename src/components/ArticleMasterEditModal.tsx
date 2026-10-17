@@ -138,7 +138,7 @@ export const ArticleMasterEditModal: React.FC<ArticleMasterEditModalProps> = ({
 
     // 2. Process Faculty updates
     if (article.rawApp) {
-      const stepMap: Record<ApplicationStatus, number> = {
+      const stepMap: Partial<Record<ApplicationStatus, number>> = {
         paid: 12,
         finance_processing: 10,
         dean_approved: 8,

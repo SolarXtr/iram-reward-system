@@ -518,6 +518,7 @@ export function checkArticlePriorClaim(
     isNuPaidConfirmed?: boolean;
     rewardAmount?: number;
     pageChargeAmount?: number;
+    totalAmount?: number;
     facultyRewardAmount?: number;
     facultyPageChargeAmount?: number;
   }> = []
