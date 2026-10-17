@@ -3,7 +3,7 @@
  * Communicates with backend at https://iram-backend.tinnakornh.workers.dev/api/rewards
  */
 
-import { ResearchApplication } from '../types';
+import { PublicRewardSummary, QuartileRank, ResearchApplication } from '../types';
 
 const API_BASE_URL = 'https://iram-backend.tinnakornh.workers.dev/api/rewards';
 
@@ -12,6 +12,49 @@ export interface DuplicateCheckResult {
   source?: 'reward_application' | 'publication_history';
   match?: any;
   message: string;
+}
+
+const PUBLIC_QUARTILES: QuartileRank[] = ['Q1_Tier1', 'Q1', 'Q2', 'Q3', 'Q4', 'TCI_1', 'TCI_2'];
+
+/** Fetch aggregate dashboard values only; this endpoint must not return application records. */
+export async function fetchPublicRewardSummary(): Promise<PublicRewardSummary> {
+  const response = await fetch(`${API_BASE_URL}/public-summary`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch public summary: ${response.status}`);
+  }
+
+  const data: unknown = await response.json();
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid public summary response');
+  }
+
+  const summary = data as Record<string, unknown>;
+  const numericFields = [
+    'totalApplications',
+    'totalRequestedAmount',
+    'paidAmount',
+    'paidCount',
+    'pendingAmount',
+    'pendingCount',
+    'rewardAmount',
+    'pageChargeAmount',
+  ];
+  if (numericFields.some((field) => typeof summary[field] !== 'number' || !Number.isFinite(summary[field]) || (summary[field] as number) < 0)) {
+    throw new Error('Invalid public summary response');
+  }
+
+  const quartileCounts = summary.quartileCounts;
+  if (!quartileCounts || typeof quartileCounts !== 'object') {
+    throw new Error('Invalid public summary response');
+  }
+  for (const quartile of PUBLIC_QUARTILES) {
+    const count = (quartileCounts as Record<string, unknown>)[quartile];
+    if (typeof count !== 'number' || !Number.isFinite(count) || count < 0) {
+      throw new Error('Invalid public summary response');
+    }
+  }
+
+  return data as PublicRewardSummary;
 }
 
 /**

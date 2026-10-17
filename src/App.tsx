@@ -17,7 +17,7 @@ import { UserManagementView } from './components/UserManagementView';
 import { LoginModal } from './components/LoginModal';
 import { ResearcherActivationModal } from './components/ResearcherActivationModal';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
-import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, ResearchApplication, UserProfile, WorkflowStepId, NuDisbursementRecord } from './types';
+import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, PublicRewardSummary, ResearchApplication, UserProfile, WorkflowStepId, NuDisbursementRecord } from './types';
 import { generateNextTrackingNo } from './data/regulations';
 import { 
   DEFAULT_LOGGED_IN_USER,
@@ -45,6 +45,7 @@ import {
   LINE_NOTIFICATION_SYSTEM_ENABLED
 } from './data/lineNotificationService';
 import {
+  fetchPublicRewardSummary,
   fetchRewardApplicationsFromD1,
   createRewardApplicationInD1,
   updateRewardApplicationInD1,
@@ -83,6 +84,8 @@ export default function App() {
   const [paymentApp, setPaymentApp] = useState<ResearchApplication | null>(null);
   const [editingDraftApp, setEditingDraftApp] = useState<ResearchApplication | null>(null);
   const [isLoadingD1, setIsLoadingD1] = useState(false);
+  const [publicRewardSummary, setPublicRewardSummary] = useState<PublicRewardSummary | null>(null);
+  const [isLoadingPublicSummary, setIsLoadingPublicSummary] = useState(false);
 
   // Auto-open Researcher Activation Modal if logged-in user is in Pending Profile state
   useEffect(() => {
@@ -121,6 +124,32 @@ export default function App() {
       }
     };
     loadFromD1();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (currentUser) {
+      setPublicRewardSummary(null);
+      setIsLoadingPublicSummary(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingPublicSummary(true);
+    fetchPublicRewardSummary()
+      .then((summary) => {
+        if (!cancelled) setPublicRewardSummary(summary);
+      })
+      .catch((error) => {
+        console.warn('Public dashboard summary unavailable:', error);
+        if (!cancelled) setPublicRewardSummary(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingPublicSummary(false);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -1024,6 +1053,8 @@ export default function App() {
           <DashboardView
             applications={isGuest ? [] : displayApplications}
             statisticsApplications={isGuest ? [] : roleScopedApplications}
+            publicSummary={publicRewardSummary}
+            isLoadingPublicSummary={isLoadingPublicSummary}
             onViewApplication={(app) => setTimelineApp(app)}
             onPrintApplication={(app) => setPrintApp(app)}
             onVerifyPayment={(app) => setPaymentApp(app)}
@@ -1034,7 +1065,6 @@ export default function App() {
             nuDisbursements={nuDisbursements}
             onUpdateNuRecord={handleUpdateNuRecord}
             onImportNuRecords={handleImportNuRecords}
-            onNavigateToPlanner={() => setActiveTab('quota_planner')}
           />
         )}
 

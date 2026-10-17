@@ -17,17 +17,17 @@ import {
   Lock,
   UserCheck,
   ExternalLink,
-  Sparkles,
-  ChevronRight,
   LogIn
 } from 'lucide-react';
-import { ResearchApplication, UserProfile, NuDisbursementRecord, UserRole } from '../types';
+import { PublicRewardSummary, ResearchApplication, UserProfile, NuDisbursementRecord, UserRole } from '../types';
 import { formatBaht } from '../data/regulations';
 import { NuDisbursementTable } from './NuDisbursementTable';
 
 interface DashboardViewProps {
   applications: ResearchApplication[];
   statisticsApplications?: ResearchApplication[];
+  publicSummary?: PublicRewardSummary | null;
+  isLoadingPublicSummary?: boolean;
   onViewApplication: (app: ResearchApplication) => void;
   onPrintApplication: (app: ResearchApplication) => void;
   onVerifyPayment: (app: ResearchApplication) => void;
@@ -38,12 +38,13 @@ interface DashboardViewProps {
   nuDisbursements?: NuDisbursementRecord[];
   onUpdateNuRecord?: (updated: NuDisbursementRecord) => void;
   onImportNuRecords?: (newRecords: NuDisbursementRecord[]) => void;
-  onNavigateToPlanner?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   applications,
   statisticsApplications,
+  publicSummary,
+  isLoadingPublicSummary = false,
   onViewApplication,
   onPrintApplication,
   onVerifyPayment,
@@ -54,7 +55,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   nuDisbursements = [],
   onUpdateNuRecord,
   onImportNuRecords,
-  onNavigateToPlanner,
 }) => {
   const isGuest = !currentUser;
   const isResearcher = currentRole === 'researcher';
@@ -68,32 +68,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const submittedAppsOnly = React.useMemo(() => {
     return authorizedApplications.filter((application) => application.status !== 'draft');
   }, [authorizedApplications]);
-  const hasStatistics = submittedAppsOnly.length > 0;
+  const hasStatistics = isGuest ? Boolean(publicSummary) : submittedAppsOnly.length > 0;
 
-  const totalApplications = submittedAppsOnly.length;
-  const totalRequestedAmount = submittedAppsOnly.reduce((acc, application) => acc + (application.totalClaimedAmount || 0), 0);
-  const totalPaidAmount = submittedAppsOnly
-    .filter((application) => application.status === 'paid')
-    .reduce((acc, application) => acc + (application.actualPaidAmount || application.totalClaimedAmount || 0), 0);
+  const totalApplications = isGuest ? publicSummary?.totalApplications ?? 0 : submittedAppsOnly.length;
+  const totalRequestedAmount = isGuest
+    ? publicSummary?.totalRequestedAmount ?? 0
+    : submittedAppsOnly.reduce((acc, application) => acc + (application.totalClaimedAmount || 0), 0);
+  const totalPaidAmount = isGuest
+    ? publicSummary?.paidAmount ?? 0
+    : submittedAppsOnly
+      .filter((application) => application.status === 'paid')
+      .reduce((acc, application) => acc + (application.actualPaidAmount || application.totalClaimedAmount || 0), 0);
   const pendingStatuses = ['submitted', 'staff_verified', 'researcher_signed', 'admin_review', 'budget_verified', 'dean_approved', 'finance_processing'];
-  const totalPendingAmount = submittedAppsOnly
-    .filter((application) => pendingStatuses.includes(application.status))
-    .reduce((acc, application) => acc + (application.totalClaimedAmount || 0), 0);
+  const totalPendingAmount = isGuest
+    ? publicSummary?.pendingAmount ?? 0
+    : submittedAppsOnly
+      .filter((application) => pendingStatuses.includes(application.status))
+      .reduce((acc, application) => acc + (application.totalClaimedAmount || 0), 0);
 
-  const totalRewardsOnly = submittedAppsOnly.reduce((acc, application) => acc + (application.claimedRewardAmount || 0), 0);
-  const totalPageChargesOnly = submittedAppsOnly.reduce((acc, application) => acc + (application.approvedPageChargeAmount || 0), 0);
+  const totalRewardsOnly = isGuest
+    ? publicSummary?.rewardAmount ?? 0
+    : submittedAppsOnly.reduce((acc, application) => acc + (application.claimedRewardAmount || 0), 0);
+  const totalPageChargesOnly = isGuest
+    ? publicSummary?.pageChargeAmount ?? 0
+    : submittedAppsOnly.reduce((acc, application) => acc + (application.approvedPageChargeAmount || 0), 0);
 
   // Status counts
-  const countPaid = submittedAppsOnly.filter((application) => application.status === 'paid').length;
-  const countPending = submittedAppsOnly.filter((application) => pendingStatuses.includes(application.status)).length;
+  const countPaid = isGuest
+    ? publicSummary?.paidCount ?? 0
+    : submittedAppsOnly.filter((application) => application.status === 'paid').length;
+  const countPending = isGuest
+    ? publicSummary?.pendingCount ?? 0
+    : submittedAppsOnly.filter((application) => pendingStatuses.includes(application.status)).length;
 
   // Quartile distribution
-  const q1Tier1Count = submittedAppsOnly.filter((application) => application.quartile === 'Q1_Tier1' || application.isTier1Top10).length;
-  const q1Count = submittedAppsOnly.filter((application) => application.quartile === 'Q1' && !application.isTier1Top10).length;
-  const q2Count = submittedAppsOnly.filter((application) => application.quartile === 'Q2').length;
-  const q3Count = submittedAppsOnly.filter((application) => application.quartile === 'Q3').length;
-  const q4Count = submittedAppsOnly.filter((application) => application.quartile === 'Q4').length;
-  const tciCount = submittedAppsOnly.filter((application) => application.quartile === 'TCI_1' || application.quartile === 'TCI_2').length;
+  const q1Tier1Count = isGuest ? publicSummary?.quartileCounts.Q1_Tier1 ?? 0 : submittedAppsOnly.filter((application) => application.quartile === 'Q1_Tier1' || application.isTier1Top10).length;
+  const q1Count = isGuest ? publicSummary?.quartileCounts.Q1 ?? 0 : submittedAppsOnly.filter((application) => application.quartile === 'Q1' && !application.isTier1Top10).length;
+  const q2Count = isGuest ? publicSummary?.quartileCounts.Q2 ?? 0 : submittedAppsOnly.filter((application) => application.quartile === 'Q2').length;
+  const q3Count = isGuest ? publicSummary?.quartileCounts.Q3 ?? 0 : submittedAppsOnly.filter((application) => application.quartile === 'Q3').length;
+  const q4Count = isGuest ? publicSummary?.quartileCounts.Q4 ?? 0 : submittedAppsOnly.filter((application) => application.quartile === 'Q4').length;
+  const tciCount = isGuest
+    ? (publicSummary?.quartileCounts.TCI_1 ?? 0) + (publicSummary?.quartileCounts.TCI_2 ?? 0)
+    : submittedAppsOnly.filter((application) => application.quartile === 'TCI_1' || application.quartile === 'TCI_2').length;
 
   const displayedApplications = React.useMemo(() => {
     if (isGuest) return [];
@@ -102,91 +118,56 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     );
   }, [applications, isGuest, isResearcher, userEmail]);
 
-  // Drafts count for current researcher
-  const myDraftsCount = React.useMemo(() => {
-    if (!isResearcher) return 0;
-    return authorizedApplications.filter((application) => isMyApplication(application) && application.status === 'draft').length;
-  }, [authorizedApplications, isResearcher, userEmail]);
-
   // Researcher personal quota calculation
   const personalClaimedTotal = React.useMemo(() => {
     if (!isResearcher) return 0;
     return submittedAppsOnly.reduce((acc, application) => acc + (application.totalClaimedAmount || 0), 0);
   }, [submittedAppsOnly, isResearcher]);
-  const personalRemainingQuota = Math.max(0, 150000 - personalClaimedTotal);
 
   return (
     <div className="space-y-6">
-      {/* Researcher Quota Planner Quick Access Banner */}
-      {isResearcher && (
-        <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-2xl p-4 sm:p-5 text-white shadow-md border border-indigo-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold font-prompt text-sm text-white">
-                  วางแผนใช้วงเงินประจำปี & ตรวจสอบอายุบทความ 24 เดือน
-                </h3>
-                {myDraftsCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-slate-950 font-prompt">
-                    เตรียมไว้ {myDraftsCount} เรื่อง
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                วงเงินคงเหลือของคณะฯ ปีนี้: <strong className="text-amber-300 font-prompt">{formatBaht(personalRemainingQuota)}</strong> (จากเพดาน 150,000 บ.) • ตรวจสอบบทความเพื่อไม่ให้เสียสิทธิ์ก่อนครบ 24 เดือน
-              </p>
-            </div>
-          </div>
-
-          {onNavigateToPlanner && (
-            <button
-              onClick={onNavigateToPlanner}
-              className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-md transition-all shrink-0 cursor-pointer"
-            >
-              <span>เปิดระบบตรวจเลือกบทความ (Quota Planner)</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      )}
-
       {!hasStatistics && (
         <p className="text-xs text-slate-500" role="status">
-          ยังไม่มีข้อมูลสรุปที่เปิดเผยได้
+          {isLoadingPublicSummary ? 'กำลังโหลดข้อมูลสรุป...' : 'ยังไม่มีข้อมูลสรุปที่เปิดเผยได้'}
         </p>
       )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Approved Amount */}
+        {/* Card 1: Rewards and page charges */}
         <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">
-              {isResearcher ? 'ยอดคำขอของฉันรวม' : 'ยอดคำขอรวม'}
-            </span>
-            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-              <Banknote className="w-5 h-5" />
+            <span className="text-xs font-medium text-slate-500">สัดส่วนเงินรางวัล : ค่าตีพิมพ์</span>
+            <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
+              <Award className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-slate-900 tracking-tight font-prompt">
-              {hasStatistics ? formatBaht(isResearcher ? personalClaimedTotal : totalRequestedAmount) : '—'}
+            <div className="flex justify-between items-baseline">
+              <span className="text-xs text-purple-700 font-semibold">รางวัล: {hasStatistics ? formatBaht(totalRewardsOnly) : '—'}</span>
             </div>
-            <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-              <span>
-                {hasStatistics ? (isResearcher ? `จำนวน ${totalApplications} เรื่อง` : `ทั้งหมด ${totalApplications} โครงการ`) : 'ไม่มีข้อมูล'}
-              </span>
+            <div className="flex justify-between items-baseline mt-1">
+              <span className="text-xs text-indigo-700 font-semibold">ค่าตีพิมพ์: {hasStatistics ? formatBaht(totalPageChargesOnly) : '—'}</span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-2 mt-2 flex overflow-hidden">
+              <div
+                className="bg-purple-600 h-full"
+                style={{ width: `${hasStatistics ? (totalRewardsOnly / (totalRequestedAmount || 1)) * 100 : 0}%` }}
+                title="เงินรางวัล"
+              />
+              <div
+                className="bg-indigo-500 h-full"
+                style={{ width: `${hasStatistics ? (totalPageChargesOnly / (totalRequestedAmount || 1)) * 100 : 0}%` }}
+                title="ค่าตีพิมพ์ (Page Charge)"
+              />
             </div>
           </div>
         </div>
 
-        {/* Card 2: Disbursed / Paid Amount */}
+        {/* Card 2: Disbursed amount */}
         <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">เบิกจ่าย/โอนสำเร็จแล้ว</span>
+            <span className="text-xs font-medium text-slate-500">ยอดการโอนเงิน</span>
             <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
               <CheckCircle2 className="w-5 h-5" />
             </div>
@@ -201,10 +182,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Card 3: Pending In-process Amount */}
+        {/* Card 3: Total requested amount */}
         <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">อยู่ระหว่างพิจารณา/ทำฎีกา</span>
+            <span className="text-xs font-medium text-slate-500">ยอดคำขอรวม</span>
+            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+              <Banknote className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight font-prompt">
+              {hasStatistics ? formatBaht(isResearcher ? personalClaimedTotal : totalRequestedAmount) : '—'}
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+              <span>{hasStatistics ? (isResearcher ? `จำนวน ${totalApplications} เรื่อง` : `ทั้งหมด ${totalApplications} โครงการ`) : 'ไม่มีข้อมูล'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Pending amount */}
+        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">อยู่ระหว่างการพิจารณา</span>
             <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
               <Clock className="w-5 h-5" />
             </div>
@@ -215,36 +214,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-amber-600 font-medium">
               <span>{hasStatistics ? `รอพิจารณา ${countPending} รายการ` : 'ไม่มีข้อมูล'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Rewards vs Page Charge ratio */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">สัดส่วน เงินรางวัล : ค่าตีพิมพ์</span>
-            <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
-              <Award className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="flex justify-between items-baseline">
-              <span className="text-xs text-purple-700 font-semibold">รางวัล: {hasStatistics ? formatBaht(totalRewardsOnly) : '—'}</span>
-            </div>
-            <div className="flex justify-between items-baseline mt-1">
-              <span className="text-xs text-indigo-700 font-semibold">ค่าตีพิมพ์: {hasStatistics ? formatBaht(totalPageChargesOnly) : '—'}</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-2 mt-2 flex overflow-hidden">
-              <div 
-                className="bg-purple-600 h-full" 
-                style={{ width: `${(totalRewardsOnly / (totalRequestedAmount || 1)) * 100}%` }}
-                title="เงินรางวัล"
-              />
-              <div 
-                className="bg-indigo-500 h-full" 
-                style={{ width: `${(totalPageChargesOnly / (totalRequestedAmount || 1)) * 100}%` }}
-                title="ค่าตีพิมพ์ (Page Charge)"
-              />
             </div>
           </div>
         </div>
@@ -387,13 +356,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex justify-between items-center text-xs">
               <span className="text-slate-500">อัตราโอนเงินสำเร็จ:</span>
               <span className="font-bold text-emerald-600">
-                {hasStatistics ? `${Math.round((countPaid / totalApplications) * 100)}%` : '—'}
+                {hasStatistics ? `${totalApplications > 0 ? Math.round((countPaid / totalApplications) * 100) : 0}%` : '—'}
               </span>
             </div>
             <div className="w-full bg-slate-100 h-2 rounded-full mt-1.5 overflow-hidden">
               <div 
                 className="bg-emerald-600 h-full rounded-full transition-all duration-500" 
-                style={{ width: `${hasStatistics ? (countPaid / totalApplications) * 100 : 0}%` }}
+                style={{ width: `${hasStatistics && totalApplications > 0 ? (countPaid / totalApplications) * 100 : 0}%` }}
               />
             </div>
           </div>

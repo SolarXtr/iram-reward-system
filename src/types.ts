@@ -26,6 +26,18 @@ export type DatabaseName =
 
 export type QuartileRank = 'Q1_Tier1' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'TCI_1' | 'TCI_2';
 
+export interface PublicRewardSummary {
+  totalApplications: number;
+  totalRequestedAmount: number;
+  paidAmount: number;
+  paidCount: number;
+  pendingAmount: number;
+  pendingCount: number;
+  rewardAmount: number;
+  pageChargeAmount: number;
+  quartileCounts: Record<QuartileRank, number>;
+}
+
 export type WorkflowStepId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
 export interface WorkflowStep {
