@@ -9,6 +9,9 @@ export interface CalculationResult {
   ineligibilityReason?: string;
   ruleCitation: string;
   notes: string[];
+  nuPageChargeDeduction: number;
+  pageChargeRemainingAfterNu: number;
+  claimedPageCharge: number;
 }
 
 /**
@@ -51,7 +54,10 @@ export function calculateFacultyReward(params: {
         eligible: false,
         ineligibilityReason: 'กรณีผู้ร่วมเขียน (Co-author) ต้องเป็นบทความในวารสารนานาชาติ Quartile 1-2 เท่านั้น ตามข้อ 5(2)',
         ruleCitation: 'ประกาศฯ ข้อ 5(2) และข้อ 8(2)',
-        notes: ['ไม่ผ่านเกณฑ์คุณสมบัติ Co-author']
+        notes: ['ไม่ผ่านเกณฑ์คุณสมบัติ Co-author'],
+        nuPageChargeDeduction: 0,
+        pageChargeRemainingAfterNu: 0,
+        claimedPageCharge,
       };
     }
     notes.push('ผู้ขอรับการสนับสนุนเป็น Co-author ได้รับเงินรางวัลร้อยละ 50 ของอัตราปกติ (ข้อ 8(2))');
@@ -95,19 +101,6 @@ export function calculateFacultyReward(params: {
     if (authorRole === 'co_author') {
       rewardAmount = rewardAmount * 0.5;
     }
-
-    // 3. Determine Page Charge Support (ข้อ 9(1))
-    if (quartile === 'Q1' || quartile === 'Q1_Tier1' || quartile === 'Q2') {
-      maxPageChargeAllowed = 40000;
-      notes.push('ค่าตีพิมพ์ Q1-Q2 คณะสนับสนุนตามจ่ายจริงไม่เกิน 40,000 บาท (ข้อ 9(1)(ก))');
-    } else if (quartile === 'Q3') {
-      maxPageChargeAllowed = 40000;
-      notes.push('ค่าตีพิมพ์ Q3 สนับสนุนไม่เกิน 40,000 บาท (ข้อ 9(1)(ข))');
-    } else if (quartile === 'Q4') {
-      maxPageChargeAllowed = 10000;
-      notes.push('ค่าตีพิมพ์ Q4 สนับสนุนไม่เกิน 10,000 บาท (ข้อ 9(1)(ค))');
-    }
-
   } else {
     // ระดับชาติ (TCI)
     if (articleType === 'research_article') {
@@ -127,34 +120,85 @@ export function calculateFacultyReward(params: {
         ruleCitation = 'ข้อ 8(1)(ข)(2)(ข) อื่นๆ TCI กลุ่ม 2 = 500 บาท';
       }
     }
+  }
 
-    // ค่าตีพิมพ์ระดับชาติ (ข้อ 9(2))
+  // 3. Determine Page Charge Support (ข้อ 9)
+  let nuPageChargeDeduction = 0;
+  let pageChargeRemainingAfterNu = claimedPageCharge;
+  let approvedPageCharge = 0;
+
+  if (journalScope === 'international') {
+    if (quartile === 'Q1' || quartile === 'Q1_Tier1' || quartile === 'Q2') {
+      maxPageChargeAllowed = 40000;
+      // เงื่อนไข 1: Q1(Tier1)-Q1-Q2 ต้องหักส่วนที่ต้องเบิกกับ มน. ก่อน 30,000.-
+      if (claimedPageCharge > 0) {
+        nuPageChargeDeduction = Math.min(30000, claimedPageCharge);
+        pageChargeRemainingAfterNu = Math.max(0, claimedPageCharge - 30000);
+        approvedPageCharge = Math.min(40000, pageChargeRemainingAfterNu);
+
+        notes.push(`ค่าตีพิมพ์ Q1-Q2 หักส่วนเบิก มน. 30,000 บาท: จ่ายจริง ${claimedPageCharge.toLocaleString('th-TH', { minimumFractionDigits: 2 })} - เบิก มน. ${nuPageChargeDeduction.toLocaleString('th-TH', { minimumFractionDigits: 2 })} = คงเหลือขอเบิกคณะฯ ${pageChargeRemainingAfterNu.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`);
+
+        if (pageChargeRemainingAfterNu > 40000) {
+          notes.push(`*ยอดหลังหัก มน. เกินเพดานคณะ 40,000 บาท คณะสนับสนุนสูงสุด ${approvedPageCharge.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท (ส่วนเกิน ${(pageChargeRemainingAfterNu - 40000).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท ผู้ขอรับทุนรับผิดชอบ)`);
+        } else if (pageChargeRemainingAfterNu > 0) {
+          notes.push(`*ยอดหลังหัก มน. ไม่เกินเพดานคณะ 40,000 บาท คณะสนับสนุนครบตามจริง ${approvedPageCharge.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`);
+        } else {
+          notes.push('*ค่าตีพิมพ์จ่ายจริงอยู่ในวงเงินสนับสนุนของ ม.นเรศวร (30,000 บาท) เต็มจำนวน จึงไม่มีส่วนที่ต้องเบิกกับคณะฯ');
+        }
+      }
+    } else if (quartile === 'Q3') {
+      // เงื่อนไข 2: Q3 ไม่ต้องคำนวณหักส่วนของ มน. สามารถเบิกคณะได้ตามจริงแต่ไม่เกิน 40,000.-
+      maxPageChargeAllowed = 40000;
+      nuPageChargeDeduction = 0;
+      pageChargeRemainingAfterNu = claimedPageCharge;
+      approvedPageCharge = Math.min(40000, claimedPageCharge);
+      if (claimedPageCharge > 0) {
+        notes.push(`ค่าตีพิมพ์ Q3 ไม่ต้องหักส่วนของ มน. คณะสนับสนุนตามจ่ายจริงไม่เกิน 40,000 บาท (อนุมัติ ${approvedPageCharge.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท)`);
+      }
+    } else if (quartile === 'Q4') {
+      // เงื่อนไข 3: Q4 ไม่ต้องคำนวณหักส่วนของ มน. สามารถเบิกคณะได้ตามจริงแต่ไม่เกิน 10,000.-
+      maxPageChargeAllowed = 10000;
+      nuPageChargeDeduction = 0;
+      pageChargeRemainingAfterNu = claimedPageCharge;
+      approvedPageCharge = Math.min(10000, claimedPageCharge);
+      if (claimedPageCharge > 0) {
+        notes.push(`ค่าตีพิมพ์ Q4 ไม่ต้องหักส่วนของ มน. คณะสนับสนุนตามจ่ายจริงไม่เกิน 10,000 บาท (อนุมัติ ${approvedPageCharge.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท)`);
+      }
+    }
+  } else {
+    // เงื่อนไข 4: TCI 1 - TCI 2 ไม่ต้องคำนวณหักส่วนของ มน. สามารถเบิกได้ตามจริงแต่ไม่เกิน 5,000.-
     maxPageChargeAllowed = 5000;
-    notes.push('ค่าตีพิมพ์ระดับชาติ สนับสนุนตามจ่ายจริงไม่เกิน 5,000 บาท (ข้อ 9(2))');
+    nuPageChargeDeduction = 0;
+    pageChargeRemainingAfterNu = claimedPageCharge;
+    approvedPageCharge = Math.min(5000, claimedPageCharge);
+    if (claimedPageCharge > 0) {
+      notes.push(`ค่าตีพิมพ์ระดับชาติ (TCI) ไม่ต้องหักส่วนของ มน. คณะสนับสนุนตามจ่ายจริงไม่เกิน 5,000 บาท (อนุมัติ ${approvedPageCharge.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท)`);
+    }
   }
 
-  // Calculate actual approved page charge: min(claimed, maxPageChargeAllowed)
-  const approvedPageCharge = Math.min(claimedPageCharge, maxPageChargeAllowed);
-  let totalApproved = rewardAmount + approvedPageCharge;
+    let totalApproved = rewardAmount + approvedPageCharge;
 
-  // 4. Annual Cap Check (ข้อ 12: กรอบวงเงินไม่เกิน 150,000 บาทต่อคนต่อปีงบประมาณ)
-  const MAX_ANNUAL_CAP = 150000;
-  const remainingQuota = Math.max(0, MAX_ANNUAL_CAP - alreadyUsedQuotaInYear);
+    // 4. Annual Cap Check (ข้อ 12: กรอบวงเงินไม่เกิน 150,000 บาทต่อคนต่อปีงบประมาณ)
+    const MAX_ANNUAL_CAP = 150000;
+    const remainingQuota = Math.max(0, MAX_ANNUAL_CAP - alreadyUsedQuotaInYear);
 
-  if (alreadyUsedQuotaInYear + totalApproved > MAX_ANNUAL_CAP) {
-    notes.push(`*หมายเหตุ: คำขอเกินกรอบวงเงิน 150,000 บาท/คน/ปี (เบิกไปแล้ว ${alreadyUsedQuotaInYear.toLocaleString()} บาท, โควตาคงเหลือ ${remainingQuota.toLocaleString()} บาท)`);
-    totalApproved = Math.min(totalApproved, remainingQuota);
-  }
+    if (alreadyUsedQuotaInYear + totalApproved > MAX_ANNUAL_CAP) {
+      notes.push(`*หมายเหตุ: คำขอเกินกรอบวงเงิน 150,000 บาท/คน/ปี (เบิกไปแล้ว ${alreadyUsedQuotaInYear.toLocaleString()} บาท, โควตาคงเหลือ ${remainingQuota.toLocaleString()} บาท)`);
+      totalApproved = Math.min(totalApproved, remainingQuota);
+    }
 
-  return {
-    rewardAmount,
-    maxPageChargeAllowed,
-    approvedPageCharge,
-    totalApproved,
-    eligible: true,
-    ruleCitation,
-    notes,
-  };
+    return {
+      rewardAmount,
+      maxPageChargeAllowed,
+      approvedPageCharge,
+      totalApproved,
+      eligible: true,
+      ruleCitation,
+      notes,
+      nuPageChargeDeduction,
+      pageChargeRemainingAfterNu,
+      claimedPageCharge,
+    };
 }
 
 /**

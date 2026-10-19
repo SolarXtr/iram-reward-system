@@ -1399,21 +1399,72 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
                   </div>
 
                   {claimedPageCharge > 0 && (
-                    <div className="mt-2 pt-2 border-t border-amber-200/60 flex flex-wrap items-center justify-between text-[11px] text-amber-900">
-                      <span>
-                        ยอดจ่ายจริงตามใบเสร็จ: <strong className="font-mono font-bold text-amber-950">{formatBaht(claimedPageCharge)}</strong>
-                      </span>
-                      <span>
-                        {claimedPageCharge > calculation.maxPageChargeAllowed ? (
-                          <span className="text-amber-800 font-medium bg-amber-100/70 px-2 py-0.5 rounded">
-                            (คณะฯ สนับสนุนตามประกาศฯ สูงสุดไม่เกิน <strong className="font-mono">{formatBaht(calculation.maxPageChargeAllowed)}</strong>)
-                          </span>
-                        ) : (
-                          <span className="text-emerald-800 font-medium bg-emerald-100/70 px-2 py-0.5 rounded">
-                            (ยอดอยู่ในเกณฑ์ สามารถเบิกจ่ายได้เต็มจำนวน <strong className="font-mono">{formatBaht(claimedPageCharge)}</strong>)
-                          </span>
-                        )}
-                      </span>
+                    <div className="mt-2.5 p-3 rounded-xl bg-amber-50/90 border border-amber-200/90 text-xs space-y-2">
+                      <div className="flex items-center justify-between border-b border-amber-200/70 pb-1.5 font-medium">
+                        <span className="text-amber-950 font-bold">ยอดค่าตีพิมพ์จ่ายจริงตามใบเสร็จ (APC):</span>
+                        <span className="font-mono font-bold text-amber-950 text-sm">
+                          {formatBaht(claimedPageCharge)}
+                        </span>
+                      </div>
+
+                      {/* Breakdown ตามระดับ Quartile / สถาบัน */}
+                      {(quartile === 'Q1' || quartile === 'Q1_Tier1' || quartile === 'Q2') && journalScope === 'international' ? (
+                        <div className="space-y-1.5 text-[11px] text-amber-900">
+                          <div className="flex items-center justify-between text-blue-900">
+                            <span>1. หักส่วนที่ต้องเบิกกับ ม.นเรศวร (DRI NU):</span>
+                            <span className="font-mono font-bold text-blue-700">
+                              - {formatBaht(calculation.nuPageChargeDeduction || 30000)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-slate-800 bg-amber-100/70 px-2 py-1 rounded font-medium">
+                            <span>2. ยอดคงเหลือสำหรับขอเบิกคณะแพทยศาสตร์:</span>
+                            <span className="font-mono font-bold">
+                              {formatBaht(calculation.pageChargeRemainingAfterNu || 0)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-emerald-900 font-semibold pt-0.5">
+                            <span>
+                              3. อนุมัติเบิกคณะฯ ได้ (เพดานไม่เกิน {formatBaht(calculation.maxPageChargeAllowed)}):
+                            </span>
+                            <span className="font-mono font-bold text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                              {formatBaht(calculation.approvedPageCharge)}
+                            </span>
+                          </div>
+                          {(calculation.pageChargeRemainingAfterNu || 0) > calculation.maxPageChargeAllowed && (
+                            <div className="flex items-center justify-between text-rose-700 text-[10px] pt-0.5">
+                              <span>*ส่วนเกินเพดานคณะฯ (ผู้ขอรับทุนรับผิดชอบ):</span>
+                              <span className="font-mono font-medium">
+                                {formatBaht((calculation.pageChargeRemainingAfterNu || 0) - calculation.maxPageChargeAllowed)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5 text-[11px] text-amber-900">
+                          <div className="flex items-center justify-between text-slate-600">
+                            <span>เงื่อนไข ม.นเรศวร:</span>
+                            <span className="font-medium bg-slate-100 px-2 py-0.5 rounded text-slate-700">
+                              ไม่ต้องคำนวณหักส่วนของ มน.
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-emerald-900 font-semibold pt-0.5">
+                            <span>
+                              อนุมัติเบิกคณะฯ ได้ตามจ่ายจริง (เพดานไม่เกิน {formatBaht(calculation.maxPageChargeAllowed)}):
+                            </span>
+                            <span className="font-mono font-bold text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                              {formatBaht(calculation.approvedPageCharge)}
+                            </span>
+                          </div>
+                          {claimedPageCharge > calculation.maxPageChargeAllowed && (
+                            <div className="flex items-center justify-between text-rose-700 text-[10px] pt-0.5">
+                              <span>*ส่วนเกินเพดานคณะฯ (ผู้ขอรับทุนรับผิดชอบ):</span>
+                              <span className="font-mono font-medium">
+                                {formatBaht(claimedPageCharge - calculation.maxPageChargeAllowed)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

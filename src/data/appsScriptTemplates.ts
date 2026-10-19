@@ -446,15 +446,21 @@ function calculateFacultyRewardRule(d) {
       }
     }
 
-    // ค่าตีพิมพ์ (Page Charge) ตามเพดาน
+    // ค่าตีพิมพ์ (Page Charge) ตามเงื่อนไข มน. และ เพดานคณะ
     const claimedPage = Number(d.claimedPageCharge || d.claimedPageChargeAmount || 0);
-    if (d.quartile === 'Q1' || d.quartile === 'Q1_Tier1' || d.quartile === 'Q2' || d.quartile === 'Q3') {
+    if (d.quartile === 'Q1' || d.quartile === 'Q1_Tier1' || d.quartile === 'Q2') {
+      // 1. Q1-Q2 หักส่วน มน. 30,000 ก่อน แล้วเบิกคณะได้ไม่เกิน 40,000
+      const remainingAfterNu = Math.max(0, claimedPage - 30000);
+      pageCharge = Math.min(remainingAfterNu, 40000);
+    } else if (d.quartile === 'Q3') {
+      // 2. Q3 ไม่ต้องหัก มน. เบิกคณะได้ตามจริงไม่เกิน 40,000
       pageCharge = Math.min(claimedPage, 40000);
     } else if (d.quartile === 'Q4') {
+      // 3. Q4 ไม่ต้องหัก มน. เบิกคณะได้ตามจริงไม่เกิน 10,000
       pageCharge = Math.min(claimedPage, 10000);
     }
   } else {
-    // วารสารระดับชาติ (TCI)
+    // 4. วารสารระดับชาติ (TCI 1-2) ไม่ต้องหัก มน. เบิกได้ตามจริงไม่เกิน 5,000
     if (d.articleType === 'research_article') {
       reward = d.quartile === 'TCI_1' ? 2000 : 1000;
     } else {
