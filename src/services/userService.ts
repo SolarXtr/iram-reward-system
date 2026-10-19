@@ -17,14 +17,20 @@ import {
 const API_BASE_URL = 'https://iram-backend.tinnakornh.workers.dev/api/users';
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
-  const firebaseUser = auth.currentUser;
-  if (!firebaseUser) {
-    throw new Error('กรุณาเข้าสู่ระบบใหม่ก่อนจัดการข้อมูลผู้ใช้');
+  try {
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+      const token = await firebaseUser.getIdToken();
+      if (token) {
+        return {
+          Authorization: `Bearer ${token}`,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to retrieve Firebase ID token:', error);
   }
-
-  return {
-    Authorization: `Bearer ${await firebaseUser.getIdToken()}`,
-  };
+  return {};
 }
 
 /**
@@ -79,11 +85,16 @@ export async function fetchUserProfileByEmailFromD1(email: string): Promise<User
  * Update an existing user profile in Cloudflare D1 (irUser + irResearcherProfile)
  */
 export async function updateUserProfileInD1(userId: string, updates: Partial<UserProfile>): Promise<boolean> {
+  const targetKey = (userId || updates.id || updates.email || '').trim();
+  if (!targetKey) {
+    throw new Error('ไม่พบรหัสผู้ใช้หรืออีเมลสำหรับการอัปเดตข้อมูล');
+  }
+
   let lastError: Error = new Error('Cloud sync failed');
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const response = await fetch(`${API_BASE_URL}/profile/${encodeURIComponent(userId)}`, {
+      const response = await fetch(`${API_BASE_URL}/profile/${encodeURIComponent(targetKey)}`, {
         method: 'PUT',
         headers: {
           ...await getAuthHeaders(),
