@@ -251,9 +251,9 @@ export function bahtText(num: number): string {
  * Auto-format Thai Citizen ID as X-XXXX-XXXXX-XX-X (13 digits)
  * E.g. 1234567890123 -> 1-2345-67890-12-3
  */
-export function formatThaiCitizenId(value: string): string {
-  if (!value) return '';
-  const digits = value.replace(/\D/g, '').slice(0, 13);
+export function formatThaiCitizenId(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '';
+  const digits = String(value).replace(/\D/g, '').slice(0, 13);
   let res = '';
   if (digits.length > 0) res += digits.substring(0, 1);
   if (digits.length > 1) res += '-' + digits.substring(1, 5);
@@ -267,8 +267,8 @@ export function formatThaiCitizenId(value: string): string {
  * Mask Thai Citizen ID according to PDPA principles
  * E.g. 1-2345-67890-12-3 -> 1-XXXX-XXXXX-XX-3
  */
-export function maskThaiCitizenId(value: string): string {
-  if (!value) return '';
+export function maskThaiCitizenId(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '';
   const formatted = formatThaiCitizenId(value);
   if (!formatted || formatted.length < 17) return formatted;
   // 1-2345-67890-12-3 -> 1-XXXX-XXXXX-XX-3
@@ -279,9 +279,9 @@ export function maskThaiCitizenId(value: string): string {
  * Auto-format Krungsri Bank Account No as XXX-X-XXXXX-X (10 digits)
  * E.g. 3460000001 -> 346-0-00000-1
  */
-export function formatKrungsriAccountNo(value: string): string {
-  if (!value) return '';
-  const digits = value.replace(/\D/g, '').slice(0, 10);
+export function formatKrungsriAccountNo(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '';
+  const digits = String(value).replace(/\D/g, '').slice(0, 10);
   let res = '';
   if (digits.length > 0) res += digits.substring(0, 3);
   if (digits.length > 3) res += '-' + digits.substring(3, 4);
@@ -294,8 +294,8 @@ export function formatKrungsriAccountNo(value: string): string {
  * Mask Bank Account Number according to PDPA principles
  * E.g. 346-1-48984-7 -> 346-X-XXXXX-7
  */
-export function maskBankAccountNo(value: string): string {
-  if (!value) return '';
+export function maskBankAccountNo(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '';
   const formatted = formatKrungsriAccountNo(value);
   if (!formatted || formatted.length < 13) return formatted;
   // 346-1-48984-7 -> 346-X-XXXXX-7
@@ -306,9 +306,11 @@ export function maskBankAccountNo(value: string): string {
  * Format currency with commas and 2 decimals for Page Charge input
  * E.g. 125216.54 -> 125,216.54
  */
-export function formatPageChargeInput(raw: string): string {
-  if (!raw) return '';
-  const clean = raw.replace(/[^0-9.]/g, '');
+export function formatPageChargeInput(raw: string | number | null | undefined): string {
+  if (raw === null || raw === undefined || raw === '') return '';
+  const str = String(raw);
+  const clean = str.replace(/[^0-9.]/g, '');
+  if (!clean) return '';
   const parts = clean.split('.');
   let intPart = parts[0] || '';
   const decPart = parts.length > 1 ? parts.slice(1).join('') : null;
@@ -326,9 +328,10 @@ export function formatPageChargeInput(raw: string): string {
 /**
  * Parse formatted currency string to number
  */
-export function parsePageCharge(formatted: string): number {
-  if (!formatted) return 0;
-  const clean = formatted.replace(/,/g, '');
+export function parsePageCharge(formatted: string | number | null | undefined): number {
+  if (formatted === null || formatted === undefined || formatted === '') return 0;
+  if (typeof formatted === 'number') return isNaN(formatted) ? 0 : formatted;
+  const clean = String(formatted).replace(/,/g, '');
   const num = parseFloat(clean);
   return isNaN(num) ? 0 : num;
 }

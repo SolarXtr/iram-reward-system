@@ -344,18 +344,18 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        if (initialData.fiscalYear) setFiscalYear(initialData.fiscalYear);
+        if (initialData.fiscalYear) setFiscalYear(Number(initialData.fiscalYear));
         if (initialData.trackingNo && initialData.trackingNo !== 'DRAFT') {
-          setTrackingNoInput(initialData.trackingNo);
+          setTrackingNoInput(String(initialData.trackingNo));
         }
         setApplicantName(initialData.applicantName || activeUserProfile.name || '');
         setAcademicPosition(initialData.academicPosition || activeUserProfile.academicPosition || '');
         setDepartment(normalizeDepartment(initialData.department || activeUserProfile.department));
-        setPhone(initialData.phone || activeUserProfile.phone || '');
+        setPhone(initialData.phone ? String(initialData.phone) : (activeUserProfile.phone ? String(activeUserProfile.phone) : ''));
         setEmail(initialData.email || activeUserProfile.email || '');
         setBankName(initialData.bankName || activeUserProfile.bankName || 'ธนาคารกรุงศรีอยุธยา');
-        setBankAccountNo(initialData.bankAccountNo || activeUserProfile.bankAccountNo || '');
-        setIdCardNo(initialData.idCardNo || activeUserProfile.idCardNo || '');
+        setBankAccountNo(initialData.bankAccountNo ? String(initialData.bankAccountNo) : (activeUserProfile.bankAccountNo ? String(activeUserProfile.bankAccountNo) : ''));
+        setIdCardNo(initialData.idCardNo ? String(initialData.idCardNo) : (activeUserProfile.idCardNo ? String(activeUserProfile.idCardNo) : ''));
 
         setRequestType(initialData.requestType || 'reward_only');
         setArticleTitle(initialData.articleTitle || '');
@@ -366,18 +366,19 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
         setIsTier1Top10(Boolean(initialData.isTier1Top10));
         setAuthorRole(initialData.authorRole || 'first_author');
         setArticleType(initialData.articleType || 'research_article');
-        setIssn(initialData.issn || '');
-        setDoi(initialData.doi || '');
-        setVolumeIssue(initialData.volumeIssue || '');
-        setDatabaseYear(initialData.databaseYear || '2025');
-        setVol(initialData.vol || '');
-        setNo(initialData.no || '');
-        setPublishMonth(initialData.publishMonth || '');
-        setPublishYear(initialData.publishYear || '2026');
-        setPages(initialData.pages || '');
+        setIssn(initialData.issn ? String(initialData.issn) : '');
+        setDoi(initialData.doi ? String(initialData.doi) : '');
+        setVolumeIssue(initialData.volumeIssue ? String(initialData.volumeIssue) : '');
+        setDatabaseYear(initialData.databaseYear ? String(initialData.databaseYear) : '2025');
+        setVol(initialData.vol ? String(initialData.vol) : '');
+        setNo(initialData.no ? String(initialData.no) : '');
+        setPublishMonth(initialData.publishMonth ? String(initialData.publishMonth) : '');
+        setPublishYear(initialData.publishYear ? String(initialData.publishYear) : '2026');
+        setPages(initialData.pages ? String(initialData.pages) : '');
         setPublishedDate(initialData.publishedDate || new Date().toISOString().split('T')[0]);
-        setClaimedPageCharge(initialData.claimedPageChargeAmount || 0);
-        setPageChargeInput(formatPageChargeInput(initialData.claimedPageChargeAmount || 0));
+        const initClaimedPageCharge = Number(initialData.claimedPageChargeAmount) || 0;
+        setClaimedPageCharge(initClaimedPageCharge);
+        setPageChargeInput(initClaimedPageCharge > 0 ? formatPageChargeInput(initClaimedPageCharge) : '');
         setPageChargePaidDate(initialData.pageChargePaidDate || '');
 
         setMedNuAffiliationDeclared(Boolean(initialData.medNuAffiliationDeclared));

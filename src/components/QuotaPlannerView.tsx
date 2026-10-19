@@ -87,8 +87,8 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
     if (userEmail && a.email && a.email.toLowerCase() === userEmail) return true;
     if (currentUser?.id && (a as any).userId && (a as any).userId === currentUser.id) return true;
     if (currentUser?.name && a.applicantName) {
-      const cleanCurrent = currentUser.name.replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
-      const cleanApplicant = a.applicantName.replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
+      const cleanCurrent = String(currentUser.name).replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
+      const cleanApplicant = String(a.applicantName).replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
       if (cleanCurrent && cleanApplicant && (cleanApplicant.includes(cleanCurrent) || cleanCurrent.includes(cleanApplicant))) {
         return true;
       }
@@ -101,9 +101,9 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
 
   const isMyNuRecord = (r: NuDisbursementRecord) => {
     if (!r.researcherName) return false;
-    const cleanR = r.researcherName.replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
+    const cleanR = String(r.researcherName).replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
     if (currentUser?.name) {
-      const cleanCurrent = currentUser.name.replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
+      const cleanCurrent = String(currentUser.name).replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
       if (cleanCurrent && cleanR && (cleanR.includes(cleanCurrent) || cleanCurrent.includes(cleanR))) {
         return true;
       }
