@@ -539,7 +539,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                       </td>
                       {/* ยอดรวม มน. */}
                       <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800 whitespace-nowrap">
-                        {r.totalAmount ? `฿${r.totalAmount.toLocaleString()}` : '-'}
+                        {r.totalAmount ? `฿${r.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: (r.totalAmount || 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}` : '-'}
                       </td>
 
                       {/* สถานะ มน. */}
@@ -550,9 +550,9 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
                       {/* ยอดรวม คณะฯ */}
                       <td className="py-2.5 px-3 text-right font-mono font-bold text-purple-900 bg-purple-50/20 whitespace-nowrap">
                         {r.facultyTotalAmount && r.facultyTotalAmount > 0 
-                          ? `฿${r.facultyTotalAmount.toLocaleString()}` 
+                          ? `฿${r.facultyTotalAmount.toLocaleString('th-TH', { minimumFractionDigits: (r.facultyTotalAmount || 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}` 
                           : matchedFaculty?.totalClaimedAmount 
-                          ? `฿${matchedFaculty.totalClaimedAmount.toLocaleString()}`
+                          ? `฿${matchedFaculty.totalClaimedAmount.toLocaleString('th-TH', { minimumFractionDigits: (matchedFaculty.totalClaimedAmount || 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`
                           : '-'}
                       </td>
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">

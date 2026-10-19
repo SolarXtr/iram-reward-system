@@ -354,7 +354,8 @@ export const ArticleMasterEditModal: React.FC<ArticleMasterEditModalProps> = ({
                   <input
                     type="number"
                     min="0"
-                    step="500"
+                    step="any"
+                    inputMode="decimal"
                     value={nuRewardAmount}
                     onChange={(e) => setNuRewardAmount(parseFloat(e.target.value) || 0)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 font-mono text-right font-bold text-slate-800"
@@ -365,7 +366,8 @@ export const ArticleMasterEditModal: React.FC<ArticleMasterEditModalProps> = ({
                   <input
                     type="number"
                     min="0"
-                    step="500"
+                    step="any"
+                    inputMode="decimal"
                     value={nuPageChargeAmount}
                     onChange={(e) => setNuPageChargeAmount(parseFloat(e.target.value) || 0)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 font-mono text-right font-bold text-slate-800"
@@ -382,7 +384,7 @@ export const ArticleMasterEditModal: React.FC<ArticleMasterEditModalProps> = ({
                   <span>ส่วน คณะแพทยศาสตร์</span>
                 </span>
                 <span className="text-xs font-mono font-bold text-purple-900">
-                  รวม: ฿{calculatedFacultyTotal.toLocaleString()}
+                  รวม: ฿{calculatedFacultyTotal.toLocaleString('th-TH', { minimumFractionDigits: calculatedFacultyTotal % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                 </span>
               </div>
 
@@ -454,7 +456,8 @@ export const ArticleMasterEditModal: React.FC<ArticleMasterEditModalProps> = ({
                   <input
                     type="number"
                     min="0"
-                    step="500"
+                    step="any"
+                    inputMode="decimal"
                     value={facultyRewardAmount}
                     onChange={(e) => setFacultyRewardAmount(parseFloat(e.target.value) || 0)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 font-mono text-right font-bold text-slate-800"
@@ -465,7 +468,8 @@ export const ArticleMasterEditModal: React.FC<ArticleMasterEditModalProps> = ({
                   <input
                     type="number"
                     min="0"
-                    step="500"
+                    step="any"
+                    inputMode="decimal"
                     value={facultyPageChargeAmount}
                     onChange={(e) => setFacultyPageChargeAmount(parseFloat(e.target.value) || 0)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 font-mono text-right font-bold text-slate-800"

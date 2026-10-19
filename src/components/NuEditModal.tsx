@@ -173,8 +173,8 @@ export const NuEditModal: React.FC<NuEditModalProps> = ({
                 <DollarSign className="w-4 h-4 text-amber-600" />
                 <span>จำนวนเงินสนับสนุนส่วนของ มน. (บาท)</span>
               </span>
-              <span className="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full">
-                รวม: {totalAmount.toLocaleString()} บาท
+              <span className="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full font-mono">
+                รวม: {totalAmount.toLocaleString('th-TH', { minimumFractionDigits: totalAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })} บาท
               </span>
             </div>
 
@@ -186,10 +186,11 @@ export const NuEditModal: React.FC<NuEditModalProps> = ({
                 <input
                   type="number"
                   min="0"
-                  step="1000"
+                  step="any"
+                  inputMode="decimal"
                   value={rewardAmount || ''}
-                  onChange={(e) => setRewardAmount(Number(e.target.value))}
-                  placeholder="เช่น 30000"
+                  onChange={(e) => setRewardAmount(parseFloat(e.target.value) || 0)}
+                  placeholder="เช่น 30000 หรือ 38515.79"
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-blue-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
               </div>
@@ -201,10 +202,11 @@ export const NuEditModal: React.FC<NuEditModalProps> = ({
                 <input
                   type="number"
                   min="0"
-                  step="1000"
+                  step="any"
+                  inputMode="decimal"
                   value={pageChargeAmount || ''}
-                  onChange={(e) => setPageChargeAmount(Number(e.target.value))}
-                  placeholder="เช่น 45000"
+                  onChange={(e) => setPageChargeAmount(parseFloat(e.target.value) || 0)}
+                  placeholder="เช่น 30000 หรือ 45000.50"
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-blue-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
               </div>
