@@ -154,20 +154,21 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
   // =========================================================================
   const MAX_NU_QUOTA = 100000;
 
-  const myNuRecords = useMemo(() => {
-    return nuDisbursements.filter((r) => {
-      const recordFiscalYear = resolveNuFiscalYear(r);
-      return Boolean(isMyNuRecord(r) && recordFiscalYear === selectedFiscalYear);
-    });
-  }, [nuDisbursements, userLastName, currentUser?.name, selectedFiscalYear]);
+  const allMyNuRecords = useMemo(() => {
+    return nuDisbursements.filter((r) => isMyNuRecord(r));
+  }, [nuDisbursements, userLastName, currentUser?.name]);
+
+  const nuInYearRecords = useMemo(() => {
+    return allMyNuRecords.filter((r) => resolveNuFiscalYear(r) === selectedFiscalYear);
+  }, [allMyNuRecords, selectedFiscalYear]);
 
   const nuPaidRecords = useMemo(() => {
-    return myNuRecords.filter((r) => r.status === 'จ่ายเงินแล้ว');
-  }, [myNuRecords]);
+    return nuInYearRecords.filter((r) => r.status === 'จ่ายเงินแล้ว');
+  }, [nuInYearRecords]);
 
   const nuPendingRecords = useMemo(() => {
-    return myNuRecords.filter((r) => r.status !== 'จ่ายเงินแล้ว' && r.status !== 'ไม่อนุมัติ' && r.status !== 'ไม่เข้าเกณฑ์ มน.');
-  }, [myNuRecords]);
+    return nuInYearRecords.filter((r) => r.status !== 'จ่ายเงินแล้ว' && r.status !== 'ไม่อนุมัติ' && r.status !== 'ไม่เข้าเกณฑ์ มน.');
+  }, [nuInYearRecords]);
 
   const nuPaid = nuPaidRecords.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
   const nuPending = nuPendingRecords.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
@@ -534,7 +535,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
               <span>ประวัติเบิกจ่าย มน. ปีงบ {selectedFiscalYear}:</span>
             </div>
             <span className="font-semibold text-slate-800 font-prompt">
-              พบ {nuInYearRecords.length} รายการ (จากทั้งหมด {myNuRecords.length} รายการ)
+              พบ {nuInYearRecords.length} รายการ (จากทั้งหมด {allMyNuRecords.length} รายการ)
             </span>
           </div>
         </div>
@@ -572,7 +573,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                 }`}
                 title={`แสดงเฉพาะบทความที่วางแผนเบิกในปีงบ ${selectedFiscalYear}`}
               >
-                ปีงบ {selectedFiscalYear} ({myDraftsInSelectedYearCount})
+                ปีงบ {selectedFiscalYear} ({isStaffOrAdmin && draftScopeFilter === 'all' ? allDraftsInYearCount : myDraftsInYearCount})
               </button>
               <button
                 onClick={() => setDraftYearFilter('all_years')}
@@ -583,7 +584,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                 }`}
                 title="แสดงบทความที่เตรียมไว้ทุกปีงบประมาณ"
               >
-                ทุกปี ({myDraftsTotalCount})
+                ทุกปี ({isStaffOrAdmin && draftScopeFilter === 'all' ? allDraftsTotalCount : myDraftsTotalCount})
               </button>
             </div>
             {/* Scope Toggle for Coordinator / Admin */}
@@ -597,7 +598,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  ร่างทั้งหมด ({allDraftsCount})
+                  ร่างทั้งหมด ({draftYearFilter === 'year_only' ? allDraftsInYearCount : allDraftsTotalCount})
                 </button>
                 <button
                   onClick={() => setDraftScopeFilter('mine')}
@@ -607,7 +608,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  เฉพาะของฉัน ({myDraftsCount})
+                  เฉพาะของฉัน ({draftYearFilter === 'year_only' ? myDraftsInYearCount : myDraftsTotalCount})
                 </button>
               </div>
             )}
