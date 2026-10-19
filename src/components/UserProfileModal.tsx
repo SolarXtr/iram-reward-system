@@ -14,7 +14,8 @@ import {
   CheckCircle2, 
   Info,
   KeyRound,
-  FileCheck
+  FileCheck,
+  RotateCcw
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { 
@@ -31,6 +32,8 @@ interface UserProfileModalProps {
   onClose: () => void;
   onSaveProfile: (updated: UserProfile) => Promise<boolean> | boolean;
   onSwitchUser?: (user: UserProfile) => void;
+  impersonatorAdmin?: UserProfile | null;
+  onExitImpersonation?: () => void;
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({
@@ -39,6 +42,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onClose,
   onSaveProfile,
   onSwitchUser,
+  impersonatorAdmin,
+  onExitImpersonation,
 }) => {
   const safeUser: UserProfile = currentUser || {
     id: 'guest',
@@ -54,7 +59,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     isNuAccount: true,
   };
 
-  const isAdmin = safeUser.role === 'admin' || (safeUser.roles && safeUser.roles.includes('admin'));
+  const isRealAdmin = safeUser.role === 'admin' || (safeUser.roles && safeUser.roles.includes('admin'));
+  const canSwitchAccount = isRealAdmin || Boolean(impersonatorAdmin);
   const accountList = (users && users.length > 0) ? users : getStoredUsersRegistry();
   const [formData, setFormData] = useState<UserProfile>({ ...safeUser });
   const [showSensitiveData, setShowSensitiveData] = useState(false);
@@ -95,10 +101,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   };
 
   const handleSelectAccount = (user: UserProfile) => {
-    setFormData({ ...user });
     if (onSwitchUser) {
       onSwitchUser(user);
     }
+    onClose();
   };
 
   return (
@@ -152,16 +158,41 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
           )}
 
-          {/* Account Selector Bar: แสดงเฉพาะผู้ดูแลระบบ (Admin) เท่านั้น ตามมาตรการคุ้มครองข้อมูลส่วนบุคคล (PDPA) */}
-          {isAdmin ? (
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-slate-700 flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-blue-600" />
-                  สลับบัญชีผู้ใช้งาน (เฉพาะผู้ดูแลระบบ):
+          {/* Account Selector Bar: แสดงเฉพาะผู้ดูแลระบบ (Admin) หรือเมื่ออยู่ในโหมด Impersonation */}
+          {canSwitchAccount ? (
+            <div className="bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 space-y-2.5">
+              {impersonatorAdmin && (
+                <div className="p-2 bg-purple-900 text-white rounded-lg flex items-center justify-between text-xs shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🎭</span>
+                    <span>
+                      กำลังปฏิบัติหน้าที่แทนในบัญชี: <strong className="text-amber-300">{currentUser.name}</strong>
+                      <span className="text-purple-300 text-[11px] ml-1">({currentUser.email})</span>
+                    </span>
+                  </div>
+                  {onExitImpersonation && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onExitImpersonation();
+                        onClose();
+                      }}
+                      className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded text-[11px] flex items-center gap-1 transition-all"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>สลับกลับสู่ Admin ({impersonatorAdmin.name})</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-purple-950 flex items-center gap-1.5 font-prompt">
+                  <KeyRound className="w-3.5 h-3.5 text-purple-700" />
+                  สลับตัวตนบัญชีผู้ใช้งาน (Admin Impersonation):
                 </span>
-                <span className="text-[10px] text-amber-800 font-medium bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
-                  สิทธิ์ผู้ดูแลระบบ (Admin Only)
+                <span className="text-[10px] text-purple-800 font-semibold bg-purple-100 px-2 py-0.5 rounded border border-purple-300">
+                  เปลี่ยน ID & สิทธิ์เป็น User นั้นจริง (เพื่อทดสอบ/ทำหน้าที่แทน)
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto pr-1">

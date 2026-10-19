@@ -35,7 +35,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         throw new Error('ไม่สามารถเข้าสู่ระบบ Google ได้ กรุณาลองใหม่อีกครั้ง');
       }
 
-      const outcome = processNuGoogleLogin({
+      const outcome = await processNuGoogleLogin({
         email: res.user.email,
         displayName: res.user.displayName,
         photoURL: res.user.photoURL,

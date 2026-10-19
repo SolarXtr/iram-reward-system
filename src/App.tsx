@@ -57,7 +57,7 @@ import {
   createUserInD1,
   deleteUserFromD1
 } from './services/userService';
-import { Bell, CheckCircle2 } from 'lucide-react';
+import { Bell, CheckCircle2, RotateCcw, LogOut, ShieldAlert } from 'lucide-react';
 
 export default function App() {
   const [applications, setApplications] = useState<ResearchApplication[]>([]);
@@ -69,6 +69,16 @@ export default function App() {
   // Active authenticated user profile (null = Guest Mode)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getCurrentAuthUser());
   const isGuest = !currentUser;
+
+  // Admin Impersonator State (จำตัวตนของผู้ดูแลระบบเดิมเมื่อสลับไปเป็น User อื่น เพื่อทดสอบหรือทำหน้าที่แทน)
+  const [impersonatorAdmin, setImpersonatorAdmin] = useState<UserProfile | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('med_nu_impersonator_admin_v1');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
 
   // Current active navigation role & view
   const [currentRole, setCurrentRole] = useState<UserRole>(() => currentUser?.role || 'researcher');
@@ -331,12 +341,42 @@ export default function App() {
     }
   };
 
+  // Admin Impersonation: สลับไปเป็น user เป้าหมายด้วย id และสิทธิ์ของ user นั้นจริงๆ (ใช้ทดสอบระบบและทำหน้าที่แทน)
+  const handleSwitchUser = (targetUser: UserProfile) => {
+    // หากขณะนี้มีสิทธิ์ admin (หรือมี admin ใน roles) และยังไม่ได้จำแอดมิน ให้จำตัวตน Admin ไว้
+    if (!impersonatorAdmin && (currentUser?.role === 'admin' || currentUser?.roles?.includes('admin'))) {
+      setImpersonatorAdmin(currentUser);
+      try {
+        sessionStorage.setItem('med_nu_impersonator_admin_v1', JSON.stringify(currentUser));
+      } catch (e) {}
+    }
+
+    // เปลี่ยนเป็น id, email, name, role, roles ของ targetUser จริงๆ
+    setCurrentUser(targetUser);
+    setCurrentAuthUser(targetUser);
+    saveStoredUserProfile(targetUser);
+    setCurrentRole(targetUser.role || 'researcher');
+    setActiveTab('dashboard');
+    showToast(`🎭 สลับเข้าสู่โหมดตัวแทนของ "${targetUser.name}" (${targetUser.email}) ด้วยสิทธิ์: ${targetUser.role} สำเร็จ`);
+  };
+
+  // Exit Impersonation: สลับกลับสู่ตัวตนผู้ดูแลระบบเดิม
+  const handleExitImpersonation = () => {
+    if (!impersonatorAdmin) return;
+    const admin = impersonatorAdmin;
+    setCurrentUser(admin);
+    setCurrentAuthUser(admin);
+    saveStoredUserProfile(admin);
+    setCurrentRole('admin');
+    setImpersonatorAdmin(null);
+    try {
+      sessionStorage.removeItem('med_nu_impersonator_admin_v1');
+    } catch (e) {}
+    showToast(`🛡️ สลับกลับสู่บัญชีผู้ดูแลระบบ (${admin.name}) เรียบร้อยแล้ว`);
+  };
+
   const handleSwitchUserFromConsole = (user: UserProfile) => {
-    setCurrentUser(user);
-    setCurrentAuthUser(user);
-    saveStoredUserProfile(user);
-    setCurrentRole(user.role);
-    showToast(`สลับเข้าใช้งานบัญชี ${user.name} (${user.email}) สิทธิ์: ${user.role} สำเร็จ`);
+    handleSwitchUser(user);
   };
 
   const handleLoginSuccess = (user: UserProfile) => {
@@ -355,6 +395,10 @@ export default function App() {
   const handleLogout = async () => {
     await logoutNuUser();
     setCurrentUser(null);
+    setImpersonatorAdmin(null);
+    try {
+      sessionStorage.removeItem('med_nu_impersonator_admin_v1');
+    } catch (e) {}
     setIsActivationModalOpen(false);
     setCurrentRole('researcher');
     setActiveTab('dashboard');
@@ -978,6 +1022,36 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900">
       
+      {/* Admin Impersonation Active Banner */}
+      {impersonatorAdmin && (
+        <aside aria-label="โหมดปฏิบัติหน้าที่แทน" className="bg-gradient-to-r from-purple-950 via-indigo-950 to-purple-900 border-b-2 border-purple-400 text-white px-4 py-2.5 shadow-lg flex flex-wrap items-center justify-between gap-3 text-xs sticky top-0 z-50">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-6 h-6 rounded-lg bg-amber-400 text-slate-950 font-bold flex items-center justify-center shrink-0 shadow-sm text-xs">
+              🎭
+            </span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="font-bold text-amber-300 font-prompt">โหมดปฏิบัติหน้าที่แทน (Admin Impersonation):</span>
+              <span className="font-bold text-white underline underline-offset-2">{currentUser?.name}</span>
+              <span className="text-purple-200 font-mono text-[11px]">({currentUser?.email})</span>
+              <span className="px-2 py-0.2 rounded-full text-[10px] bg-purple-800 text-purple-200 border border-purple-500 font-semibold">
+                ID: {currentUser?.id} | สิทธิ์: {currentUser?.role}
+              </span>
+              <span className="text-[11px] text-purple-300 hidden md:inline">
+                (ดำเนินการโดยผู้ดูแลระบบ: {impersonatorAdmin.name})
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={handleExitImpersonation}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold rounded-lg text-xs shadow-md transition-all shrink-0 cursor-pointer font-prompt active:scale-95"
+            title="คลิกเพื่อสลับกลับสู่บัญชีผู้ดูแลระบบของคุณทันที"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>สลับกลับสู่ผู้ดูแลระบบ</span>
+          </button>
+        </aside>
+      )}
+
       {/* Universal Header */}
       <Header
         currentRole={currentRole}
@@ -1292,12 +1366,9 @@ export default function App() {
           users={registeredUsers}
           onClose={() => setIsProfileModalOpen(false)}
           onSaveProfile={handleSaveProfile}
-          onSwitchUser={(user) => {
-            setCurrentUser(user);
-            setCurrentAuthUser(user);
-            setCurrentRole(user.role);
-            showToast(`สลับเข้าใช้งานบัญชี ${user.name} (${user.email}) เรียบร้อยแล้ว`);
-          }}
+          onSwitchUser={handleSwitchUser}
+          impersonatorAdmin={impersonatorAdmin}
+          onExitImpersonation={handleExitImpersonation}
         />
       )}
 

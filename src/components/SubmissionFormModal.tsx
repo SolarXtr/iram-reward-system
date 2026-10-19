@@ -453,8 +453,9 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
       return;
     }
 
-    if (rememberProfile) {
+    if (rememberProfile && activeUserProfile.id) {
       saveStoredUserProfile({
+        id: activeUserProfile.id,
         name: applicantName,
         academicPosition,
         department,
@@ -572,8 +573,9 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
     }
 
     // Save as default profile for next time if opted in
-    if (rememberProfile) {
+    if (rememberProfile && activeUserProfile.id) {
       saveStoredUserProfile({
+        id: activeUserProfile.id,
         name: applicantName,
         academicPosition,
         department,

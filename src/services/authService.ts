@@ -6,6 +6,11 @@ import {
   DEFAULT_LOGGED_IN_USER
 } from '../data/userProfile';
 import { googleLogout } from './googleAuth';
+import { 
+  fetchUserProfileByEmailFromD1, 
+  createUserInD1, 
+  updateUserProfileInD1 
+} from './userService';
 
 export const AUTH_SESSION_KEY = 'med_nu_current_auth_session_v1';
 
@@ -45,12 +50,13 @@ export function setCurrentAuthUser(user: UserProfile | null): void {
 
 /**
  * Process Google Sign-In user and enforce NU account domain policy (@nu.ac.th)
+ * Checks Cloudflare D1 and local registry. Auto-provisions new users to D1 immediately.
  */
-export function processNuGoogleLogin(googleUser: {
+export async function processNuGoogleLogin(googleUser: {
   email?: string | null;
   displayName?: string | null;
   photoURL?: string | null;
-}): { success: boolean; user?: UserProfile; message?: string } {
+}): Promise<{ success: boolean; user?: UserProfile; message?: string }> {
   if (!googleUser || !googleUser.email) {
     return {
       success: false,
@@ -68,9 +74,22 @@ export function processNuGoogleLogin(googleUser: {
     };
   }
 
-  // Look up in registry
+  // 1. Check local registry first
   const registry = getStoredUsersRegistry();
-  const existing = registry.find((u) => u.email.toLowerCase() === cleanEmail);
+  let existing = registry.find((u) => u.email.toLowerCase() === cleanEmail);
+
+  // 2. If not found in local registry, check Cloudflare D1
+  if (!existing) {
+    try {
+      const d1User = await fetchUserProfileByEmailFromD1(cleanEmail);
+      if (d1User) {
+        existing = d1User;
+        upsertRegisteredUser(d1User);
+      }
+    } catch (e) {
+      console.warn('D1 lookup during login warning:', e);
+    }
+  }
 
   if (existing) {
     if (existing.status === 'suspended') {
@@ -87,13 +106,19 @@ export function processNuGoogleLogin(googleUser: {
     };
     upsertRegisteredUser(updatedUser);
     setCurrentAuthUser(updatedUser);
+
+    // Sync last login to D1 asynchronously
+    updateUserProfileInD1(updatedUser.id, { lastLoginAt: updatedUser.lastLoginAt }).catch((err) => {
+      console.warn('Sync lastLoginAt to D1 error:', err);
+    });
+
     return {
       success: true,
       user: updatedUser,
     };
   }
 
-  // Auto-provision new researcher user profile for first-time login
+  // 3. New User: Auto-provision new researcher user profile for first-time login
   const newUser: UserProfile = {
     id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     name: googleUser.displayName || cleanEmail.split('@')[0],
@@ -114,8 +139,16 @@ export function processNuGoogleLogin(googleUser: {
     lastLoginAt: new Date().toISOString(),
   };
 
+  // Persist locally
   upsertRegisteredUser(newUser);
   setCurrentAuthUser(newUser);
+
+  // Immediately save to Cloudflare D1 (irUser)
+  try {
+    await createUserInD1(newUser);
+  } catch (d1Err) {
+    console.warn('D1 auto-provisioning warning (will sync on activation):', d1Err);
+  }
 
   return {
     success: true,

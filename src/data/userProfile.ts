@@ -214,11 +214,23 @@ export function getStoredUserProfile(): UserProfile {
 export function saveStoredUserProfile(profile: Partial<UserProfile>): UserProfile {
   try {
     const current = getStoredUserProfile();
+    // ถ้า profile ที่ส่งเข้ามามี ID หรือ email ชัดเจนและไม่ตรงกับ profile เดิม ไม่เอา default มาทับ
+    const isDifferentUser = Boolean(
+      (profile.id && current.id && profile.id !== current.id) ||
+      (profile.email && current.email && profile.email.toLowerCase() !== current.email.toLowerCase())
+    );
+    const base = isDifferentUser ? (profile as UserProfile) : current;
     const updated: UserProfile = {
-      ...current,
+      ...base,
       ...profile,
     };
     localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(updated));
+
+    // ซิงก์เข้า Registry ท้องถิ่นด้วย เพื่อให้ตารางผู้ใช้และ session มองเห็นข้อมูลเดียวกัน
+    if (updated.id && updated.email) {
+      upsertRegisteredUser(updated);
+    }
+
     return updated;
   } catch (e) {
     console.error('Error saving stored user profile:', e);
