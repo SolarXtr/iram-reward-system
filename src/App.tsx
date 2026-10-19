@@ -754,6 +754,7 @@ export default function App() {
         };
       })
     );
+    updateRewardApplicationInD1(id, { fiscalYear: targetFiscalYear }).catch((e) => console.warn('D1 carry over sync error:', e));
     showToast(`🗓️ เลื่อนรายการไปเตรียมเบิกในปีงบประมาณ ${targetFiscalYear} เรียบร้อยแล้ว`);
   };
 
@@ -771,6 +772,7 @@ export default function App() {
         };
       })
     );
+    updateRewardApplicationInD1(id, { fiscalYear: currentFiscalYear }).catch((e) => console.warn('D1 undo carry over sync error:', e));
     showToast(`↩️ ย้ายรายการกลับมาเตรียมเบิกในปีงบประมาณ ${currentFiscalYear} เรียบร้อยแล้ว`);
   };
 

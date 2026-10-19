@@ -366,6 +366,88 @@ export function parseFiscalYearFromTrackingNo(trackingNo: string): number | null
 }
 
 /**
+ * Resolves the fiscal year of an application with multi-layer fallback:
+ * 1. Explicit fiscalYear (number or string)
+ * 2. Prefix in trackingNo (e.g. AWP69 -> 2569, AWP70 -> 2570)
+ * 3. Date in createdAt / publishedDate (Thai fiscal year: Oct-Dec is year + 544, Jan-Sep is year + 543)
+ * 4. Default: 2570
+ */
+export function resolveApplicationFiscalYear(a: {
+  fiscalYear?: number | string;
+  trackingNo?: string;
+  createdAt?: string;
+  publishedDate?: string;
+}): number {
+  if (a.fiscalYear) {
+    const fy = Number(a.fiscalYear);
+    if (!isNaN(fy) && fy > 2500) return fy;
+  }
+  if (a.trackingNo) {
+    const parsed = parseFiscalYearFromTrackingNo(a.trackingNo);
+    if (parsed) return parsed;
+  }
+  const dateStr = a.createdAt || a.publishedDate;
+  if (dateStr) {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      if (year >= 2020 && year <= 2035) {
+        return month >= 10 ? year + 544 : year + 543;
+      }
+    }
+  }
+  return 2570;
+}
+
+/**
+ * Resolves the fiscal year of a DRI NU disbursement record:
+ * 1. Explicit fiscalYear
+ * 2. ID prefix (e.g. nu-2569-001 -> 2569)
+ * 3. Matched Faculty Tracking No (e.g. AWP69-xxx -> 2569)
+ * 4. Faculty Tracking No (e.g. 69001 -> 2569)
+ * 5. Submission date / Payment date
+ */
+export function resolveNuFiscalYear(r: {
+  fiscalYear?: number | string;
+  id?: string;
+  matchedFacultyTrackingNo?: string;
+  facultyTrackingNo?: string;
+  submissionDate?: string | null;
+  paymentDate?: string | null;
+  createdAt?: string;
+}): number | null {
+  if (r.fiscalYear) {
+    const fy = Number(r.fiscalYear);
+    if (!isNaN(fy) && fy > 2500) return fy;
+  }
+  if (r.id) {
+    const match = r.id.match(/nu-(\d{4})/i);
+    if (match) return parseInt(match[1], 10);
+  }
+  if (r.matchedFacultyTrackingNo) {
+    const parsed = parseFiscalYearFromTrackingNo(r.matchedFacultyTrackingNo);
+    if (parsed) return parsed;
+  }
+  if (r.facultyTrackingNo && /^\d{2}/.test(r.facultyTrackingNo)) {
+    const prefix = parseInt(r.facultyTrackingNo.substring(0, 2), 10);
+    if (prefix >= 65 && prefix <= 75) return 2500 + prefix;
+  }
+  const dateStr = r.submissionDate || r.paymentDate || r.createdAt;
+  if (dateStr) {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      if (year >= 2020 && year <= 2035) {
+        return month >= 10 ? year + 544 : year + 543;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Calculate the next tracking number for a given fiscal year
  * based on existing applications or tracking numbers
  * e.g. For fiscal year 2570, if no item exists, returns "AWP70-001"

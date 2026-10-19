@@ -28,7 +28,9 @@ import {
   formatBaht, 
   checkPublication24MonthExpiry, 
   getTrackingPrefix,
-  checkArticlePriorClaim 
+  checkArticlePriorClaim,
+  resolveApplicationFiscalYear,
+  resolveNuFiscalYear
 } from '../data/regulations';
 
 interface QuotaPlannerViewProps {
@@ -61,86 +63,160 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
   // Selected fiscal year for quota planning (Default: 2570)
   const [selectedFiscalYear, setSelectedFiscalYear] = useState<number>(2570);
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set());
+  const [draftYearFilter, setDraftYearFilter] = useState<'year_only' | 'all_years'>('year_only');
 
-  // Filter applications for current researcher (excluding drafts for submitted stats)
+  // Discover available fiscal years across applications and DRI NU records
+  const availableFiscalYears = useMemo(() => {
+    const years = new Set<number>([2568, 2569, 2570, 2571]);
+    applications.forEach((a) => {
+      const fy = resolveApplicationFiscalYear(a);
+      if (fy) years.add(fy);
+    });
+    nuDisbursements.forEach((r) => {
+      const fy = resolveNuFiscalYear(r);
+      if (fy) years.add(fy);
+    });
+    return Array.from(years).sort((a, b) => a - b);
+  }, [applications, nuDisbursements]);
+
+  // Researcher identification
   const userLastName = currentUser?.name.trim().split(' ').pop()?.toLowerCase() || '';
   const userEmail = currentUser?.email?.toLowerCase() || '';
 
   const isMyApplication = (a: ResearchApplication) => {
-    const matchesEmail = userEmail && a.email && a.email.toLowerCase() === userEmail;
-    const matchesName = userLastName && a.applicantName && a.applicantName.toLowerCase().includes(userLastName);
-    return Boolean(matchesEmail || matchesName);
+    if (userEmail && a.email && a.email.toLowerCase() === userEmail) return true;
+    if (currentUser?.id && (a as any).userId && (a as any).userId === currentUser.id) return true;
+    if (currentUser?.name && a.applicantName) {
+      const cleanCurrent = currentUser.name.replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
+      const cleanApplicant = a.applicantName.replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
+      if (cleanCurrent && cleanApplicant && (cleanApplicant.includes(cleanCurrent) || cleanCurrent.includes(cleanApplicant))) {
+        return true;
+      }
+    }
+    if (userLastName && a.applicantName && a.applicantName.toLowerCase().includes(userLastName)) {
+      return true;
+    }
+    return false;
   };
 
-  // 1. Submitted/Official Applications of this researcher (status !== 'draft')
+  const isMyNuRecord = (r: NuDisbursementRecord) => {
+    if (!r.researcherName) return false;
+    const cleanR = r.researcherName.replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
+    if (currentUser?.name) {
+      const cleanCurrent = currentUser.name.replace(/^(นพ\.|พญ\.|ผศ\.|รศ\.|ศ\.|ดร\.|นาย|นาง|นางสาว|\s)+/g, '').trim().toLowerCase();
+      if (cleanCurrent && cleanR && (cleanR.includes(cleanCurrent) || cleanCurrent.includes(cleanR))) {
+        return true;
+      }
+    }
+    if (userLastName && r.researcherName.toLowerCase().includes(userLastName)) {
+      return true;
+    }
+    return false;
+  };
+
+  // =========================================================================
+  // 1. วงเงิน คณะแพทยศาสตร์ (Faculty Quota: Max 150,000 THB)
+  // =========================================================================
+  const MAX_FACULTY_QUOTA = 150000;
+
   const mySubmittedApps = useMemo(() => {
     return applications.filter((a) => isMyApplication(a) && a.status !== 'draft');
-  }, [applications, userEmail, userLastName]);
+  }, [applications, userEmail, userLastName, currentUser?.name, currentUser?.id]);
 
-  // Submitted apps for the selected fiscal year
+  // Submitted apps strictly for the selected fiscal year
   const mySubmittedInYear = useMemo(() => {
-    return mySubmittedApps.filter((a) => (a.fiscalYear || 2570) === selectedFiscalYear);
+    return mySubmittedApps.filter((a) => resolveApplicationFiscalYear(a) === selectedFiscalYear);
   }, [mySubmittedApps, selectedFiscalYear]);
 
-  // Faculty Quota calculations (Max 150,000 THB)
-  const MAX_FACULTY_QUOTA = 150000;
-  const facultyPaid = mySubmittedInYear
-    .filter((a) => a.status === 'paid')
-    .reduce((sum, a) => sum + (a.actualPaidAmount || a.totalClaimedAmount || 0), 0);
+  const facultyPaidRecords = useMemo(() => {
+    return mySubmittedInYear.filter((a) => a.status === 'paid');
+  }, [mySubmittedInYear]);
 
-  const facultyPending = mySubmittedInYear
-    .filter((a) => a.status !== 'paid' && a.status !== 'rejected')
-    .reduce((sum, a) => sum + (a.totalClaimedAmount || 0), 0);
+  const facultyPendingRecords = useMemo(() => {
+    return mySubmittedInYear.filter((a) => a.status !== 'paid' && a.status !== 'rejected');
+  }, [mySubmittedInYear]);
+
+  const facultyPaid = facultyPaidRecords.reduce(
+    (sum, a) => sum + (a.actualPaidAmount || a.totalClaimedAmount || 0),
+    0
+  );
+
+  const facultyPending = facultyPendingRecords.reduce(
+    (sum, a) => sum + (a.totalClaimedAmount || 0),
+    0
+  );
 
   const facultyUsed = facultyPaid + facultyPending;
   const facultyRemaining = Math.max(0, MAX_FACULTY_QUOTA - facultyUsed);
 
-  // 2. DRI NU Tracker calculations (Max 100,000 THB)
+  // =========================================================================
+  // 2. วงเงิน DRI NU มหาวิทยาลัยนเรศวร (Max 100,000 THB)
+  // =========================================================================
   const MAX_NU_QUOTA = 100000;
+
   const myNuRecords = useMemo(() => {
     return nuDisbursements.filter((r) => {
-      const recordFiscalYear = r.fiscalYear ?? selectedFiscalYear;
-      const matchesName = userLastName && r.researcherName && r.researcherName.toLowerCase().includes(userLastName);
-      return Boolean(matchesName && recordFiscalYear === selectedFiscalYear);
+      const recordFiscalYear = resolveNuFiscalYear(r);
+      return Boolean(isMyNuRecord(r) && recordFiscalYear === selectedFiscalYear);
     });
-  }, [nuDisbursements, userLastName, selectedFiscalYear]);
+  }, [nuDisbursements, userLastName, currentUser?.name, selectedFiscalYear]);
 
-  const nuPaid = myNuRecords
-    .filter((r) => r.status === 'จ่ายเงินแล้ว')
-    .reduce((sum, r) => sum + (r.totalAmount || 0), 0);
+  const nuPaidRecords = useMemo(() => {
+    return myNuRecords.filter((r) => r.status === 'จ่ายเงินแล้ว');
+  }, [myNuRecords]);
 
-  const nuPending = myNuRecords
-    .filter((r) => r.status !== 'จ่ายเงินแล้ว' && r.status !== 'ไม่อนุมัติ')
-    .reduce((sum, r) => sum + (r.totalAmount || 0), 0);
+  const nuPendingRecords = useMemo(() => {
+    return myNuRecords.filter((r) => r.status !== 'จ่ายเงินแล้ว' && r.status !== 'ไม่อนุมัติ' && r.status !== 'ไม่เข้าเกณฑ์ มน.');
+  }, [myNuRecords]);
 
+  const nuPaid = nuPaidRecords.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
+  const nuPending = nuPendingRecords.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
   const nuUsed = nuPaid + nuPending;
   const nuRemaining = Math.max(0, MAX_NU_QUOTA - nuUsed);
 
+  // =========================================================================
+  // 3. รายการบทความที่บันทึกไว้ก่อนส่งเบิก (Draft / Prepared Articles)
+  // =========================================================================
   const isStaffOrAdmin = currentRole === 'admin' || currentRole === 'coordinator';
   const [draftScopeFilter, setDraftScopeFilter] = useState<'all' | 'mine'>(isStaffOrAdmin ? 'all' : 'mine');
 
   useEffect(() => {
     setSelectedDraftIds(new Set());
-  }, [selectedFiscalYear]);
+  }, [selectedFiscalYear, draftYearFilter]);
 
-  const allDraftsCount = useMemo(() => {
-    return applications.filter((a) => a.status === 'draft' && (a.fiscalYear || selectedFiscalYear) === selectedFiscalYear).length;
+  // Draft counts for current fiscal year vs all years
+  const allDraftsInYearCount = useMemo(() => {
+    return applications.filter((a) => a.status === 'draft' && resolveApplicationFiscalYear(a) === selectedFiscalYear).length;
   }, [applications, selectedFiscalYear]);
 
-  const myDraftsCount = useMemo(() => {
+  const allDraftsTotalCount = useMemo(() => {
+    return applications.filter((a) => a.status === 'draft').length;
+  }, [applications]);
+
+  const myDraftsInYearCount = useMemo(() => {
     return applications.filter((a) => {
       if (a.status !== 'draft') return false;
-      if ((a.fiscalYear || selectedFiscalYear) !== selectedFiscalYear) return false;
+      if (resolveApplicationFiscalYear(a) !== selectedFiscalYear) return false;
       return isMyApplication(a);
     }).length;
-  }, [applications, userEmail, userLastName, selectedFiscalYear]);
+  }, [applications, selectedFiscalYear, userEmail, userLastName, currentUser?.name, currentUser?.id]);
 
-  // 3. Draft/Prepared applications (status === 'draft')
+  const myDraftsTotalCount = useMemo(() => {
+    return applications.filter((a) => a.status === 'draft' && isMyApplication(a)).length;
+  }, [applications, userEmail, userLastName, currentUser?.name, currentUser?.id]);
+
+  // Draft/Prepared applications (status === 'draft')
   // Researcher can ONLY see their own applications: "นักวิจัย แก้ไขได้เฉพาะคำขอของตัวเอง"
   const myDraftApps = useMemo(() => {
     const drafts = applications.filter((a) => {
       if (a.status !== 'draft') return false;
-      if ((a.fiscalYear || selectedFiscalYear) !== selectedFiscalYear) return false;
+      
+      // Fiscal year filter
+      if (draftYearFilter === 'year_only') {
+        if (resolveApplicationFiscalYear(a) !== selectedFiscalYear) return false;
+      }
+
+      // Role & Scope filtering
       if (currentRole === 'researcher') {
         return isMyApplication(a);
       }
@@ -156,7 +232,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
       const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
       return dateA - dateB;
     });
-  }, [applications, userEmail, userLastName, currentRole, draftScopeFilter, isStaffOrAdmin]);
+  }, [applications, userEmail, userLastName, currentUser?.name, currentUser?.id, currentRole, draftScopeFilter, isStaffOrAdmin, selectedFiscalYear, draftYearFilter]);
 
   // Selected drafts for simulation
   const selectedDraftsList = useMemo(() => {
@@ -233,7 +309,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
           <div className="flex flex-wrap items-center gap-3">
             {/* Fiscal Year Selector */}
             <div className="flex items-center bg-slate-800/90 border border-slate-700 rounded-xl p-1 text-xs">
-              {[2569, 2570, 2571].map((fy) => (
+              {availableFiscalYears.map((fy) => (
                 <button
                   key={fy}
                   onClick={() => setSelectedFiscalYear(fy)}
@@ -288,17 +364,26 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
               <span className="text-base font-bold text-emerald-700 font-prompt">
                 {formatBaht(facultyPaid)}
               </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                ({facultyPaidRecords.length} คำขอ)
+              </span>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
               <span className="text-[11px] text-slate-500 block">อยู่ระหว่างเบิก</span>
               <span className="text-base font-bold text-amber-700 font-prompt">
                 {formatBaht(facultyPending)}
               </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                ({facultyPendingRecords.length} คำขอ)
+              </span>
             </div>
             <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-100">
               <span className="text-[11px] text-purple-900 font-semibold block">วงเงินคงเหลือ</span>
               <span className="text-base font-bold text-purple-700 font-prompt">
                 {formatBaht(facultyRemaining)}
+              </span>
+              <span className="text-[10px] text-purple-600/70 block mt-0.5">
+                {facultyRemaining <= 0 ? 'เต็มเพดานแล้ว' : 'สามารถเบิกได้อีก'}
               </span>
             </div>
           </div>
@@ -356,6 +441,16 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
               </span>
             </div>
           )}
+
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-purple-600" />
+              <span>สรุปคำขอคณะฯ ปีงบ {selectedFiscalYear}:</span>
+            </div>
+            <span className="font-semibold text-slate-800 font-prompt">
+              รวม {facultyPaidRecords.length + facultyPendingRecords.length} คำขอ ({formatBaht(facultyUsed)})
+            </span>
+          </div>
         </div>
 
         {/* Card 2: DRI NU Quota (100,000 THB) */}
@@ -385,17 +480,26 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
               <span className="text-base font-bold text-emerald-700 font-prompt">
                 {formatBaht(nuPaid)}
               </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                ({nuPaidRecords.length} รายการ)
+              </span>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
               <span className="text-[11px] text-slate-500 block">ยื่นคำร้อง มน. แล้ว</span>
               <span className="text-base font-bold text-amber-700 font-prompt">
                 {formatBaht(nuPending)}
               </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                ({nuPendingRecords.length} รายการ)
+              </span>
             </div>
             <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-100">
               <span className="text-[11px] text-blue-900 font-semibold block">วงเงินคงเหลือ มน.</span>
               <span className="text-base font-bold text-blue-700 font-prompt">
                 {formatBaht(nuRemaining)}
+              </span>
+              <span className="text-[10px] text-blue-600/70 block mt-0.5">
+                {nuRemaining <= 0 ? 'เต็มเพดานแล้ว' : 'สามารถเบิกได้อีก'}
               </span>
             </div>
           </div>
@@ -427,10 +531,10 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-blue-600" />
-              <span>ติดตามคำขอส่วนของ มน. ใน DRI NU Tracker:</span>
+              <span>ประวัติเบิกจ่าย มน. ปีงบ {selectedFiscalYear}:</span>
             </div>
             <span className="font-semibold text-slate-800 font-prompt">
-              พบ {myNuRecords.length} รายการของท่าน
+              พบ {nuInYearRecords.length} รายการ (จากทั้งหมด {myNuRecords.length} รายการ)
             </span>
           </div>
         </div>
@@ -447,7 +551,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                 <span>รายการบทความที่บันทึกไว้ก่อนส่งเบิก (Prepared Articles)</span>
               </h3>
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 font-prompt">
-                {myDraftApps.length} เรื่อง
+                {myDraftApps.length} เรื่อง {draftYearFilter === 'year_only' ? `(ปีงบ ${selectedFiscalYear})` : '(ทุกปี)'}
               </span>
             </div>
             <p className="text-xs text-slate-500">
@@ -457,6 +561,31 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
 
           {/* Action Tools */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Draft Year Toggle Filter */}
+            <div className="bg-slate-200/90 p-0.5 rounded-lg flex items-center text-xs mr-1">
+              <button
+                onClick={() => setDraftYearFilter('year_only')}
+                className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                  draftYearFilter === 'year_only'
+                    ? 'bg-white text-indigo-900 shadow-2xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title={`แสดงเฉพาะบทความที่วางแผนเบิกในปีงบ ${selectedFiscalYear}`}
+              >
+                ปีงบ {selectedFiscalYear} ({myDraftsInSelectedYearCount})
+              </button>
+              <button
+                onClick={() => setDraftYearFilter('all_years')}
+                className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                  draftYearFilter === 'all_years'
+                    ? 'bg-white text-indigo-900 shadow-2xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="แสดงบทความที่เตรียมไว้ทุกปีงบประมาณ"
+              >
+                ทุกปี ({myDraftsTotalCount})
+              </button>
+            </div>
             {/* Scope Toggle for Coordinator / Admin */}
             {isStaffOrAdmin && (
               <div className="bg-slate-200/90 p-0.5 rounded-lg flex items-center text-xs mr-1">
@@ -726,15 +855,27 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
 
                       {/* Planned Fiscal Year with Carry-over button */}
                       <td className="py-3 px-3 text-center">
-                        <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-semibold">
-                          ปี {draft.fiscalYear || selectedFiscalYear}
-                        </span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                            resolveApplicationFiscalYear(draft) === selectedFiscalYear
+                              ? 'bg-indigo-100 text-indigo-800 font-bold border border-indigo-200'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            ปี {resolveApplicationFiscalYear(draft)}
+                          </span>
+                          {draft.isCarryOverToNextYear && (
+                            <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded text-[9px] font-semibold border border-amber-300">
+                              เลื่อนปีงบ
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Action buttons */}
                       <td className="py-3 px-4 text-center">
                         {(() => {
                           const canEditThisDraft = isStaffOrAdmin || isMyApplication(draft);
+                          const currentDraftFy = resolveApplicationFiscalYear(draft);
 
                           return (
                             <div className="flex items-center justify-center gap-1.5">
@@ -770,10 +911,10 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                               {draft.isCarryOverToNextYear ? (
                                 // ปุ่ม Undo: ส่งคืนกลับมาปีก่อนหน้า
                                 <button
-                                  onClick={() => canEditThisDraft && onUndoCarryOver(draft.id, (draft.fiscalYear || selectedFiscalYear) - 1)}
+                                  onClick={() => canEditThisDraft && onUndoCarryOver(draft.id, currentDraftFy - 1)}
                                   disabled={!canEditThisDraft}
                                   title={canEditThisDraft
-                                    ? `↩️ ส่งคืนกลับมาปีงบประมาณ ${(draft.fiscalYear || selectedFiscalYear) - 1} (ยกเลิกการเลื่อนปี)`
+                                    ? `↩️ ส่งคืนกลับมาปีงบประมาณ ${currentDraftFy - 1} (ยกเลิกการเลื่อนปี)`
                                     : 'นักวิจัยสามารถจัดการได้เฉพาะคำขอของตนเอง'}
                                   className={`p-1.5 rounded-lg border transition-colors ${
                                     canEditThisDraft
@@ -786,10 +927,10 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                               ) : (
                                 // ปุ่ม Carry-Over: เลื่อนไปปีถัดไป
                                 <button
-                                  onClick={() => canEditThisDraft && onCarryOverDraft(draft.id, (draft.fiscalYear || selectedFiscalYear) + 1)}
+                                  onClick={() => canEditThisDraft && onCarryOverDraft(draft.id, currentDraftFy + 1)}
                                   disabled={!canEditThisDraft}
                                   title={canEditThisDraft
-                                    ? `เลื่อนไปเบิกปีงบประมาณถัดไป (${(draft.fiscalYear || selectedFiscalYear) + 1})`
+                                    ? `เลื่อนไปเบิกปีงบประมาณถัดไป (${currentDraftFy + 1})`
                                     : 'นักวิจัยสามารถจัดการได้เฉพาะคำขอของตนเอง'}
                                   className={`p-1.5 rounded-lg border transition-colors ${
                                     canEditThisDraft
