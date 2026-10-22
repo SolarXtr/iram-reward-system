@@ -4,8 +4,41 @@
  */
 
 import { PublicRewardSummary, QuartileRank, ResearchApplication } from '../types';
+import { auth, getAccessToken } from './googleAuth';
 
 const API_BASE_URL = 'https://iram-backend.tinnakornh.workers.dev/api/rewards';
+
+/**
+ * Build Authorization header from Firebase session (ID token) or cached access token.
+ *
+ * ข้อสังเกต: ผู้ใช้บางรายอาจมีบัญชีในระบบแต่ยังไม่เคย login ผ่าน Firebase SSO
+ * (เช่น ผู้ใช้ที่ Admin สร้างให้ หรือ Admin กำลัง Impersonate ผู้ใช้นั้น)
+ * ในกรณีดังกล่าว auth.currentUser จะเป็น null และ cachedAccessToken จะไม่มีค่า
+ * → คืนค่า {} (ไม่ส่ง header) ซึ่ง backend รองรับกรณีนี้โดยตรวจสอบจาก
+ *   applicantEmail ใน request body แทน token ownership
+ */
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    // 1. ลองดึง Firebase ID token จาก session ปัจจุบัน (ถ้ายัง login อยู่)
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+      const idToken = await firebaseUser.getIdToken();
+      if (idToken) {
+        return { Authorization: `Bearer ${idToken}` };
+      }
+    }
+
+    // 2. Fallback: ใช้ cached OAuth/access token จากตอน sign-in (ถ้ามี)
+    const cachedToken = await getAccessToken();
+    if (cachedToken) {
+      return { Authorization: `Bearer ${cachedToken}` };
+    }
+  } catch (error) {
+    // กรณีผู้ใช้ยังไม่ได้ login ผ่าน Firebase หรือ session หมดอายุ → ส่ง request โดยไม่มี token
+    console.warn('[rewardD1Service] No Firebase session available for auth header:', error);
+  }
+  return {};
+}
 
 export interface DuplicateCheckResult {
   isDuplicate: boolean;
@@ -90,11 +123,14 @@ export async function checkArticleDuplicate(doi?: string, title?: string): Promi
 
 /**
  * Fetch all reward applications from Cloudflare D1
+ * ใช้ auth headers ถ้ามี Firebase session (เพื่อรองรับ role-based filtering ฝั่ง backend)
  */
 export async function fetchRewardApplicationsFromD1(fiscalYear?: number): Promise<ResearchApplication[]> {
   try {
     const url = fiscalYear ? `${API_BASE_URL}?fiscalYear=${fiscalYear}` : API_BASE_URL;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: await getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch applications: ${response.status}`);
     }
@@ -108,13 +144,16 @@ export async function fetchRewardApplicationsFromD1(fiscalYear?: number): Promis
 
 /**
  * Submit new reward application to Cloudflare D1
+ * ส่ง Authorization header ถ้ามี Firebase session (กรณี user login ปกติ หรือ Admin impersonate)
+ * กรณีไม่มี session (user ที่ Admin สร้างให้และยังไม่เคย login) → ส่งโดยไม่มี token
  */
 export async function createRewardApplicationInD1(application: Partial<ResearchApplication>): Promise<{ status: string; id: string; trackingNo: string }> {
   try {
     const response = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...await getAuthHeaders(),
       },
       body: JSON.stringify(application)
     });
@@ -133,13 +172,15 @@ export async function createRewardApplicationInD1(application: Partial<ResearchA
 
 /**
  * Update existing reward application in Cloudflare D1
+ * ส่ง Authorization header ถ้ามี Firebase session
  */
 export async function updateRewardApplicationInD1(id: string, updates: Partial<ResearchApplication>): Promise<{ status: string; id: string }> {
   try {
     const response = await fetch(`${API_BASE_URL}/${id}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...await getAuthHeaders(),
       },
       body: JSON.stringify(updates)
     });
@@ -162,7 +203,8 @@ export async function updateRewardApplicationInD1(id: string, updates: Partial<R
 export async function deleteRewardApplicationInD1(id: string): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: await getAuthHeaders(),
     });
     return response.ok;
   } catch (error) {

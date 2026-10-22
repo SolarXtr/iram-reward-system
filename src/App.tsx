@@ -276,7 +276,13 @@ export default function App() {
 
   const handleSaveProfile = async (updated: UserProfile): Promise<boolean> => {
     try {
-      await updateUserProfileInD1(updated.id, updated);
+      // กรณี Admin กำลัง Impersonate user อื่น: Firebase session เป็นของ Admin
+      // แต่ updated.id คือ targetUser → ส่ง _impersonatedBy เพื่อให้ backend ตรวจสอบสิทธิ์ Admin ได้
+      const payload: UserProfile & { _impersonatedBy?: string } = impersonatorAdmin
+        ? { ...updated, _impersonatedBy: impersonatorAdmin.id }
+        : updated;
+
+      await updateUserProfileInD1(updated.id, payload);
       saveStoredUserProfile(updated);
       setCurrentUser(updated);
       setCurrentAuthUser(updated);
