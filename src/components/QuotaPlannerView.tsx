@@ -179,7 +179,9 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
   // 3. รายการบทความที่บันทึกไว้ก่อนส่งเบิก (Draft / Prepared Articles)
   // =========================================================================
   const isStaffOrAdmin = currentRole === 'admin' || currentRole === 'coordinator';
-  const [draftScopeFilter, setDraftScopeFilter] = useState<'all' | 'mine'>(isStaffOrAdmin ? 'all' : 'mine');
+  const isDeptSecretary = currentRole === 'dept_secretary';
+  const userDeptNorm = (currentUser?.department || '').trim().toLowerCase();
+  const [draftScopeFilter, setDraftScopeFilter] = useState<'all' | 'mine'>(isStaffOrAdmin || isDeptSecretary ? 'all' : 'mine');
 
   useEffect(() => {
     setSelectedDraftIds(new Set());
@@ -221,6 +223,13 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
       if (currentRole === 'researcher') {
         return isMyApplication(a);
       }
+      if (isDeptSecretary) {
+        if (draftScopeFilter === 'all') {
+          const appDeptNorm = (a.department || '').trim().toLowerCase();
+          return Boolean(userDeptNorm && (appDeptNorm === userDeptNorm || appDeptNorm.includes(userDeptNorm) || userDeptNorm.includes(appDeptNorm)));
+        }
+        return isMyApplication(a);
+      }
       if (isStaffOrAdmin && draftScopeFilter === 'all') {
         return true;
       }
@@ -233,7 +242,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
       const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
       return dateA - dateB;
     });
-  }, [applications, userEmail, userLastName, currentUser?.name, currentUser?.id, currentRole, draftScopeFilter, isStaffOrAdmin, selectedFiscalYear, draftYearFilter]);
+  }, [applications, userEmail, userLastName, currentUser?.name, currentUser?.id, currentUser?.department, currentRole, draftScopeFilter, isStaffOrAdmin, isDeptSecretary, userDeptNorm, selectedFiscalYear, draftYearFilter]);
 
   // Selected drafts for simulation
   const selectedDraftsList = useMemo(() => {
@@ -587,8 +596,8 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                 ทุกปี ({isStaffOrAdmin && draftScopeFilter === 'all' ? allDraftsTotalCount : myDraftsTotalCount})
               </button>
             </div>
-            {/* Scope Toggle for Coordinator / Admin */}
-            {isStaffOrAdmin && (
+                        {/* Scope Toggle for Coordinator / Admin / Department Secretary */}
+            {(isStaffOrAdmin || isDeptSecretary) && (
               <div className="bg-slate-200/90 p-0.5 rounded-lg flex items-center text-xs mr-1">
                 <button
                   onClick={() => setDraftScopeFilter('all')}
@@ -598,7 +607,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  ร่างทั้งหมด ({draftYearFilter === 'year_only' ? allDraftsInYearCount : allDraftsTotalCount})
+                  {isDeptSecretary ? `ร่างใน${currentUser?.department || 'ภาควิชา'}` : `ร่างทั้งหมด (${draftYearFilter === 'year_only' ? allDraftsInYearCount : allDraftsTotalCount})`}
                 </button>
                 <button
                   onClick={() => setDraftScopeFilter('mine')}
