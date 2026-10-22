@@ -528,7 +528,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       </div>
 
       {/* Role Summary Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
         {/* Total Users */}
         <div 
           onClick={() => setRoleFilter('all')}
@@ -1108,7 +1108,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     สิทธิ์เพิ่มเติม (Additional Roles)
                   </label>
                   <div className="flex flex-wrap gap-3">
-                    {(['researcher', 'coordinator', 'finance', 'executive', 'admin'] as UserRole[]).map((r) => {
+                    {(['researcher', 'dept_secretary', 'coordinator', 'finance', 'executive', 'admin'] as UserRole[]).map((r) => {
                       const isChecked = formData.roles?.includes(r) ?? false;
                       const isPrimary = formData.role === r;
                       return (
