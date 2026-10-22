@@ -467,6 +467,7 @@ export default function App() {
     setCurrentRole(newRole);
     const roleAllowedTabs: Record<UserRole, ActiveTab[]> = {
       researcher: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar'],
+      dept_secretary: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar', 'user_management'],
       finance: ['dashboard', 'article_table', 'table', 'calendar'],
       executive: ['dashboard', 'article_table', 'table', 'calendar'],
       coordinator: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
@@ -591,6 +592,15 @@ export default function App() {
         (currentUser?.name && draftApp.applicantName && draftApp.applicantName.toLowerCase() === currentUser.name.toLowerCase());
       if (!isMine) {
         showToast('⚠️ คุณสามารถแก้ไขได้เฉพาะคำขอของตนเองเท่านั้น');
+        return;
+      }
+    } else if (currentRole === 'dept_secretary') {
+      const myDept = (currentUser?.department || '').trim().toLowerCase();
+      const appDept = (draftApp.department || '').trim().toLowerCase();
+      const isSameDept = Boolean(myDept && (appDept === myDept || appDept.includes(myDept) || myDept.includes(appDept)));
+      const isMine = (currentUser?.email && draftApp.email && draftApp.email.toLowerCase() === currentUser.email.toLowerCase());
+      if (!isSameDept && !isMine) {
+        showToast('⚠️ เลขาภาควิชาสามารถแก้ไขได้เฉพาะคำขอในภาควิชาที่สังกัดเท่านั้น');
         return;
       }
     }

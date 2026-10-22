@@ -108,13 +108,14 @@ export const Header: React.FC<HeaderProps> = ({
     {
       id: 'dashboard',
       label: currentRole === 'researcher' ? 'แดชบอร์ดคำขอของฉัน' :
+             currentRole === 'dept_secretary' ? 'แดชบอร์ดภาควิชา' :
              currentRole === 'coordinator' ? 'แดชบอร์ดภาพรวมคณะ' :
              currentRole === 'finance' ? 'แดชบอร์ดงานการเงิน' :
              currentRole === 'executive' ? 'แดชบอร์ดสรุปผู้บริหาร' : 'แดชบอร์ดสรุปสถานะ',
       shortLabel: 'แดชบอร์ด',
       description: 'ภาพรวมสถิติและสถานะคำขอรับทุนทั้งหมด',
       icon: LayoutDashboard,
-      roles: ['researcher', 'coordinator', 'finance', 'executive', 'admin'],
+      roles: ['researcher', 'dept_secretary', 'coordinator', 'finance', 'executive', 'admin'],
     },
     {
       id: 'quota_planner',
@@ -124,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
       icon: Sparkles,
       badge: draftsCount > 0 ? `${draftsCount} ร่าง` : undefined,
       badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-      roles: ['researcher', 'coordinator', 'admin'],
+      roles: ['researcher', 'dept_secretary', 'coordinator', 'admin'],
     },
     {
       id: 'article_table',
@@ -134,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
       icon: BookOpen,
       badge: 'ใหม่',
       badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-      roles: ['researcher', 'coordinator', 'finance', 'executive', 'admin'],
+      roles: ['researcher', 'dept_secretary', 'coordinator', 'finance', 'executive', 'admin'],
     },
     {
       id: 'kanban',
@@ -147,13 +148,14 @@ export const Header: React.FC<HeaderProps> = ({
     {
       id: 'table',
       label: currentRole === 'researcher' ? 'ตารางคำขอของฉัน' :
+             currentRole === 'dept_secretary' ? 'ตารางคำขอในภาควิชา' :
              currentRole === 'coordinator' ? 'ตารางข้อมูลรวมทั้งคณะ' :
              currentRole === 'finance' ? 'ตารางบันทึกเลขฎีกา/เงินโอน' :
              currentRole === 'executive' ? 'ตารางสรุปคำขอ' : 'ตารางแก้ไขข้อมูลทั้งหมด',
       shortLabel: 'ตารางข้อมูล',
       description: 'ตารางจัดการและส่งออกข้อมูลทั้งหมด',
       icon: TableProperties,
-      roles: ['researcher', 'coordinator', 'finance', 'executive', 'admin'],
+      roles: ['researcher', 'dept_secretary', 'coordinator', 'finance', 'executive', 'admin'],
     },
     {
       id: 'calendar',
@@ -161,7 +163,7 @@ export const Header: React.FC<HeaderProps> = ({
       shortLabel: 'ปฏิทินรอบเบิกจ่าย',
       description: 'ปฏิทินรอบเบิกจ่ายและการเงิน',
       icon: Calendar,
-      roles: ['researcher', 'coordinator', 'finance', 'executive', 'admin'],
+      roles: ['researcher', 'dept_secretary', 'coordinator', 'finance', 'executive', 'admin'],
     },
     {
       id: 'line_oa',
@@ -177,11 +179,11 @@ export const Header: React.FC<HeaderProps> = ({
       id: 'user_management',
       label: 'จัดการผู้ใช้งาน (Users)',
       shortLabel: 'จัดการผู้ใช้งาน',
-      description: 'ระบบจัดการบัญชีผู้ใช้งาน และกำหนดสิทธิ์ (Admin Console)',
+      description: currentRole === 'dept_secretary' ? 'จัดการผู้ใช้งานในภาควิชา' : 'ระบบจัดการบัญชีผู้ใช้งาน และกำหนดสิทธิ์ (Admin Console)',
       icon: Users,
       badge: 'Admin',
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-      roles: ['admin'],
+      roles: ['admin', 'dept_secretary'],
     },
   ];
 

@@ -71,7 +71,22 @@ export const MOCK_NU_USERS: UserProfile[] = [
     isNuAccount: true,
     status: 'active',
   },
-  {
+    {
+    id: 'user-sec-surgery',
+    name: 'คุณพัชราภรณ์ เลขาศัลย์',
+    academicPosition: 'เจ้าหน้าที่บริหารงานทั่วไป / เลขานุการภาควิชา',
+    department: 'ภาควิชาศัลยศาสตร์',
+    phone: '5530',
+    email: 'sec_surgery@nu.ac.th',
+    bankName: 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร',
+    bankAccountNo: '346-1-00632-1',
+    idCardNo: '1-6500-00632-21-4',
+    role: 'dept_secretary',
+    roles: ['dept_secretary'],
+    isNuAccount: true,
+    status: 'active',
+  },
+{
     id: 'user-sommaiv',
     name: 'ผู้ช่วยศาสตราจารย์ ดร.สมหมาย วิจัยเจริญ',
     academicPosition: 'ผู้ช่วยศาสตราจารย์',

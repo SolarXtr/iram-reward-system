@@ -875,7 +875,9 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                       {/* Action buttons */}
                       <td className="py-3 px-4 text-center">
                         {(() => {
-                          const canEditThisDraft = isStaffOrAdmin || isMyApplication(draft);
+                          const appDeptNorm = (draft.department || '').trim().toLowerCase();
+                          const isSameDept = Boolean(isDeptSecretary && userDeptNorm && (appDeptNorm === userDeptNorm || appDeptNorm.includes(userDeptNorm) || userDeptNorm.includes(appDeptNorm)));
+                          const canEditThisDraft = isStaffOrAdmin || isSameDept || isMyApplication(draft);
                           const currentDraftFy = resolveApplicationFiscalYear(draft);
 
                           return (

@@ -36,6 +36,7 @@ interface TableViewProps {
   onReturnToDraft?: (app: ResearchApplication) => void;
   currentUserEmail?: string;
   currentUserName?: string;
+  currentUserDept?: string;
   currentRole?: UserRole;
 }
 
@@ -126,6 +127,12 @@ export const TableView: React.FC<TableViewProps> = ({
         (currentUserEmail && app.email && app.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
         (currentUserName && app.applicantName && app.applicantName.toLowerCase().includes(currentUserName.toLowerCase()));
       if (!isMyJob) return false;
+    } else if (currentRole === 'dept_secretary') {
+      // Department Secretary: Scope to same department
+      const secDeptNorm = (currentUserDept || '').trim().toLowerCase();
+      const appDeptNorm = (app.department || '').trim().toLowerCase();
+      const isSameDept = Boolean(secDeptNorm && (appDeptNorm === secDeptNorm || appDeptNorm.includes(secDeptNorm) || secDeptNorm.includes(appDeptNorm)));
+      if (!isSameDept && !isMyApp(app)) return false;
     }
 
     if (selectedFiscalYear !== 'all' && String(app.fiscalYear) !== selectedFiscalYear) {

@@ -232,7 +232,7 @@ export interface CalendarEventSchedule {
   googleCalendarUrl?: string;
 }
 
-export type UserRole = 'researcher' | 'coordinator' | 'finance' | 'executive' | 'admin';
+export type UserRole = 'researcher' | 'dept_secretary' | 'coordinator' | 'finance' | 'executive' | 'admin';
 
 export interface UserProfile {
   id: string;

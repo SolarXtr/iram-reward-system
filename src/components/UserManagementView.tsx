@@ -146,6 +146,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   const stats = useMemo(() => {
     return {
       total: users.length,
+      dept_secretary: users.filter((u) => u.role === 'dept_secretary' || u.roles?.includes('dept_secretary')).length,
       researcher: users.filter((u) => u.role === 'researcher' || u.roles?.includes('researcher')).length,
       coordinator: users.filter((u) => u.role === 'coordinator' || u.roles?.includes('coordinator')).length,
       finance: users.filter((u) => u.role === 'finance' || u.roles?.includes('finance')).length,
@@ -320,7 +321,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       name: '',
       academicPosition: 'อาจารย์ ดร.',
       administrativePosition: '',
-      department: departments[0] || 'สถานวิทยาศาสตร์คลินิก',
+      department: isDeptSecretary && userDepartment ? userDepartment : (departments[0] || 'สถานวิทยาศาสตร์คลินิก'),
       phone: '55',
       email: '',
       bankName: 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร',
