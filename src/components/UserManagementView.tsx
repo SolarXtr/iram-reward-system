@@ -52,6 +52,12 @@ const ROLE_CONFIG: Record<UserRole, { label: string; badgeClass: string; icon: R
     icon: GraduationCap,
     desc: 'ยื่นคำขอรับรางวัล, ติดตามสถานะ, ดาวน์โหลดเอกสารและใบรับรอง',
   },
+  dept_secretary: {
+    label: 'เลขาภาควิชา',
+    badgeClass: 'bg-teal-500/10 text-teal-700 border-teal-300 dark:border-teal-700 dark:text-teal-400',
+    icon: Building2,
+    desc: 'จัดการผู้ใช้งานและจัดเตรียมคำขอรับรางวัลภายในภาควิชาที่สังกัด',
+  },
   coordinator: {
     label: 'เจ้าหน้าที่วิจัย',
     badgeClass: 'bg-blue-500/10 text-blue-700 border-blue-300 dark:border-blue-700 dark:text-blue-400',
@@ -563,6 +569,23 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
           <div className="text-[11px] text-slate-400 mt-0.5">ผู้ขอรับรางวัล</div>
         </div>
 
+        {/* Department Secretary */}
+        <div 
+          onClick={() => setRoleFilter('dept_secretary')}
+          className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
+            roleFilter === 'dept_secretary' ? 'ring-2 ring-teal-500 border-teal-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-teal-700">เลขาภาควิชา</span>
+            <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-teal-600" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold font-prompt text-teal-800 mt-2">{stats.dept_secretary}</div>
+          <div className="text-[11px] text-slate-400 mt-0.5">ผู้ประสานงานภาควิชา</div>
+        </div>
+
         {/* Coordinators */}
         <div 
           onClick={() => setRoleFilter('coordinator')}
@@ -657,6 +680,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
             >
               <option value="all">ทุกบทบาท ({stats.total})</option>
               <option value="researcher">นักวิจัย ({stats.researcher})</option>
+              <option value="dept_secretary">เลขาภาควิชา ({stats.dept_secretary})</option>
               <option value="coordinator">เจ้าหน้าที่วิจัย ({stats.coordinator})</option>
               <option value="finance">งานการเงิน ({stats.finance})</option>
               <option value="executive">ผู้บริหาร ({stats.executive})</option>
@@ -775,6 +799,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                               ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
                               : user.role === 'finance'
                               ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                              : user.role === 'dept_secretary'
+                              ? 'bg-teal-100 text-teal-700 border-teal-300'
                               : user.role === 'coordinator'
                               ? 'bg-blue-100 text-blue-700 border-blue-300'
                               : 'bg-amber-100 text-amber-700 border-amber-300'
@@ -837,6 +863,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                             title="คลิกเพื่อเปลี่ยนบทบาทหลักได้ทันที"
                           >
                             <option value="researcher">นักวิจัย (Researcher)</option>
+                            <option value="dept_secretary">เลขาภาควิชา (Department Secretary)</option>
                             <option value="coordinator">เจ้าหน้าที่วิจัย (Coordinator)</option>
                             <option value="finance">งานการเงิน (Finance)</option>
                             <option value="executive">ผู้บริหาร (Executive)</option>
@@ -1080,6 +1107,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 font-medium"
                   >
                     <option value="researcher">นักวิจัย (Researcher - ยื่นคำขอ)</option>
+                    <option value="dept_secretary">เลขาภาควิชา (Department Secretary - จัดการในภาค)</option>
                     <option value="coordinator">เจ้าหน้าที่วิจัย (Coordinator - ตรวจสอบ)</option>
                     <option value="finance">งานการเงิน (Finance - เบิกจ่าย)</option>
                     <option value="executive">ผู้บริหาร (Executive - อนุมัติ)</option>
@@ -1136,7 +1164,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                             }}
                             className="rounded text-purple-600 focus:ring-purple-500"
                           />
-                          <span>{ROLE_CONFIG[r].label}</span>
+                          <span>{ROLE_CONFIG[r]?.label || r}</span>
                           {isPrimary && <span className="text-[10px] text-purple-600 font-semibold">(หลัก)</span>}
                         </label>
                       );
