@@ -33,10 +33,12 @@ import {
   LogOut
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
+import { isSameDepartment, isResearcherOnlyUser } from '../utils/permissionUtils';
 
 interface UserManagementViewProps {
   users: UserProfile[];
   currentLoggedInUser: UserProfile;
+  currentRole?: UserRole;
   onUpdateUser: (user: UserProfile) => Promise<boolean> | boolean | void;
   onCreateUser: (user: UserProfile) => Promise<boolean> | boolean | void;
   onDeleteUser: (userId: string) => Promise<boolean> | boolean | void;
@@ -87,6 +89,7 @@ const ROLE_CONFIG: Record<UserRole, { label: string; badgeClass: string; icon: R
 export const UserManagementView: React.FC<UserManagementViewProps> = ({
   users,
   currentLoggedInUser,
+  currentRole,
   onUpdateUser,
   onCreateUser,
   onDeleteUser,
@@ -94,6 +97,36 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   onShowAlert,
   onBackToDashboard,
 }) => {
+  // Check if current view is operating under Department Secretary restrictions
+  const isDeptSecretary =
+    currentRole === 'dept_secretary' ||
+    (currentRole !== 'admin' && currentLoggedInUser?.role === 'dept_secretary');
+  const userDepartment = currentLoggedInUser?.department?.trim() || '';
+
+  // Determine whether the logged-in user is tied to a specific department with researchers
+  const hasResearchersInOwnDept = useMemo(() => {
+    if (!userDepartment) return false;
+    return users.some((u) => isResearcherOnlyUser(u) && isSameDepartment(userDepartment, u.department));
+  }, [users, userDepartment]);
+
+  const isStrictDeptLocked =
+    isDeptSecretary && (currentLoggedInUser?.role === 'dept_secretary' || hasResearchersInOwnDept);
+
+  // Scoped users:
+  // - Admin: sees all users
+  // - Department Secretary: strictly sees ONLY users with 'researcher' status (no admin/executive/coordinator/finance/dept_secretary)
+  //   and scoped to their department when applicable.
+  const scopedUsers = useMemo(() => {
+    if (!isDeptSecretary) return users;
+    return users.filter((u) => {
+      if (!isResearcherOnlyUser(u)) return false;
+      if (isStrictDeptLocked && userDepartment) {
+        return isSameDepartment(userDepartment, u.department);
+      }
+      return true;
+    });
+  }, [users, isDeptSecretary, isStrictDeptLocked, userDepartment]);
+
   // Admin Session Authentication State
   const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(() => {
     try {
@@ -140,26 +173,28 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   // Extract unique departments for filtering
   const departments = useMemo(() => {
     const set = new Set<string>();
-    users.forEach((u) => {
+    scopedUsers.forEach((u) => {
       if (u.department) {
         set.add(u.department.trim());
       }
     });
     return Array.from(set).sort();
-  }, [users]);
+  }, [scopedUsers]);
 
   // Role summary stats
   const stats = useMemo(() => {
     return {
-      total: users.length,
-      dept_secretary: users.filter((u) => u.role === 'dept_secretary' || u.roles?.includes('dept_secretary')).length,
-      researcher: users.filter((u) => u.role === 'researcher' || u.roles?.includes('researcher')).length,
-      coordinator: users.filter((u) => u.role === 'coordinator' || u.roles?.includes('coordinator')).length,
-      finance: users.filter((u) => u.role === 'finance' || u.roles?.includes('finance')).length,
-      executive: users.filter((u) => u.role === 'executive' || u.roles?.includes('executive')).length,
-      admin: users.filter((u) => u.role === 'admin' || u.roles?.includes('admin')).length,
+      total: scopedUsers.length,
+      dept_secretary: scopedUsers.filter((u) => u.role === 'dept_secretary' || u.roles?.includes('dept_secretary')).length,
+      researcher: scopedUsers.filter((u) => u.role === 'researcher' || u.roles?.includes('researcher')).length,
+      coordinator: scopedUsers.filter((u) => u.role === 'coordinator' || u.roles?.includes('coordinator')).length,
+      finance: scopedUsers.filter((u) => u.role === 'finance' || u.roles?.includes('finance')).length,
+      executive: scopedUsers.filter((u) => u.role === 'executive' || u.roles?.includes('executive')).length,
+      admin: scopedUsers.filter((u) => u.role === 'admin' || u.roles?.includes('admin')).length,
+      activeResearchers: scopedUsers.filter((u) => (u.status || 'active') === 'active').length,
+      nuAccounts: scopedUsers.filter((u) => u.isNuAccount).length,
     };
-  }, [users]);
+  }, [scopedUsers]);
 
   // Handle Admin Unlock
   const handleUnlockAdmin = (e: React.FormEvent) => {
@@ -198,8 +233,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     }
   };
 
-  // If Admin session is NOT unlocked, show Admin Authentication Screen
-  if (!isAdminUnlocked) {
+  // If Admin session is NOT unlocked (and not in scoped Department Secretary mode), show Admin Authentication Screen
+  if (!isAdminUnlocked && !isDeptSecretary) {
     return (
       <div className="max-w-md mx-auto my-12 animate-in fade-in zoom-in-95 duration-200">
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
@@ -282,9 +317,14 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   }
 
   // Filtered users
-  const filteredUsers = users.filter((user) => {
-    // Role filter
-    if (roleFilter !== 'all') {
+  const filteredUsers = scopedUsers.filter((user) => {
+    // When Department Secretary is active, strictly ensure only researcher status users are shown
+    if (isDeptSecretary && !isResearcherOnlyUser(user)) {
+      return false;
+    }
+
+    // Role filter (Admin only)
+    if (!isDeptSecretary && roleFilter !== 'all') {
       const matchesPrimary = user.role === roleFilter;
       const matchesSecondary = user.roles?.includes(roleFilter as UserRole);
       if (!matchesPrimary && !matchesSecondary) return false;
@@ -327,7 +367,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       name: '',
       academicPosition: 'อาจารย์ ดร.',
       administrativePosition: '',
-      department: isDeptSecretary && userDepartment ? userDepartment : (departments[0] || 'สถานวิทยาศาสตร์คลินิก'),
+      department: isStrictDeptLocked && userDepartment ? userDepartment : (departments[0] || 'ภาควิชาศัลยศาสตร์'),
       phone: '55',
       email: '',
       bankName: 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร',
@@ -344,10 +384,15 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   // Open modal for Edit
   const handleOpenEditModal = (user: UserProfile) => {
+    if (isDeptSecretary && !isResearcherOnlyUser(user)) {
+      onShowAlert?.('⚠️ เลขาภาควิชาสามารถแก้ไขข้อมูลส่วนตัวของผู้ใช้สถานะนักวิจัยเท่านั้น');
+      return;
+    }
     setEditingUser(user);
     setFormData({
       ...user,
-      roles: user.roles && user.roles.length > 0 ? user.roles : [user.role],
+      role: isDeptSecretary ? 'researcher' : user.role,
+      roles: isDeptSecretary ? ['researcher'] : (user.roles && user.roles.length > 0 ? user.roles : [user.role]),
     });
     setIsModalOpen(true);
   };
@@ -360,19 +405,32 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       return;
     }
 
+    if (isDeptSecretary && editingUser && !isResearcherOnlyUser(editingUser)) {
+      onShowAlert?.('⚠️ เลขาภาควิชาไม่สามารถแก้ไขข้อมูลของผู้ใช้ที่มีสถานะอื่นนอกจากนักวิจัยได้');
+      return;
+    }
+
+    // Department secretary is strictly locked to researcher role only
+    const enforcedRole: UserRole = isDeptSecretary ? 'researcher' : (formData.role || 'researcher');
+    const enforcedRoles: UserRole[] = isDeptSecretary
+      ? ['researcher']
+      : (formData.roles && formData.roles.length > 0 ? formData.roles : [enforcedRole]);
+    const enforcedDepartment =
+      isStrictDeptLocked && userDepartment ? userDepartment : formData.department.trim();
+
     const payload: UserProfile = {
       id: editingUser ? editingUser.id : (formData.id || `user-${Date.now()}`),
       name: formData.name.trim(),
       academicPosition: formData.academicPosition?.trim() || 'อาจารย์',
       administrativePosition: formData.administrativePosition?.trim() || undefined,
-      department: formData.department.trim(),
+      department: enforcedDepartment,
       phone: formData.phone?.trim() || '',
       email: formData.email.trim().toLowerCase(),
       bankName: formData.bankName || 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร',
       bankAccountNo: formData.bankAccountNo?.trim() || '',
       idCardNo: formData.idCardNo?.trim() || '',
-      role: formData.role || 'researcher',
-      roles: formData.roles && formData.roles.length > 0 ? formData.roles : [formData.role || 'researcher'],
+      role: enforcedRole,
+      roles: enforcedRoles,
       isNuAccount: formData.email.trim().toLowerCase().endsWith('@nu.ac.th'),
       status: formData.status || 'active',
       createdAt: editingUser?.createdAt || formData.createdAt || new Date().toISOString().split('T')[0],
@@ -393,8 +451,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     }
   };
 
-  // Quick Role Change from Table Dropdown
+  // Quick Role Change from Table Dropdown (Admin Only)
   const handleQuickRoleChange = async (user: UserProfile, newRole: UserRole) => {
+    if (isDeptSecretary) {
+      onShowAlert?.('⚠️ เลขาภาควิชาไม่สามารถเปลี่ยนสถานะหรือเพิ่มสิทธิ์อื่นนอกเหนือจากนักวิจัยได้');
+      return;
+    }
     const updatedRoles = Array.from(new Set([newRole, ...(user.roles || [])]));
     const updated: UserProfile = {
       ...user,
@@ -416,6 +478,10 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   // Quick Status Toggle (Active / Suspended)
   const handleToggleStatus = async (user: UserProfile) => {
+    if (isDeptSecretary && !isResearcherOnlyUser(user)) {
+      onShowAlert?.('⚠️ เลขาภาควิชาจัดการได้เฉพาะผู้ใช้สถานะนักวิจัยเท่านั้น');
+      return;
+    }
     const nextStatus = user.status === 'suspended' ? 'active' : 'suspended';
     const updated: UserProfile = {
       ...user,
@@ -437,6 +503,11 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   // Delete User Confirmation
   const handleConfirmDelete = async () => {
     if (!deleteConfirmUser) return;
+    if (isDeptSecretary && !isResearcherOnlyUser(deleteConfirmUser)) {
+      onShowAlert?.('⚠️ เลขาภาควิชาไม่สามารถลบบัญชีที่มีสถานะอื่นนอกเหนือจากนักวิจัยได้');
+      setDeleteConfirmUser(null);
+      return;
+    }
     setIsSavingUser(true);
     try {
       const deleted = await onDeleteUser(deleteConfirmUser.id);
@@ -451,7 +522,6 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   // Masking helpers for PDPA
   const maskBankAccount = (acc: string) => {
     if (!maskSensitiveData || !acc) return acc || '-';
-    // e.g. 346-1-00333-8 -> 346-x-xx333-x
     const clean = acc.replace(/[^0-9]/g, '');
     if (clean.length === 10) {
       return `${clean.slice(0, 3)}-X-XX${clean.slice(6, 9)}-${clean.slice(9)}`;
@@ -461,7 +531,6 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   const maskCitizenId = (id: string) => {
     if (!maskSensitiveData || !id) return id || '-';
-    // e.g. 1-6500-00333-33-7 -> 1-XXXX-XXXXX-33-7
     const clean = id.replace(/[^0-9]/g, '');
     if (clean.length === 13) {
       return `${clean.slice(0, 1)}-XXXX-XXXXX-${clean.slice(10, 12)}-${clean.slice(12)}`;
@@ -472,29 +541,54 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner / System Title */}
-      <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 border border-purple-800/40 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-96 bg-purple-500/10 blur-3xl pointer-events-none" />
+      <div
+        className={`border rounded-2xl p-6 text-white shadow-xl relative overflow-hidden ${
+          isDeptSecretary
+            ? 'bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 border-teal-800/40'
+            : 'bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 border-purple-800/40'
+        }`}
+      >
+        <div
+          className={`absolute right-0 top-0 bottom-0 w-96 blur-3xl pointer-events-none ${
+            isDeptSecretary ? 'bg-teal-500/10' : 'bg-purple-500/10'
+          }`}
+        />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center shrink-0 shadow-inner">
-              <Users className="w-6 h-6 text-purple-300" />
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-inner border ${
+                isDeptSecretary
+                  ? 'bg-teal-600/30 border-teal-500/40'
+                  : 'bg-purple-600/30 border-purple-500/40'
+              }`}
+            >
+              <Users className={`w-6 h-6 ${isDeptSecretary ? 'text-teal-300' : 'text-purple-300'}`} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  Admin Console
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                    isDeptSecretary
+                      ? 'bg-teal-500/20 text-teal-300 border-teal-500/30'
+                      : 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                  }`}
+                >
+                  {isDeptSecretary ? 'Department Secretary Mode (สิทธิ์เลขาภาควิชา)' : 'Admin Console'}
                 </span>
                 <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  Admin Authenticated
+                  {isDeptSecretary ? 'จำกัดเฉพาะผู้ใช้สถานะนักวิจัยเท่านั้น' : 'Admin Authenticated'}
                 </span>
               </div>
               <h2 className="text-2xl font-bold font-prompt text-white tracking-tight mt-1">
-                ระบบจัดการผู้ใช้งานและสิทธิ์เข้าถึง (User Management Console)
+                {isDeptSecretary
+                  ? `ระบบจัดการข้อมูลนักวิจัย${isStrictDeptLocked && userDepartment ? ` (${userDepartment})` : ''}`
+                  : 'ระบบจัดการผู้ใช้งานและสิทธิ์เข้าถึง (User Management Console)'}
               </h2>
               <p className="text-sm text-slate-300 mt-1 max-w-3xl leading-relaxed">
-                ศูนย์กลางควบคุมบัญชีผู้ใช้งาน สิทธิ์การเข้าถึงข้อมูลทั้ง 5 บทบาทในระบบเงินรางวัล คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร
-                พร้อมระบบสลับมุมมองทดสอบ (Impersonation) และการคุ้มครองข้อมูลส่วนบุคคล
+                {isDeptSecretary
+                  ? 'เลขาภาควิชามองเห็นและแก้ไขข้อมูลส่วนตัวได้เฉพาะผู้ใช้สถานะ "นักวิจัย (Researcher)" เท่านั้น ไม่สามารถมองเห็นหรือแก้ไขสถานะเป็นผู้ดูแลระบบหรือบทบาทอื่นที่เกินสิทธิ์ได้'
+                  : 'ศูนย์กลางควบคุมบัญชีผู้ใช้งาน สิทธิ์การเข้าถึงข้อมูลทั้ง 6 บทบาทในระบบเงินรางวัล คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร พร้อมระบบสลับมุมมองทดสอบ (Impersonation) และการคุ้มครองข้อมูลส่วนบุคคล'}
               </p>
             </div>
           </div>
@@ -515,145 +609,197 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
             <button
               onClick={handleOpenCreateModal}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-600/30 hover:shadow-purple-600/50 transition-all transform active:scale-95"
+              className={`flex items-center gap-2 px-4 py-2 text-white rounded-xl text-xs font-bold shadow-lg transition-all transform active:scale-95 ${
+                isDeptSecretary
+                  ? 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 shadow-teal-600/30'
+                  : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30 hover:shadow-purple-600/50'
+              }`}
             >
               <UserPlus className="w-4 h-4" />
-              <span>เพิ่มผู้ใช้งานใหม่</span>
+              <span>{isDeptSecretary ? 'เพิ่มนักวิจัยในสังกัด' : 'เพิ่มผู้ใช้งานใหม่'}</span>
             </button>
 
-            <button
-              onClick={handleLockAdmin}
-              className="flex items-center gap-1.5 px-3 py-2 bg-slate-800/90 hover:bg-rose-950 text-slate-300 hover:text-rose-300 rounded-xl text-xs font-medium border border-slate-700/80 hover:border-rose-700/60 transition-colors"
-              title="ล็อกหน้าจอผู้ดูแลระบบเพื่อความปลอดภัย"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">ล็อกหน้าจอ</span>
-            </button>
+            {!isDeptSecretary && (
+              <button
+                onClick={handleLockAdmin}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-800/90 hover:bg-rose-950 text-slate-300 hover:text-rose-300 rounded-xl text-xs font-medium border border-slate-700/80 hover:border-rose-700/60 transition-colors"
+                title="ล็อกหน้าจอผู้ดูแลระบบเพื่อความปลอดภัย"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">ล็อกหน้าจอ</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Role Summary Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-        {/* Total Users */}
-        <div 
-          onClick={() => setRoleFilter('all')}
-          className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
-            roleFilter === 'all' ? 'ring-2 ring-purple-500 border-purple-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">ผู้ใช้งานทั้งหมด</span>
-            <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
-              <Users className="w-4 h-4 text-slate-700" />
+      {isDeptSecretary ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-white rounded-xl p-4 border border-teal-200 ring-1 ring-teal-500/20 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-teal-800">
+                นักวิจัยที่จัดการได้ {isStrictDeptLocked && userDepartment ? `(${userDepartment})` : '(สถานะนักวิจัยเท่านั้น)'}
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
+                <GraduationCap className="w-4 h-4 text-amber-600" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-prompt text-slate-900 mt-2">{stats.researcher}</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">
+              แสดงเฉพาะผู้ใช้สถานะนักวิจัย (ซ่อนผู้ดูแลระบบและสถานะอื่นทั้งหมด)
             </div>
           </div>
-          <div className="text-2xl font-bold font-prompt text-slate-900 mt-2">{stats.total}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">รวมทุกบัญชีในระบบ</div>
-        </div>
 
-        {/* Researchers */}
-        <div 
-          onClick={() => setRoleFilter('researcher')}
-          className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
-            roleFilter === 'researcher' ? 'ring-2 ring-amber-500 border-amber-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-amber-700">นักวิจัย</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
-              <GraduationCap className="w-4 h-4 text-amber-600" />
+          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-emerald-700">สถานะเปิดใช้งาน (Active)</span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <UserCheck className="w-4 h-4 text-emerald-600" />
+              </div>
             </div>
+            <div className="text-2xl font-bold font-prompt text-emerald-800 mt-2">{stats.activeResearchers}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">พร้อมยื่นคำขอรับเงินรางวัล</div>
           </div>
-          <div className="text-2xl font-bold font-prompt text-amber-800 mt-2">{stats.researcher}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">ผู้ขอรับรางวัล</div>
-        </div>
 
-        {/* Department Secretary */}
-        <div 
-          onClick={() => setRoleFilter('dept_secretary')}
-          className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
-            roleFilter === 'dept_secretary' ? 'ring-2 ring-teal-500 border-teal-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-teal-700">เลขาภาควิชา</span>
-            <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-teal-600" />
+          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-600">ขอบเขตสิทธิ์ของเลขาภาควิชา</span>
+              <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
+                <Lock className="w-4 h-4 text-slate-600" />
+              </div>
+            </div>
+            <div className="text-sm font-bold font-prompt text-teal-800 mt-2.5 flex items-center gap-1.5">
+              <Shield className="w-4 h-4 text-teal-600 shrink-0" />
+              <span>แก้ไขข้อมูลส่วนตัวนักวิจัยเท่านั้น</span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1">
+              ไม่สามารถเพิ่มเติมหรือเปลี่ยนสถานะเป็นผู้ดูแลระบบ/สิทธิ์อื่นได้
             </div>
           </div>
-          <div className="text-2xl font-bold font-prompt text-teal-800 mt-2">{stats.dept_secretary}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">ผู้ประสานงานภาควิชา</div>
         </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+          {/* Total Users */}
+          <div 
+            onClick={() => setRoleFilter('all')}
+            className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
+              roleFilter === 'all' ? 'ring-2 ring-purple-500 border-purple-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500">ผู้ใช้งานทั้งหมด</span>
+              <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
+                <Users className="w-4 h-4 text-slate-700" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-prompt text-slate-900 mt-2">{stats.total}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">รวมทุกบัญชีในระบบ</div>
+          </div>
 
-        {/* Coordinators */}
-        <div 
-          onClick={() => setRoleFilter('coordinator')}
-          className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
-            roleFilter === 'coordinator' ? 'ring-2 ring-blue-500 border-blue-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-blue-700">เจ้าหน้าที่วิจัย</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-              <Briefcase className="w-4 h-4 text-blue-600" />
+          {/* Researchers */}
+          <div 
+            onClick={() => setRoleFilter('researcher')}
+            className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
+              roleFilter === 'researcher' ? 'ring-2 ring-amber-500 border-amber-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-amber-700">นักวิจัย</span>
+              <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
+                <GraduationCap className="w-4 h-4 text-amber-600" />
+              </div>
             </div>
+            <div className="text-2xl font-bold font-prompt text-amber-800 mt-2">{stats.researcher}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">ผู้ขอรับรางวัล</div>
           </div>
-          <div className="text-2xl font-bold font-prompt text-blue-800 mt-2">{stats.coordinator}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">ผู้ประสานงาน/ตรวจเอกสาร</div>
-        </div>
 
-        {/* Finance */}
-        <div 
-          onClick={() => setRoleFilter('finance')}
-          className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
-            roleFilter === 'finance' ? 'ring-2 ring-emerald-500 border-emerald-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-emerald-700">งานการเงิน</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <DollarSign className="w-4 h-4 text-emerald-600" />
+          {/* Department Secretary */}
+          <div 
+            onClick={() => setRoleFilter('dept_secretary')}
+            className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
+              roleFilter === 'dept_secretary' ? 'ring-2 ring-teal-500 border-teal-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-teal-700">เลขาภาควิชา</span>
+              <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-teal-600" />
+              </div>
             </div>
+            <div className="text-2xl font-bold font-prompt text-teal-800 mt-2">{stats.dept_secretary}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">ผู้ประสานงานภาควิชา</div>
           </div>
-          <div className="text-2xl font-bold font-prompt text-emerald-800 mt-2">{stats.finance}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">เบิกจ่าย/โอนเงิน</div>
-        </div>
 
-        {/* Executive */}
-        <div 
-          onClick={() => setRoleFilter('executive')}
-          className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
-            roleFilter === 'executive' ? 'ring-2 ring-indigo-500 border-indigo-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-indigo-700">ผู้บริหาร</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center">
-              <Award className="w-4 h-4 text-indigo-600" />
+          {/* Coordinators */}
+          <div 
+            onClick={() => setRoleFilter('coordinator')}
+            className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
+              roleFilter === 'coordinator' ? 'ring-2 ring-blue-500 border-blue-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-blue-700">เจ้าหน้าที่วิจัย</span>
+              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+                <Briefcase className="w-4 h-4 text-blue-600" />
+              </div>
             </div>
+            <div className="text-2xl font-bold font-prompt text-blue-800 mt-2">{stats.coordinator}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">ผู้ประสานงาน/ตรวจเอกสาร</div>
           </div>
-          <div className="text-2xl font-bold font-prompt text-indigo-800 mt-2">{stats.executive}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">พิจารณา/อนุมัติ</div>
-        </div>
 
-        {/* Admin */}
-        <div 
-          onClick={() => setRoleFilter('admin')}
-          className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
-            roleFilter === 'admin' ? 'ring-2 ring-purple-500 border-purple-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-purple-700">ผู้ดูแลระบบ</span>
-            <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-purple-600" />
+          {/* Finance */}
+          <div 
+            onClick={() => setRoleFilter('finance')}
+            className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
+              roleFilter === 'finance' ? 'ring-2 ring-emerald-500 border-emerald-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-emerald-700">งานการเงิน</span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-emerald-600" />
+              </div>
             </div>
+            <div className="text-2xl font-bold font-prompt text-emerald-800 mt-2">{stats.finance}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">เบิกจ่าย/โอนเงิน</div>
           </div>
-          <div className="text-2xl font-bold font-prompt text-purple-800 mt-2">{stats.admin}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">สิทธิ์เต็มทุกระบบ</div>
+
+          {/* Executive */}
+          <div 
+            onClick={() => setRoleFilter('executive')}
+            className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
+              roleFilter === 'executive' ? 'ring-2 ring-indigo-500 border-indigo-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-indigo-700">ผู้บริหาร</span>
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center">
+                <Award className="w-4 h-4 text-indigo-600" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-prompt text-indigo-800 mt-2">{stats.executive}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">พิจารณา/อนุมัติ</div>
+          </div>
+
+          {/* Admin */}
+          <div 
+            onClick={() => setRoleFilter('admin')}
+            className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
+              roleFilter === 'admin' ? 'ring-2 ring-purple-500 border-purple-500 shadow-sm' : 'border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-purple-700">ผู้ดูแลระบบ</span>
+              <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4 text-purple-600" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-prompt text-purple-800 mt-2">{stats.admin}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">สิทธิ์เต็มทุกระบบ</div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
@@ -663,47 +809,61 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ค้นหาชื่อ, อีเมล, ภาควิชา, เลขบัญชี..."
+            placeholder="ค้นหาชื่อนักวิจัย, อีเมล, เลขบัญชี..."
             className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          {/* Role Filter */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <span>บทบาท:</span>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
-            >
-              <option value="all">ทุกบทบาท ({stats.total})</option>
-              <option value="researcher">นักวิจัย ({stats.researcher})</option>
-              <option value="dept_secretary">เลขาภาควิชา ({stats.dept_secretary})</option>
-              <option value="coordinator">เจ้าหน้าที่วิจัย ({stats.coordinator})</option>
-              <option value="finance">งานการเงิน ({stats.finance})</option>
-              <option value="executive">ผู้บริหาร ({stats.executive})</option>
-              <option value="admin">ผู้ดูแลระบบ ({stats.admin})</option>
-            </select>
-          </div>
+          {/* Role Filter: Only shown to Admin; locked badge for Dept Secretary */}
+          {isDeptSecretary ? (
+            <div className="flex items-center gap-1.5 text-xs bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-lg font-medium">
+              <Lock className="w-3.5 h-3.5 text-amber-600" />
+              <span>สถานะที่มองเห็น: เฉพาะนักวิจัย ({stats.researcher})</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <span>บทบาท:</span>
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+              >
+                <option value="all">ทุกบทบาท ({stats.total})</option>
+                <option value="researcher">นักวิจัย ({stats.researcher})</option>
+                <option value="dept_secretary">เลขาภาควิชา ({stats.dept_secretary})</option>
+                <option value="coordinator">เจ้าหน้าที่วิจัย ({stats.coordinator})</option>
+                <option value="finance">งานการเงิน ({stats.finance})</option>
+                <option value="executive">ผู้บริหาร ({stats.executive})</option>
+                <option value="admin">ผู้ดูแลระบบ ({stats.admin})</option>
+              </select>
+            </div>
+          )}
 
           {/* Department Filter */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-            <span>ภาควิชา:</span>
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/40 max-w-[200px] truncate"
-            >
-              <option value="all">ทุกภาควิชา/หน่วยงาน</option>
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isStrictDeptLocked && userDepartment ? (
+            <div className="flex items-center gap-1.5 text-xs bg-teal-50 text-teal-800 border border-teal-200 px-3 py-1.5 rounded-lg font-medium">
+              <Building2 className="w-3.5 h-3.5 text-teal-600" />
+              <span>สังกัด: {userDepartment}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+              <span>ภาควิชา:</span>
+              <select
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+                className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/40 max-w-[200px] truncate"
+              >
+                <option value="all">ทุกภาควิชา/หน่วยงาน</option>
+                {departments.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Status Filter */}
           <div className="flex items-center gap-1.5 text-xs text-slate-600">
@@ -741,11 +901,13 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-slate-800 font-prompt text-sm">
-              รายชื่อผู้ใช้งานในระบบ ({filteredUsers.length} คน)
+              {isDeptSecretary
+                ? `รายชื่อนักวิจัยในระบบ (${filteredUsers.length} คน)`
+                : `รายชื่อผู้ใช้งานในระบบ (${filteredUsers.length} คน)`}
             </h3>
-            {filteredUsers.length !== users.length && (
+            {filteredUsers.length !== scopedUsers.length && (
               <span className="text-xs text-slate-500">
-                (กรองจากทั้งหมด {users.length} คน)
+                (กรองจากทั้งหมด {scopedUsers.length} คน)
               </span>
             )}
           </div>
@@ -773,7 +935,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
                     <UserX className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                    <p className="text-sm font-medium">ไม่พบผู้ใช้งานตามเงื่อนไขที่ค้นหา</p>
+                    <p className="text-sm font-medium">ไม่พบรายชื่อผู้ใช้งานตามเงื่อนไขที่ค้นหา</p>
                     <p className="text-xs text-slate-400 mt-1">ลองเปลี่ยนคำค้นหาหรือล้างตัวกรอง</p>
                   </td>
                 </tr>
@@ -851,50 +1013,67 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                         </div>
                       </td>
 
-                      {/* Role Quick Selector */}
+                      {/* Role Quick Selector (Locked for Dept Secretary, Editable for Admin) */}
                       <td className="py-3.5 px-4">
-                        <div className="relative inline-block">
-                          <select
-                            value={user.role}
-                            onChange={(e) => handleQuickRoleChange(user, e.target.value as UserRole)}
-                            className={`text-xs font-semibold py-1 pl-2 pr-6 rounded-lg border appearance-none focus:outline-none focus:ring-2 cursor-pointer transition-all ${
-                              ROLE_CONFIG[user.role]?.badgeClass || 'bg-slate-100 text-slate-700 border-slate-300'
-                            }`}
-                            title="คลิกเพื่อเปลี่ยนบทบาทหลักได้ทันที"
+                        {isDeptSecretary ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold py-1 px-2.5 rounded-lg border bg-amber-500/10 text-amber-800 border-amber-300 select-none"
+                            title="เลขาภาควิชาไม่สามารถเปลี่ยนแปลงบทบาทผู้ใช้งานได้"
                           >
-                            <option value="researcher">นักวิจัย (Researcher)</option>
-                            <option value="dept_secretary">เลขาภาควิชา (Department Secretary)</option>
-                            <option value="coordinator">เจ้าหน้าที่วิจัย (Coordinator)</option>
-                            <option value="finance">งานการเงิน (Finance)</option>
-                            <option value="executive">ผู้บริหาร (Executive)</option>
-                            <option value="admin">ผู้ดูแลระบบ (Admin)</option>
-                          </select>
-                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-slate-500">
-                            <ArrowUpDown className="w-3 h-3" />
+                            <Lock className="w-3 h-3 text-amber-600" />
+                            <span>นักวิจัย (Researcher)</span>
+                          </span>
+                        ) : (
+                          <div className="relative inline-block">
+                            <select
+                              value={user.role}
+                              onChange={(e) => handleQuickRoleChange(user, e.target.value as UserRole)}
+                              className={`text-xs font-semibold py-1 pl-2 pr-6 rounded-lg border appearance-none focus:outline-none focus:ring-2 cursor-pointer transition-all ${
+                                ROLE_CONFIG[user.role]?.badgeClass || 'bg-slate-100 text-slate-700 border-slate-300'
+                              }`}
+                              title="คลิกเพื่อเปลี่ยนบทบาทหลักได้ทันที"
+                            >
+                              <option value="researcher">นักวิจัย (Researcher)</option>
+                              <option value="dept_secretary">เลขาภาควิชา (Department Secretary)</option>
+                              <option value="coordinator">เจ้าหน้าที่วิจัย (Coordinator)</option>
+                              <option value="finance">งานการเงิน (Finance)</option>
+                              <option value="executive">ผู้บริหาร (Executive)</option>
+                              <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-slate-500">
+                              <ArrowUpDown className="w-3 h-3" />
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </td>
 
                       {/* Secondary Roles */}
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap gap-1 max-w-[150px]">
-                          {user.roles && user.roles.length > 0 ? (
-                            user.roles.map((r) => (
-                              <span
-                                key={r}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-                                  r === user.role
-                                    ? 'bg-slate-200 text-slate-800 border-slate-300 font-bold'
-                                    : 'bg-slate-100 text-slate-600 border-slate-200'
-                                }`}
-                              >
-                                {ROLE_CONFIG[r]?.label || r}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">-</span>
-                          )}
-                        </div>
+                        {isDeptSecretary ? (
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>ไม่อนุญาตให้เพิ่มสถานะอื่น</span>
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1 max-w-[150px]">
+                            {user.roles && user.roles.length > 0 ? (
+                              user.roles.map((r) => (
+                                <span
+                                  key={r}
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                                    r === user.role
+                                      ? 'bg-slate-200 text-slate-800 border-slate-300 font-bold'
+                                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                                  }`}
+                                >
+                                  {ROLE_CONFIG[r]?.label || r}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">-</span>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* Finance & PDPA Data */}
@@ -934,7 +1113,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                           <button
                             onClick={() => onSwitchUser(user)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-purple-100 transition-colors"
-                            title={`จำลองสลับเข้าใช้งานบัญชีนี้ (${user.name})`}
+                            title={`จำลองสลับเข้าใช้งานบัญชีนักวิจัยนี้ (${user.name})`}
                           >
                             <LogIn className="w-4 h-4" />
                           </button>
@@ -943,7 +1122,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                           <button
                             onClick={() => handleOpenEditModal(user)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-100 transition-colors"
-                            title="แก้ไขข้อมูลผู้ใช้"
+                            title="แก้ไขข้อมูลส่วนตัวนักวิจัย"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
@@ -977,17 +1156,37 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 p-5 text-white flex items-center justify-between border-b border-purple-800/40">
+            <div
+              className={`p-5 text-white flex items-center justify-between border-b ${
+                isDeptSecretary
+                  ? 'bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 border-teal-800/40'
+                  : 'bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 border-purple-800/40'
+              }`}
+            >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center">
-                  <UserPlus className="w-5 h-5 text-purple-300" />
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
+                    isDeptSecretary
+                      ? 'bg-teal-600/30 border-teal-500/40'
+                      : 'bg-purple-600/30 border-purple-500/40'
+                  }`}
+                >
+                  <UserPlus className={`w-5 h-5 ${isDeptSecretary ? 'text-teal-300' : 'text-purple-300'}`} />
                 </div>
                 <div>
                   <h3 className="font-bold text-base font-prompt">
-                    {editingUser ? 'แก้ไขข้อมูลผู้ใช้งาน' : 'เพิ่มผู้ใช้งานใหม่เข้าสู่ระบบ'}
+                    {editingUser
+                      ? isDeptSecretary
+                        ? 'แก้ไขข้อมูลส่วนตัวนักวิจัย'
+                        : 'แก้ไขข้อมูลผู้ใช้งาน'
+                      : isDeptSecretary
+                      ? 'เพิ่มข้อมูลนักวิจัยใหม่ในสังกัด'
+                      : 'เพิ่มผู้ใช้งานใหม่เข้าสู่ระบบ'}
                   </h3>
                   <p className="text-xs text-slate-300">
-                    บันทึกข้อมูลประจำตัว สิทธิ์บทบาท และข้อมูลบัญชีธนาคารตามเกณฑ์ PDPA
+                    {isDeptSecretary
+                      ? 'เลขาภาควิชาสามารถแก้ไขข้อมูลส่วนตัวของนักวิจัยเท่านั้น ไม่สามารถเพิ่มเติมสถานะอื่นได้'
+                      : 'บันทึกข้อมูลประจำตัว สิทธิ์บทบาท และข้อมูลบัญชีธนาคารตามเกณฑ์ PDPA'}
                   </p>
                 </div>
               </div>
@@ -1026,7 +1225,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     type="text"
                     value={formData.academicPosition || ''}
                     onChange={(e) => setFormData({ ...formData, academicPosition: e.target.value })}
-                    placeholder="เช่น ผู้ช่วยศาสตราจารย์, อาจารย์ ดร., เจ้าหน้าที่วิจัย"
+                    placeholder="เช่น ผู้ช่วยศาสตราจารย์, อาจารย์ ดร."
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500"
                   />
                 </div>
@@ -1040,7 +1239,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     type="text"
                     value={formData.administrativePosition || ''}
                     onChange={(e) => setFormData({ ...formData, administrativePosition: e.target.value })}
-                    placeholder="เช่น รองคณบดีฝ่ายวิจัยฯ, หัวหน้าภาควิชา..."
+                    placeholder="เช่น หัวหน้าสาขาวิชา..."
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500"
                   />
                 </div>
@@ -1053,10 +1252,19 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   <input
                     type="text"
                     required
-                    value={formData.department || ''}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    placeholder="เช่น สถานวิทยาศาสตร์คลินิก, ภาควิชาอายุรศาสตร์"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500"
+                    readOnly={isStrictDeptLocked}
+                    value={isStrictDeptLocked && userDepartment ? userDepartment : (formData.department || '')}
+                    onChange={(e) => {
+                      if (!isStrictDeptLocked) {
+                        setFormData({ ...formData, department: e.target.value });
+                      }
+                    }}
+                    placeholder="เช่น ภาควิชาศัลยศาสตร์, ภาควิชาอายุรศาสตร์"
+                    className={`w-full px-3 py-2 border rounded-lg text-xs ${
+                      isStrictDeptLocked
+                        ? 'bg-slate-100 border-slate-300 text-slate-600 cursor-not-allowed font-medium'
+                        : 'border-slate-300 focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500'
+                    }`}
                   />
                 </div>
 
@@ -1092,27 +1300,34 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   </p>
                 </div>
 
-                {/* Primary Role */}
+                {/* Primary Role: Locked to Researcher for Dept Secretary */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     บทบาทหลัก (Primary Role) <span className="text-rose-500">*</span>
                   </label>
-                  <select
-                    value={formData.role || 'researcher'}
-                    onChange={(e) => {
-                      const newR = e.target.value as UserRole;
-                      const nextRoles = Array.from(new Set([newR, ...(formData.roles || [])]));
-                      setFormData({ ...formData, role: newR, roles: nextRoles });
-                    }}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 font-medium"
-                  >
-                    <option value="researcher">นักวิจัย (Researcher - ยื่นคำขอ)</option>
-                    <option value="dept_secretary">เลขาภาควิชา (Department Secretary - จัดการในภาค)</option>
-                    <option value="coordinator">เจ้าหน้าที่วิจัย (Coordinator - ตรวจสอบ)</option>
-                    <option value="finance">งานการเงิน (Finance - เบิกจ่าย)</option>
-                    <option value="executive">ผู้บริหาร (Executive - อนุมัติ)</option>
-                    <option value="admin">ผู้ดูแลระบบ (Admin - จัดการระบบ)</option>
-                  </select>
+                  {isDeptSecretary ? (
+                    <div className="w-full px-3 py-2 border border-amber-300 bg-amber-50/70 rounded-lg text-xs text-amber-900 font-semibold flex items-center gap-1.5 select-none">
+                      <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                      <span>นักวิจัย (Researcher) — ล็อกตามสิทธิ์เลขาภาควิชา</span>
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.role || 'researcher'}
+                      onChange={(e) => {
+                        const newR = e.target.value as UserRole;
+                        const nextRoles = Array.from(new Set([newR, ...(formData.roles || [])]));
+                        setFormData({ ...formData, role: newR, roles: nextRoles });
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 font-medium"
+                    >
+                      <option value="researcher">นักวิจัย (Researcher - ยื่นคำขอ)</option>
+                      <option value="dept_secretary">เลขาภาควิชา (Department Secretary - จัดการในภาค)</option>
+                      <option value="coordinator">เจ้าหน้าที่วิจัย (Coordinator - ตรวจสอบ)</option>
+                      <option value="finance">งานการเงิน (Finance - เบิกจ่าย)</option>
+                      <option value="executive">ผู้บริหาร (Executive - อนุมัติ)</option>
+                      <option value="admin">ผู้ดูแลระบบ (Admin - จัดการระบบ)</option>
+                    </select>
+                  )}
                 </div>
 
                 {/* Account Status */}
@@ -1130,47 +1345,57 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   </select>
                 </div>
 
-                {/* Additional Roles Multi-select Checkboxes */}
-                <div className="md:col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    สิทธิ์เพิ่มเติม (Additional Roles)
-                  </label>
-                  <div className="flex flex-wrap gap-3">
-                    {(['researcher', 'dept_secretary', 'coordinator', 'finance', 'executive', 'admin'] as UserRole[]).map((r) => {
-                      const isChecked = formData.roles?.includes(r) ?? false;
-                      const isPrimary = formData.role === r;
-                      return (
-                        <label 
-                          key={r} 
-                          className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border cursor-pointer select-none transition-all ${
-                            isChecked 
-                              ? 'bg-purple-50 border-purple-300 text-purple-800 font-medium' 
-                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            disabled={isPrimary}
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setFormData({ ...formData, roles: [...(formData.roles || []), r] });
-                              } else {
-                                setFormData({
-                                  ...formData,
-                                  roles: (formData.roles || []).filter((item) => item !== r),
-                                });
-                              }
-                            }}
-                            className="rounded text-purple-600 focus:ring-purple-500"
-                          />
-                          <span>{ROLE_CONFIG[r]?.label || r}</span>
-                          {isPrimary && <span className="text-[10px] text-purple-600 font-semibold">(หลัก)</span>}
-                        </label>
-                      );
-                    })}
+                {/* Additional Roles Multi-select Checkboxes (Locked for Dept Secretary) */}
+                {isDeptSecretary ? (
+                  <div className="md:col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-start gap-2.5">
+                    <Lock className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
+                    <div className="text-xs text-slate-700 leading-relaxed">
+                      <span className="font-bold text-slate-900">จำกัดสิทธิ์เฉพาะสถานะนักวิจัยเท่านั้น:</span>{' '}
+                      เลขาภาควิชาสามารถแก้ไขข้อมูลส่วนตัวของนักวิจัยได้เท่านั้น ไม่สามารถเพิ่มเติมสถานะผู้ดูแลระบบ (Admin) หรือบทบาทอื่นที่เกินสิทธิ์ได้
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="md:col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      สิทธิ์เพิ่มเติม (Additional Roles)
+                    </label>
+                    <div className="flex flex-wrap gap-3">
+                      {(['researcher', 'dept_secretary', 'coordinator', 'finance', 'executive', 'admin'] as UserRole[]).map((r) => {
+                        const isChecked = formData.roles?.includes(r) ?? false;
+                        const isPrimary = formData.role === r;
+                        return (
+                          <label 
+                            key={r} 
+                            className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border cursor-pointer select-none transition-all ${
+                              isChecked 
+                                ? 'bg-purple-50 border-purple-300 text-purple-800 font-medium' 
+                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              disabled={isPrimary}
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData({ ...formData, roles: [...(formData.roles || []), r] });
+                                } else {
+                                  setFormData({
+                                    ...formData,
+                                    roles: (formData.roles || []).filter((item) => item !== r),
+                                  });
+                                }
+                              }}
+                              className="rounded text-purple-600 focus:ring-purple-500"
+                            />
+                            <span>{ROLE_CONFIG[r]?.label || r}</span>
+                            {isPrimary && <span className="text-[10px] text-purple-600 font-semibold">(หลัก)</span>}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Bank Account */}
                 <div>
@@ -1214,9 +1439,13 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 <button
                   type="submit"
                   disabled={isSavingUser}
-                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/30 transition-all"
+                  className={`px-5 py-2 text-white rounded-xl text-xs font-bold shadow-md transition-all ${
+                    isDeptSecretary
+                      ? 'bg-teal-600 hover:bg-teal-700 shadow-teal-600/30'
+                      : 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/30'
+                  }`}
                 >
-                  {isSavingUser ? 'กำลังบันทึก...' : editingUser ? 'บันทึกการแก้ไข' : 'เพิ่มผู้ใช้'}
+                  {isSavingUser ? 'กำลังบันทึก...' : editingUser ? 'บันทึกข้อมูลส่วนตัวนักวิจัย' : 'เพิ่มนักวิจัย'}
                 </button>
               </div>
             </form>

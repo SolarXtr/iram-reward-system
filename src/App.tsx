@@ -57,7 +57,7 @@ import {
   createUserInD1,
   deleteUserFromD1
 } from './services/userService';
-import { isSameDepartment } from './utils/permissionUtils';
+import { isSameDepartment, isResearcherOnlyUser } from './utils/permissionUtils';
 import { Bell, CheckCircle2, RotateCcw, LogOut, ShieldAlert } from 'lucide-react';
 
 export default function App() {
@@ -300,6 +300,19 @@ export default function App() {
   };
 
   const handleUpdateRegisteredUser = async (updatedUser: UserProfile): Promise<boolean> => {
+    const isSecretaryMode = currentRole === 'dept_secretary' || (currentRole !== 'admin' && currentUser?.role === 'dept_secretary');
+    if (isSecretaryMode) {
+      const existingTarget = registeredUsers.find((u) => u.id === updatedUser.id);
+      if (existingTarget && !isResearcherOnlyUser(existingTarget)) {
+        showToast('⚠️ เลขาภาควิชาสามารถแก้ไขข้อมูลส่วนตัวได้เฉพาะผู้ใช้สถานะนักวิจัยเท่านั้น');
+        return false;
+      }
+      updatedUser = {
+        ...updatedUser,
+        role: 'researcher',
+        roles: ['researcher'],
+      };
+    }
     try {
       await updateUserProfileInD1(updatedUser.id, updatedUser);
       const nextUsers = upsertRegisteredUser(updatedUser);
@@ -319,6 +332,14 @@ export default function App() {
   };
 
   const handleCreateRegisteredUser = async (newUser: UserProfile): Promise<boolean> => {
+    const isSecretaryMode = currentRole === 'dept_secretary' || (currentRole !== 'admin' && currentUser?.role === 'dept_secretary');
+    if (isSecretaryMode) {
+      newUser = {
+        ...newUser,
+        role: 'researcher',
+        roles: ['researcher'],
+      };
+    }
     try {
       const createdUser = await createUserInD1(newUser);
       const savedUser = { ...newUser, id: createdUser.id || newUser.id };
@@ -334,6 +355,14 @@ export default function App() {
   };
 
   const handleDeleteRegisteredUser = async (userId: string): Promise<boolean> => {
+    const isSecretaryMode = currentRole === 'dept_secretary' || (currentRole !== 'admin' && currentUser?.role === 'dept_secretary');
+    if (isSecretaryMode) {
+      const target = registeredUsers.find((u) => u.id === userId);
+      if (target && !isResearcherOnlyUser(target)) {
+        showToast('⚠️ เลขาภาควิชาไม่สามารถลบบัญชีที่มีสถานะอื่นนอกเหนือจากนักวิจัยได้');
+        return false;
+      }
+    }
     try {
       await deleteUserFromD1(userId);
       const userToDelete = registeredUsers.find((user) => user.id === userId);
@@ -1284,6 +1313,7 @@ export default function App() {
           <UserManagementView
             users={registeredUsers}
             currentLoggedInUser={currentUser || DEFAULT_LOGGED_IN_USER}
+            currentRole={currentRole}
             onUpdateUser={handleUpdateRegisteredUser}
             onCreateUser={handleCreateRegisteredUser}
             onDeleteUser={handleDeleteRegisteredUser}

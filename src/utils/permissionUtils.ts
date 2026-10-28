@@ -20,9 +20,20 @@ export function isSameDepartment(deptA?: string | null, deptB?: string | null): 
 }
 
 /**
+ * Checks if a user strictly holds ONLY the 'researcher' status/role
+ * and has no elevated/administrative roles (admin, executive, coordinator, finance, dept_secretary).
+ */
+export function isResearcherOnlyUser(user?: UserProfile | null): boolean {
+  if (!user) return false;
+  const primaryIsResearcher = !user.role || user.role === 'researcher';
+  const hasElevatedRole = Array.isArray(user.roles) && user.roles.some((r) => r !== 'researcher');
+  return primaryIsResearcher && !hasElevatedRole;
+}
+
+/**
  * Determines if the current user can access/view a target user's profile
  * - Admin & Faculty Coordinator: full access across faculty
- * - Department Secretary: only users in the same department
+ * - Department Secretary: only users with 'researcher' status in the same department
  * - Others: only self
  */
 export function canAccessUserProfile(
@@ -34,20 +45,20 @@ export function canAccessUserProfile(
   if (activeRole === 'admin' || activeRole === 'coordinator') return true;
 
   if (activeRole === 'dept_secretary') {
-    return isSameDepartment(currentUser.department, targetUser.department);
+    return isResearcherOnlyUser(targetUser) && isSameDepartment(currentUser.department, targetUser.department);
   }
 
   // researcher or others: only self
   return (
     currentUser.id === targetUser.id ||
-    (currentUser.email && targetUser.email && currentUser.email.toLowerCase() === targetUser.email.toLowerCase())
+    Boolean(currentUser.email && targetUser.email && currentUser.email.toLowerCase() === targetUser.email.toLowerCase())
   );
 }
 
 /**
  * Determines if the current user can edit/update a target user's profile
  * - Admin: can edit anyone
- * - Department Secretary: can edit anyone in same department
+ * - Department Secretary: can edit only 'researcher' status users in the same department
  * - Target user: can edit self
  */
 export function canEditUserProfile(
@@ -59,12 +70,12 @@ export function canEditUserProfile(
   if (activeRole === 'admin') return true;
 
   if (activeRole === 'dept_secretary') {
-    return isSameDepartment(currentUser.department, targetUser.department);
+    return isResearcherOnlyUser(targetUser) && isSameDepartment(currentUser.department, targetUser.department);
   }
 
   return (
     currentUser.id === targetUser.id ||
-    (currentUser.email && targetUser.email && currentUser.email.toLowerCase() === targetUser.email.toLowerCase())
+    Boolean(currentUser.email && targetUser.email && currentUser.email.toLowerCase() === targetUser.email.toLowerCase())
   );
 }
 
