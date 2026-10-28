@@ -80,9 +80,20 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenActivationModal,
 }) => {
   const isGuest = !currentUser;
-  const userRoles: UserRole[] = currentUser?.roles && currentUser.roles.length > 0 
-    ? currentUser.roles 
+  const isDeptSecretary = currentUser?.role === 'dept_secretary' || (currentUser?.roles && currentUser.roles.includes('dept_secretary'));
+
+  // Build effective roles list: Dept secretary inherently possesses both researcher and dept_secretary roles
+  const rawRoles: UserRole[] = currentUser?.roles && currentUser.roles.length > 0 
+    ? [...currentUser.roles] 
     : (currentUser?.role ? [currentUser.role] : ['researcher']);
+  if (currentUser?.role && !rawRoles.includes(currentUser.role)) {
+    rawRoles.push(currentUser.role);
+  }
+  if (isDeptSecretary) {
+    if (!rawRoles.includes('dept_secretary')) rawRoles.push('dept_secretary');
+    if (!rawRoles.includes('researcher')) rawRoles.push('researcher');
+  }
+  const userRoles: UserRole[] = Array.from(new Set<UserRole>(rawRoles));
   const isProfileAdmin = userRoles.includes('admin') || currentUser?.role === 'admin';
 
   // Mobile & Tablet collapsible menu state for non-admin roles
@@ -230,13 +241,13 @@ export const Header: React.FC<HeaderProps> = ({
                   />
                 </div>
 
-                {/* Role Switcher: Only display if account has multiple roles or is Admin */}
-                {(userRoles.length > 1 || isProfileAdmin) && (
+                {/* Role Switcher: Only display if account has multiple roles, is Admin, or is Dept Secretary */}
+                {(userRoles.length > 1 || isProfileAdmin || isDeptSecretary) && (
                   <div className="flex items-center bg-slate-800/90 p-1 rounded-lg border border-slate-700/70 text-xs">
                     {(isProfileAdmin || userRoles.includes('researcher')) && (
                       <button
                         onClick={() => setCurrentRole('researcher')}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                           currentRole === 'researcher'
                             ? 'bg-amber-600 text-white font-medium shadow-sm'
                             : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
@@ -244,6 +255,20 @@ export const Header: React.FC<HeaderProps> = ({
                         title="มุมมองนักวิจัย (กรอกข้อมูล, ปริ้นเอกสาร, เช็คเงินโอน)"
                       >
                         <span>นักวิจัย</span>
+                      </button>
+                    )}
+
+                    {(isProfileAdmin || userRoles.includes('dept_secretary')) && (
+                      <button
+                        onClick={() => setCurrentRole('dept_secretary')}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                          currentRole === 'dept_secretary'
+                            ? 'bg-teal-600 text-white font-medium shadow-sm'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                        }`}
+                        title="มุมมองเลขาภาควิชา (จัดการผู้ใช้งานและข้อมูลในภาควิชา)"
+                      >
+                        <span>เลขาภาควิชา</span>
                       </button>
                     )}
 
@@ -399,7 +424,19 @@ export const Header: React.FC<HeaderProps> = ({
                       <span className="text-amber-400 font-bold">รอเปิดสิทธิ์นักวิจัย</span>
                     ) : (
                       <>
-                        {currentRole === 'researcher' && 'นักวิจัย'}
+                        {currentRole === 'researcher' && (
+                          isDeptSecretary ? (
+                            <span className="text-amber-300 font-medium">
+                              นักวิจัย <span className="text-[10px] text-teal-400/90 font-normal">(มีสิทธิ์เลขาภาควิชา)</span>
+                            </span>
+                          ) : 'นักวิจัย'
+                        )}
+                        {currentRole === 'dept_secretary' && (
+                          <span className="text-teal-300 font-semibold inline-flex items-center gap-1">
+                            <span>เลขาภาควิชา</span>
+                            <span className="text-[10px] text-teal-400/80 font-normal">(สิทธิ์นักวิจัย & เลขาภาค)</span>
+                          </span>
+                        )}
                         {currentRole === 'coordinator' && 'เจ้าหน้าที่วิจัย'}
                         {currentRole === 'finance' && 'การเงิน'}
                         {currentRole === 'executive' && 'ผู้บริหาร'}

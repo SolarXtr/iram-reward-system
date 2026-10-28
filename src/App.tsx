@@ -82,7 +82,12 @@ export default function App() {
   });
 
   // Current active navigation role & view
-  const [currentRole, setCurrentRole] = useState<UserRole>(() => currentUser?.role || 'researcher');
+  const [currentRole, setCurrentRole] = useState<UserRole>(() => {
+    if (currentUser?.role === 'dept_secretary' || (currentUser?.roles && currentUser.roles.includes('dept_secretary') && currentUser.role === 'researcher')) {
+      return 'dept_secretary';
+    }
+    return currentUser?.role || 'researcher';
+  });
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -190,7 +195,13 @@ export default function App() {
               setCurrentAuthUser(merged);
               saveStoredUserProfile(merged);
               if (!impersonatorAdmin && match.role && match.role !== currentRole) {
-                setCurrentRole(match.role);
+                const validRoles = Array.from(new Set([match.role, ...(match.roles || [])]));
+                if (!validRoles.includes(currentRole)) {
+                  const targetRole = (match.role === 'researcher' && match.roles?.includes('dept_secretary'))
+                    ? 'dept_secretary'
+                    : match.role;
+                  setCurrentRole(targetRole);
+                }
               }
               return merged;
             }
@@ -438,13 +449,16 @@ export default function App() {
   const handleLoginSuccess = (user: UserProfile) => {
     setCurrentUser(user);
     setCurrentAuthUser(user);
-    setCurrentRole(user.role);
+    const targetRole = (user.role === 'researcher' && user.roles?.includes('dept_secretary'))
+      ? 'dept_secretary'
+      : user.role;
+    setCurrentRole(targetRole);
     setActiveTab('dashboard');
     if (user.isPendingProfile) {
       setIsActivationModalOpen(true);
       showToast(`ยินดีต้อนรับ ${user.name} กรุณากรอกข้อมูลส่วนบุคคลเพื่อเปิดสิทธิ์นักวิจัย`);
     } else {
-      showToast(`ยินดีต้อนรับ ${user.name} (${user.email}) เข้าสู่ระบบในสิทธิ์: ${user.role}`);
+      showToast(`ยินดีต้อนรับ ${user.name} (${user.email}) เข้าสู่ระบบในสิทธิ์: ${targetRole === 'dept_secretary' ? 'เลขาภาควิชา' : user.role}`);
     }
   };
 
