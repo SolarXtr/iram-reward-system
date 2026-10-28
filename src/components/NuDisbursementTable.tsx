@@ -23,6 +23,7 @@ import {
 import { NuDisbursementRecord, ResearchApplication, UserProfile, UserRole } from '../types';
 import { NuEditModal } from './NuEditModal';
 import { NuImportModal } from './NuImportModal';
+import { isSameDepartment } from '../utils/permissionUtils';
 
 interface NuDisbursementTableProps {
   records: NuDisbursementRecord[];
@@ -64,11 +65,12 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
 
   // สิทธิ์การมองเห็นข้อมูลทั้งหมดของคณะแพทยศาสตร์ (Admin, Coordinator, Executive, Finance)
   const canViewAll = ['admin', 'coordinator', 'executive', 'finance'].includes(currentRole);
+  const isDeptSecretary = currentRole === 'dept_secretary';
 
-  // สิทธิ์การนำเข้าและแก้ไขข้อมูล (Admin และ Coordinator — ตามสเปค P-03 ใน sitemap)
-  const canEdit = currentRole === 'admin' || currentRole === 'coordinator';
+  // สิทธิ์การนำเข้าและแก้ไขข้อมูล (Admin, Coordinator และ Dept Secretary สำหรับภาควิชาตนเอง)
+  const canEdit = currentRole === 'admin' || currentRole === 'coordinator' || isDeptSecretary;
 
-  // Role Scoping: Researcher sees only their own articles; Admin/Coordinator/Executive/Finance see all
+  // Role Scoping: Researcher sees only their own articles; Dept Secretary sees own department; Admin/Coordinator/Executive/Finance see all
   const scopedRecords = useMemo(() => {
     if (!currentUser) return [];
     if (canViewAll) return records;
@@ -77,13 +79,19 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
     const myFirstName = currentUser.firstNameTh || '';
     const myLastName = currentUser.lastNameTh || '';
 
-    return records.filter((r) => {
+    const isMyOwn = (r: NuDisbursementRecord) => {
       const recName = r.researcherName || '';
       if (myName && recName.includes(myName)) return true;
       if (myFirstName && myLastName && recName.includes(myFirstName) && recName.includes(myLastName)) return true;
       return false;
-    });
-  }, [records, currentUser, canViewAll]);
+    };
+
+    if (isDeptSecretary) {
+      return records.filter((r) => isSameDepartment(currentUser.department, r.department) || isMyOwn(r));
+    }
+
+    return records.filter(isMyOwn);
+  }, [records, currentUser, canViewAll, isDeptSecretary]);
 
   // Search, Filter & Sort
   const filteredAndSortedRecords = useMemo(() => {
@@ -228,7 +236,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
     );
   };
 
-  // G-07: Export CSV สำหรับ canViewAll roles
+  // G-07: Export CSV สำหรับ canViewAll / dept_secretary roles
   const exportToCsv = () => {
     const headers = [
       'ลำดับ', 'วันที่ยื่น มน.', 'ชื่อผลงาน/บทความ', 'นักวิจัย',
@@ -276,13 +284,15 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
           <p className="text-xs text-slate-500 mt-0.5">
             {canViewAll
               ? 'ข้อมูลการขอรับการสนับสนุนจากกองการวิจัยและนวัตกรรม (ม.นเรศวร) ทั้งหมดของคณะแพทยศาสตร์'
+              : isDeptSecretary
+              ? `รายการขอรับการสนับสนุนจากกองการวิจัยและนวัตกรรม (ม.นเรศวร) ของคณาจารย์ใน${currentUser?.department || 'ภาควิชา'}`
               : 'รายการขอรับการสนับสนุนเงินรางวัลและค่าเพจชาร์จจากกองการวิจัยและนวัตกรรม (ม.นเรศวร) ของท่าน'}
           </p>
         </div>
 
         {/* Action Buttons: Import for Admin/Coordinator; Read-only badge for Executive/Finance */}
         <div className="flex items-center gap-2">
-          {canEdit && (
+          {(currentRole === 'admin' || currentRole === 'coordinator') && (
             <button
               onClick={() => setIsImportModalOpen(true)}
               className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
@@ -301,7 +311,7 @@ export const NuDisbursementTable: React.FC<NuDisbursementTableProps> = ({
           )}
 
           {/* G-07: Export CSV สำหรับทุก role ที่มีสิทธิ์ดูข้อมูล */}
-          {canViewAll && (
+          {(canViewAll || isDeptSecretary) && (
             <button
               onClick={exportToCsv}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition-colors shrink-0"

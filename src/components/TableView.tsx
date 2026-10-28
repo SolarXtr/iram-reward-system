@@ -26,6 +26,7 @@ import {
   maskBankAccountNo,
   maskThaiCitizenId 
 } from '../data/regulations';
+import { isSameDepartment } from '../utils/permissionUtils';
 
 interface TableViewProps {
   applications: ResearchApplication[];
@@ -49,11 +50,12 @@ export const TableView: React.FC<TableViewProps> = ({
   onReturnToDraft,
   currentUserEmail = 'tinnakornh@nu.ac.th',
   currentUserName = 'นายทินกรณ์ หาญณรงค์',
+  currentUserDept = '',
   currentRole = 'researcher',
 }) => {
-  const canEditArticle = currentRole === 'coordinator' || currentRole === 'admin';
+  const canEditArticle = currentRole === 'coordinator' || currentRole === 'admin' || currentRole === 'dept_secretary';
   const canEditFinance = currentRole === 'finance' || currentRole === 'admin';
-  const canAnyEdit = currentRole === 'admin' || currentRole === 'coordinator' || currentRole === 'finance';
+  const canAnyEdit = currentRole === 'admin' || currentRole === 'coordinator' || currentRole === 'finance' || currentRole === 'dept_secretary';
   const [filterScope, setFilterScope] = useState<'all' | 'my_jobs'>('all');
   const [selectedFiscalYear, setSelectedFiscalYear] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -129,9 +131,7 @@ export const TableView: React.FC<TableViewProps> = ({
       if (!isMyJob) return false;
     } else if (currentRole === 'dept_secretary') {
       // Department Secretary: Scope to same department
-      const secDeptNorm = (currentUserDept || '').trim().toLowerCase();
-      const appDeptNorm = (app.department || '').trim().toLowerCase();
-      const isSameDept = Boolean(secDeptNorm && (appDeptNorm === secDeptNorm || appDeptNorm.includes(secDeptNorm) || secDeptNorm.includes(appDeptNorm)));
+      const isSameDept = isSameDepartment(currentUserDept, app.department);
       if (!isSameDept && !isMyApp(app)) return false;
     }
 
@@ -239,7 +239,9 @@ export const TableView: React.FC<TableViewProps> = ({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                โครงการทั้งหมด ({applications.length})
+                {currentRole === 'dept_secretary'
+                  ? `โครงการใน${currentUserDept || 'ภาควิชา'} (${filteredApps.length})`
+                  : `โครงการทั้งหมด (${applications.length})`}
               </button>
               <button
                 onClick={() => setFilterScope('my_jobs')}
@@ -336,6 +338,22 @@ export const TableView: React.FC<TableViewProps> = ({
         </div>
       </div>
 
+      {/* Department Secretary Mode Banner */}
+      {currentRole === 'dept_secretary' && (
+        <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-teal-900 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0"></span>
+            <span className="font-bold font-prompt text-teal-950">โหมดเลขาภาควิชา ({currentUserDept || 'สังกัดภาควิชา'}):</span>
+            <span className="text-teal-800">
+              สามารถแก้ไขรายละเอียดคำขอ ส่งคืนเพื่อแก้ไข และพิมพ์เอกสารราชการของอาจารย์ในภาควิชาได้ครบถ้วน
+            </span>
+          </div>
+          <span className="text-[10px] text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full font-semibold shrink-0">
+            Department Scoped CRUD
+          </span>
+        </div>
+      )}
+
       {/* Main Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -394,9 +412,19 @@ export const TableView: React.FC<TableViewProps> = ({
                             <input
                               type="text"
                               value={editForm.department || ''}
-                              onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                              onChange={(e) => {
+                                if (currentRole !== 'dept_secretary') {
+                                  setEditForm({ ...editForm, department: e.target.value });
+                                }
+                              }}
+                              readOnly={currentRole === 'dept_secretary'}
                               placeholder="ภาควิชา"
-                              className="px-2 py-0.5 border border-slate-300 rounded text-[11px] w-36 block"
+                              className={`px-2 py-0.5 border rounded text-[11px] w-36 block ${
+                                currentRole === 'dept_secretary'
+                                  ? 'border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed'
+                                  : 'border-slate-300'
+                              }`}
+                              title={currentRole === 'dept_secretary' ? 'เลขาภาควิชาถูกล็อกสังกัดตามภาควิชาของตนเอง' : 'ภาควิชา'}
                             />
                           </div>
                         ) : (
@@ -544,7 +572,7 @@ export const TableView: React.FC<TableViewProps> = ({
                             onChange={(e) => setEditForm({ ...editForm, status: e.target.value as ApplicationStatus })}
                             className="px-2 py-1 border border-blue-400 rounded text-xs font-medium"
                           >
-                            {currentRole === 'coordinator' ? (
+                            {currentRole === 'coordinator' || currentRole === 'dept_secretary' ? (
                               <>
                                 <option value="submitted">ยื่นคำขอใหม่</option>
                                 <option value="staff_verified">เจ้าหน้าที่ตรวจแล้ว</option>
@@ -641,9 +669,12 @@ export const TableView: React.FC<TableViewProps> = ({
                                 isMyApp(app) &&
                                 app.status === 'submitted';
 
-                              // coordinator/admin ส่งคืนได้ทุกสถานะยกเว้น paid/draft
+                              // coordinator/admin/dept_secretary ส่งคืนได้ทุกสถานะยกเว้น paid/draft (เลขาภาควิชาเฉพาะในสังกัด)
+                              const isSameDeptForSec = isSameDepartment(currentUserDept, app.department);
                               const staffCanReturn =
-                                (currentRole === 'admin' || currentRole === 'coordinator') &&
+                                (currentRole === 'admin' ||
+                                  currentRole === 'coordinator' ||
+                                  (currentRole === 'dept_secretary' && (isSameDeptForSec || isMyApp(app)))) &&
                                 app.status !== 'draft' &&
                                 app.status !== 'paid';
 

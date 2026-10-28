@@ -22,6 +22,7 @@ import {
 import { PublicRewardSummary, ResearchApplication, UserProfile, NuDisbursementRecord, UserRole } from '../types';
 import { formatBaht } from '../data/regulations';
 import { NuDisbursementTable } from './NuDisbursementTable';
+import { isSameDepartment } from '../utils/permissionUtils';
 
 interface DashboardViewProps {
   applications: ResearchApplication[];
@@ -58,6 +59,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const isGuest = !currentUser;
   const isResearcher = currentRole === 'researcher';
+  const isDeptSecretary = currentRole === 'dept_secretary';
   const userEmail = currentUser?.email?.trim().toLowerCase() || '';
   const isMyApplication = (application: ResearchApplication) => {
     const applicationEmail = application.email?.trim().toLowerCase();
@@ -66,8 +68,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const authorizedApplications = isGuest ? [] : statisticsApplications ?? applications;
   const submittedAppsOnly = React.useMemo(() => {
-    return authorizedApplications.filter((application) => application.status !== 'draft');
-  }, [authorizedApplications]);
+    return authorizedApplications.filter((application) => {
+      if (application.status === 'draft') return false;
+      if (isDeptSecretary) {
+        return isSameDepartment(currentUser?.department, application.department) || isMyApplication(application);
+      }
+      return true;
+    });
+  }, [authorizedApplications, isDeptSecretary, currentUser?.department, userEmail]);
   const hasStatistics = isGuest ? Boolean(publicSummary) : submittedAppsOnly.length > 0;
 
   const totalApplications = isGuest ? publicSummary?.totalApplications ?? 0 : submittedAppsOnly.length;
@@ -113,10 +121,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const displayedApplications = React.useMemo(() => {
     if (isGuest) return [];
-    return applications.filter((application) =>
-      application.status !== 'draft' && (!isResearcher || isMyApplication(application))
-    );
-  }, [applications, isGuest, isResearcher, userEmail]);
+    return applications.filter((application) => {
+      if (application.status === 'draft') return false;
+      if (isResearcher) return isMyApplication(application);
+      if (isDeptSecretary) {
+        return isSameDepartment(currentUser?.department, application.department) || isMyApplication(application);
+      }
+      return true;
+    });
+  }, [applications, isGuest, isResearcher, isDeptSecretary, currentUser?.department, userEmail]);
 
   // Researcher personal quota calculation
   const personalClaimedTotal = React.useMemo(() => {
@@ -195,7 +208,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {hasStatistics ? formatBaht(isResearcher ? personalClaimedTotal : totalRequestedAmount) : '—'}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-              <span>{hasStatistics ? (isResearcher ? `จำนวน ${totalApplications} เรื่อง` : `ทั้งหมด ${totalApplications} โครงการ`) : 'ไม่มีข้อมูล'}</span>
+              <span>{hasStatistics ? (isResearcher ? `จำนวน ${totalApplications} เรื่อง` : isDeptSecretary ? `ใน${currentUser?.department || 'ภาควิชา'} ${totalApplications} โครงการ` : `ทั้งหมด ${totalApplications} โครงการ`) : 'ไม่มีข้อมูล'}</span>
             </div>
           </div>
         </div>
@@ -229,7 +242,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 การกระจายตัวบทความตามฐานข้อมูลและ Quartile
               </h3>
               <p className="text-xs text-slate-500">
-                วารสารวิชาการที่ได้รับการตีพิมพ์ คณะแพทยศาสตร์ ประจำปีงบประมาณ 2570
+                {isDeptSecretary
+                  ? `วารสารวิชาการที่ได้รับการตีพิมพ์ (${currentUser?.department || 'ระดับภาควิชา'}) ประจำปีงบประมาณ 2570`
+                  : 'วารสารวิชาการที่ได้รับการตีพิมพ์ คณะแพทยศาสตร์ ประจำปีงบประมาณ 2570'}
               </p>
             </div>
             <span className="text-xs px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg font-medium">
@@ -398,7 +413,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="p-5 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h3 className="text-base font-bold text-slate-900 font-prompt">
-                {isResearcher ? 'รายการคำขอรับเงินรางวัลและค่าตีพิมพ์ของฉัน' : 'รายการคำขอรับเงินรางวัลและค่าตีพิมพ์ล่าสุด'}
+                {isResearcher
+                  ? 'รายการคำขอรับเงินรางวัลและค่าตีพิมพ์ของฉัน'
+                  : isDeptSecretary
+                  ? `รายการคำขอรับเงินรางวัลและค่าตีพิมพ์ใน${currentUser?.department || 'ภาควิชา'}`
+                  : 'รายการคำขอรับเงินรางวัลและค่าตีพิมพ์ล่าสุด'}
               </h3>
               <p className="text-xs text-slate-500">
                 {isResearcher 
@@ -407,13 +426,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {(currentUser?.role === 'researcher' || currentUser?.role === 'coordinator' || currentUser?.role === 'admin') && (
+              {(currentRole === 'researcher' || currentRole === 'dept_secretary' || currentRole === 'coordinator' || currentRole === 'admin' || currentUser?.role === 'researcher' || currentUser?.role === 'dept_secretary' || currentUser?.role === 'coordinator' || currentUser?.role === 'admin') && (
                 <button
                   onClick={onOpenNewSubmission}
                   className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 active:scale-95 font-prompt"
                 >
                   <TrendingUp className="w-4 h-4 text-slate-950" />
-                  <span>ยื่นคำขอรับทุนใหม่</span>
+                  <span>{isDeptSecretary ? 'ยื่นคำขอแทนอาจารย์ / ของตนเอง' : 'ยื่นคำขอรับทุนใหม่'}</span>
                 </button>
               )}
               <span className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-full whitespace-nowrap">
@@ -561,4 +580,3 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     </div>
   );
 };
-

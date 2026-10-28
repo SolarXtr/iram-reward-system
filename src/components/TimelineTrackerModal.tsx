@@ -20,6 +20,7 @@ import { UserRole } from './Header';
 import { ResearchApplication, UserProfile, WorkflowStepId } from '../types';
 import { formatBaht } from '../data/regulations';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from '../data/initialData';
+import { isSameDepartment } from '../utils/permissionUtils';
 
 interface TimelineTrackerModalProps {
   application: ResearchApplication | null;
@@ -29,7 +30,7 @@ interface TimelineTrackerModalProps {
   onPrint: (app: ResearchApplication) => void;
   onVerifyPayment: (app: ResearchApplication) => void;
   onReturnToDraft?: (app: ResearchApplication) => void;
-  canEdit: boolean; // if staff/coordinator/finance
+  canEdit: boolean; // if staff/coordinator/finance/dept_secretary
   currentRole?: UserRole;
   currentUser?: UserProfile | null;
 }
@@ -54,6 +55,13 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
     (s) => s.stepNumber === application.currentStep
   );
 
+  const isMyApp = Boolean(
+    (currentUser?.email && application.email && application.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+    (currentUser?.name && application.applicantName && application.applicantName.toLowerCase() === currentUser.name.toLowerCase())
+  );
+
+  const isSameDept = isSameDepartment(currentUser?.department, application.department);
+
   // Determine if the current active role is authorized to advance the current step
   const isRoleAuthorizedForCurrentStep = (step: number, role: UserRole): boolean => {
     // Admin has full authorization to manage and advance all 12 steps
@@ -62,8 +70,9 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
     }
     // Step 1: Researcher (Submit)
     // Step 2, 4, 6, 9, 12: Coordinator
-    // Step 3: Researcher (Sign & Attach) - coordinator can assist/advance
-    // Step 5, 8: Admin/Dean - coordinator advances on their behalf
+    // Step 3: Researcher (Sign & Attach) - coordinator / dept_secretary can assist/advance
+    // Step 5: Head of Department (หน.ภาควิชาลงนาม) - dept_secretary / coordinator can advance
+    // Step 8: Dean - coordinator advances on their behalf
     // Step 7: Planning/Finance (budget check) - coordinator or finance
     // Step 10, 11: Finance
     if (role === 'finance') {
@@ -71,6 +80,10 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
     }
     if (role === 'coordinator') {
       return step >= 2 && step <= 9; // steps managed by coordinator
+    }
+    if (role === 'dept_secretary') {
+      // เลขาภาควิชาช่วยดูแลและบันทึกความคืบหน้าขั้นตอนที่ 1-5 ของภาควิชาตนเอง (ยื่นคำขอ -> พิมพ์เอกสาร -> เสนอหัวหน้าภาควิชาลงนาม)
+      return (isSameDept || isMyApp) && step >= 1 && step <= 5;
     }
     if (role === 'researcher') {
       return step === 1 || step === 3;
@@ -88,16 +101,14 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
     }
   };
 
-  const isMyApp = Boolean(
-    (currentUser?.email && application.email && application.email.toLowerCase() === currentUser.email.toLowerCase()) ||
-    (currentUser?.name && application.applicantName && application.applicantName.toLowerCase() === currentUser.name.toLowerCase())
-  );
-
   const canReturnToDraft =
     Boolean(onReturnToDraft) &&
     application.status !== 'draft' &&
     application.status !== 'paid' &&
-    (currentRole === 'admin' || currentRole === 'coordinator' || (currentRole === 'researcher' && isMyApp));
+    (currentRole === 'admin' ||
+      currentRole === 'coordinator' ||
+      (currentRole === 'dept_secretary' && (isSameDept || isMyApp)) ||
+      (currentRole === 'researcher' && isMyApp));
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
@@ -248,7 +259,6 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
               {OFFICIAL_WORKFLOW_STEPS_DEF.map((step) => {
                 const isPassed = step.stepNumber < application.currentStep;
                 const isCurrent = step.stepNumber === application.currentStep;
-                const isUpcoming = step.stepNumber > application.currentStep;
 
                 // Find step info from application timeline if available
                 const stepRecord = application.timeline?.find((s) => s.stepNumber === step.stepNumber);
@@ -326,7 +336,7 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
             </div>
           </div>
 
-          {/* Officer Advance Controls (for Coordinator & Finance) */}
+          {/* Officer Advance Controls (for Coordinator, Dept Secretary & Finance) */}
           {canEdit && application.currentStep < 12 && (
             <div className="p-4 bg-slate-100 rounded-xl border border-slate-300 space-y-3">
               <div className="font-bold text-slate-900 font-prompt flex items-center justify-between">

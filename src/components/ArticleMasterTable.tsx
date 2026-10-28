@@ -29,6 +29,7 @@ import {
 import { NuDisbursementRecord, ResearchApplication, UserProfile, UserRole } from '../types';
 import { formatBaht } from '../data/regulations';
 import { ArticleMasterEditModal } from './ArticleMasterEditModal';
+import { isSameDepartment } from '../utils/permissionUtils';
 
 export interface UnifiedArticleRow {
   id: string;
@@ -129,6 +130,8 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
 
   // Check roles
   const canViewAll = ['admin', 'coordinator', 'executive', 'finance'].includes(currentRole);
+  const isDeptSecretary = currentRole === 'dept_secretary';
+  const canViewScopeToggle = canViewAll || isDeptSecretary;
 
   // 1. Merge 3 Data Categories into 1 row per article
   const allMergedArticles = useMemo<UnifiedArticleRow[]>(() => {
@@ -347,7 +350,7 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
   }, [nuDisbursements, applications]);
 
   // 2. Role Scoping:
-  // "coordinator, admin เห็นทั้งหมด researcher เห็นเฉพาะของตนเอง"
+  // "coordinator, admin เห็นทั้งหมด dept_secretary เห็นทั้งภาควิชาตนเอง researcher เห็นเฉพาะของตนเอง"
   const scopedArticles = useMemo(() => {
     if (!currentUser) return [];
     if (canViewAll && scopeFilter === 'all') return allMergedArticles;
@@ -358,15 +361,23 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
     const myEmail = (currentUser.email || '').trim().toLowerCase();
     const myShort = (currentUser.shortNameEn || '').trim().toLowerCase();
 
-    return allMergedArticles.filter(art => {
+    const isMyOwnArticle = (art: UnifiedArticleRow) => {
       const artName = art.researcherName.toLowerCase();
       if (myFirst && myLast && artName.includes(myFirst) && artName.includes(myLast)) return true;
       if (myName && artName.includes(myName)) return true;
       if (myShort && artName.includes(myShort)) return true;
       if (art.rawApp && art.rawApp.email && art.rawApp.email.toLowerCase() === myEmail) return true;
       return false;
-    });
-  }, [allMergedArticles, currentUser, canViewAll, scopeFilter]);
+    };
+
+    if (isDeptSecretary && scopeFilter === 'all') {
+      return allMergedArticles.filter(art =>
+        isSameDepartment(currentUser.department, art.department) || isMyOwnArticle(art)
+      );
+    }
+
+    return allMergedArticles.filter(isMyOwnArticle);
+  }, [allMergedArticles, currentUser, canViewAll, isDeptSecretary, scopeFilter]);
 
   // 3. Filtering
   const filteredArticles = useMemo(() => {
@@ -611,9 +622,9 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
       <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-sm space-y-3">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           
-          {/* Scope Toggle for Admins/Staff */}
+          {/* Scope Toggle for Admins/Staff/DeptSecretary */}
           <div className="flex flex-wrap items-center gap-2">
-            {!canViewAll ? (
+            {!canViewScopeToggle ? (
               <div className="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-amber-600" />
                 <span>มุมมองนักวิจัย: แสดงบทความของท่าน ({scopedArticles.length} รายการ)</span>
@@ -628,7 +639,9 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  บทความทั้งหมด ({allMergedArticles.length})
+                  {isDeptSecretary
+                    ? `บทความใน${currentUser?.department || 'ภาควิชา'} (${scopedArticles.length})`
+                    : `บทความทั้งหมด (${allMergedArticles.length})`}
                 </button>
                 <button
                   onClick={() => setScopeFilter('my_articles')}
@@ -741,14 +754,18 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
         </div>
       </div>
 
-      {/* Admin Mode Guide Banner */}
-      {currentRole === 'admin' && (
+      {/* Admin / Dept Secretary Mode Guide Banner */}
+      {(currentRole === 'admin' || isDeptSecretary) && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/90 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-blue-900 shadow-2xs">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0"></span>
-            <span className="font-bold font-prompt text-blue-950">สิทธิ์ผู้ดูแลระบบ (Admin Edit Enabled):</span>
+            <span className="font-bold font-prompt text-blue-950">
+              {isDeptSecretary
+                ? `สิทธิ์เลขาภาควิชา (${currentUser?.department || 'สังกัดภาควิชา'}):`
+                : 'สิทธิ์ผู้ดูแลระบบ (Admin Edit Enabled):'}
+            </span>
             <span className="text-blue-800">
-              ท่านสามารถคลิกไอคอนดินสอ <span className="inline-flex items-center gap-1 font-bold bg-white text-blue-700 px-1.5 py-0.5 rounded border border-blue-300 shadow-2xs"><Pencil className="w-3 h-3" /> แก้ไข</span> ในคอลัมน์ "จัดการ" เพื่อปรับปรุงสถานะ เลขฎีกา วันที่โอน และยอดเงิน ทั้ง มน. และ คณะฯ ได้โดยตรง
+              ท่านสามารถคลิกไอคอนดินสอ <span className="inline-flex items-center gap-1 font-bold bg-white text-blue-700 px-1.5 py-0.5 rounded border border-blue-300 shadow-2xs"><Pencil className="w-3 h-3" /> แก้ไข</span> ในคอลัมน์ "จัดการ" เพื่อปรับปรุงสถานะ เลขฎีกา วันที่โอน และยอดเงิน{isDeptSecretary ? ' ของอาจารย์ในภาควิชา' : ' ทั้ง มน. และ คณะฯ'} ได้โดยตรง
             </span>
           </div>
           <span className="text-[10px] text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full font-mono shrink-0">
@@ -1061,7 +1078,7 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          {currentRole === 'admin' && (
+                          {(currentRole === 'admin' || (isDeptSecretary && isSameDepartment(currentUser?.department, art.department))) && (
                             <button
                               onClick={() => setEditingArticle(art)}
                               className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer border border-blue-200 shadow-2xs"
@@ -1230,7 +1247,7 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
 
             {/* Actions in Modal */}
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              {currentRole === 'admin' && (
+              {(currentRole === 'admin' || (isDeptSecretary && isSameDepartment(currentUser?.department, selectedArticle.department))) && (
                 <button
                   onClick={() => {
                     const toEdit = selectedArticle;
@@ -1279,8 +1296,8 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
         </div>
       )}
 
-      {/* 6. Admin Edit Modal */}
-      {currentRole === 'admin' && editingArticle && (
+      {/* 6. Admin / Dept Secretary Edit Modal */}
+      {(currentRole === 'admin' || isDeptSecretary) && editingArticle && (
         <ArticleMasterEditModal
           isOpen={!!editingArticle}
           onClose={() => setEditingArticle(null)}

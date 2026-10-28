@@ -22,7 +22,8 @@ import {
   Clock,
   Loader2,
   Save,
-  BookmarkCheck
+  BookmarkCheck,
+  Users
 } from 'lucide-react';
 import { checkArticleDuplicate, DuplicateCheckResult } from '../services/rewardD1Service';
 import { 
@@ -35,6 +36,7 @@ import {
   RequestType, 
   ResearchApplication,
   UserProfile,
+  UserRole,
   NuDisbursementRecord
 } from '../types';
 import { 
@@ -50,7 +52,8 @@ import {
 } from '../data/regulations';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from '../data/initialData';
 import { INITIAL_NU_DISBURSEMENTS } from '../data/nuDisbursementData';
-import { getStoredUserProfile, saveStoredUserProfile } from '../data/userProfile';
+import { getStoredUserProfile, saveStoredUserProfile, getStoredUsersRegistry } from '../data/userProfile';
+import { isSameDepartment } from '../utils/permissionUtils';
 
 interface SubmissionFormModalProps {
   isOpen: boolean;
@@ -59,6 +62,8 @@ interface SubmissionFormModalProps {
   existingApplications?: ResearchApplication[];
   nuDisbursements?: NuDisbursementRecord[];
   currentUser?: UserProfile;
+  currentRole?: UserRole;
+  registeredUsers?: UserProfile[];
   initialData?: Partial<ResearchApplication> | null;
 }
 
@@ -162,12 +167,28 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   existingApplications,
   nuDisbursements = INITIAL_NU_DISBURSEMENTS,
   currentUser,
+  currentRole,
+  registeredUsers,
   initialData,
 }) => {
   // Active user profile (loaded from authentication / stored local profile)
   const activeUserProfile = useMemo(() => {
     return currentUser || getStoredUserProfile();
   }, [currentUser]);
+
+  const effectiveRole: UserRole = currentRole || activeUserProfile.role || 'researcher';
+  const canActOnBehalf = effectiveRole === 'dept_secretary' || effectiveRole === 'admin' || effectiveRole === 'coordinator';
+
+  // List of researchers that can be selected when acting on behalf
+  const selectableResearchers = useMemo(() => {
+    const allUsers = registeredUsers && registeredUsers.length > 0 ? registeredUsers : getStoredUsersRegistry();
+    if (effectiveRole === 'dept_secretary') {
+      return allUsers.filter((u) => isSameDepartment(activeUserProfile.department, u.department));
+    }
+    return allUsers;
+  }, [registeredUsers, effectiveRole, activeUserProfile.department]);
+
+  const [selectedBehalfUserId, setSelectedBehalfUserId] = useState<string>('');
 
   const isEditingDraft = Boolean(initialData && (initialData.status === 'draft' || initialData.id));
 
@@ -217,6 +238,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   // Reload data from active profile
   const handleReloadFromUserProfile = () => {
     const freshProfile = currentUser || getStoredUserProfile();
+    setSelectedBehalfUserId('');
     setApplicantName(freshProfile.name || '');
     setAcademicPosition(freshProfile.academicPosition || '');
     setDepartment(normalizeDepartment(freshProfile.department));
@@ -225,8 +247,31 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
     setBankName(freshProfile.bankName || 'ธนาคารกรุงศรีอยุธยา');
     setBankAccountNo(freshProfile.bankAccountNo || '');
     setIdCardNo(freshProfile.idCardNo || '');
+    setRememberProfile(true);
     setProfileReloadedNotice(true);
     setTimeout(() => setProfileReloadedNotice(false), 3000);
+  };
+
+  // Select a researcher to act on behalf of (for dept_secretary / coordinator / admin)
+  const handleSelectBehalfResearcher = (userId: string) => {
+    setSelectedBehalfUserId(userId);
+    if (!userId) {
+      handleReloadFromUserProfile();
+      return;
+    }
+    const targetUser = selectableResearchers.find((u) => u.id === userId);
+    if (!targetUser) return;
+
+    setApplicantName(targetUser.name || '');
+    setAcademicPosition(targetUser.academicPosition || '');
+    setDepartment(normalizeDepartment(targetUser.department || activeUserProfile.department));
+    setPhone(targetUser.phone || '');
+    setEmail(targetUser.email || '');
+    setBankName(targetUser.bankName || 'ธนาคารกรุงศรีอยุธยา');
+    setBankAccountNo(targetUser.bankAccountNo || '');
+    setIdCardNo(targetUser.idCardNo || '');
+    // Do NOT overwrite the secretary's or admin's own profile in localStorage when acting on behalf!
+    setRememberProfile(false);
   };
 
   const [requestType, setRequestType] = useState<RequestType>('reward_only');
@@ -245,7 +290,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   const [databaseYear, setDatabaseYear] = useState<string>('2025');
   const [vol, setVol] = useState<string>('');
   const [no, setNo] = useState<string>('');
-  const [publishMonth, setPublishMonth] = useState<string>('' );
+  const [publishMonth, setPublishMonth] = useState<string>('');
   const [publishYear, setPublishYear] = useState<string>('2026');
   const [pages, setPages] = useState<string>('');
   const [publishedDate, setPublishedDate] = useState('2026-02-15');
@@ -343,6 +388,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   // Synchronize form when modal opens or initialData / currentUser changes
   useEffect(() => {
     if (isOpen) {
+      setSelectedBehalfUserId('');
       if (initialData) {
         if (initialData.fiscalYear) setFiscalYear(Number(initialData.fiscalYear));
         if (initialData.trackingNo && initialData.trackingNo !== 'DRAFT') {
@@ -446,6 +492,12 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
     setTrackingNoInput(generateNextTrackingNo(fiscalYear, existingTrackingNos));
   };
 
+  const isOwnEmail = Boolean(
+    activeUserProfile.email &&
+    email &&
+    activeUserProfile.email.trim().toLowerCase() === email.trim().toLowerCase()
+  );
+
   const handleSaveDraft = (e: React.MouseEvent) => {
     e.preventDefault();
 
@@ -454,7 +506,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
       return;
     }
 
-    if (rememberProfile && activeUserProfile.id) {
+    if (rememberProfile && activeUserProfile.id && isOwnEmail && !selectedBehalfUserId) {
       saveStoredUserProfile({
         id: activeUserProfile.id,
         name: applicantName,
@@ -573,8 +625,8 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
       return;
     }
 
-    // Save as default profile for next time if opted in
-    if (rememberProfile && activeUserProfile.id) {
+    // Save as default profile for next time if opted in (only when submitting for oneself)
+    if (rememberProfile && activeUserProfile.id && isOwnEmail && !selectedBehalfUserId) {
       saveStoredUserProfile({
         id: activeUserProfile.id,
         name: applicantName,
@@ -803,7 +855,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 font-medium">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  ดึงจากบัญชีผู้ล็อกอิน (PDPA Verified)
+                  {selectedBehalfUserId ? 'โหมดยื่นแทนอาจารย์ในสังกัด' : 'ดึงจากบัญชีผู้ล็อกอิน (PDPA Verified)'}
                 </span>
                 <button
                   type="button"
@@ -812,10 +864,52 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
                   title="รีโหลดข้อมูลจากบัญชีล็อกอินปัจจุบัน"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  <span>ดึงข้อมูลอีกครั้ง</span>
+                  <span>ดึงข้อมูลตนเอง</span>
                 </button>
               </div>
             </div>
+
+            {/* Act-on-Behalf Researcher Selector for Department Secretary / Coordinator / Admin */}
+            {canActOnBehalf && (
+              <div className="p-3 bg-gradient-to-r from-teal-50 via-emerald-50/70 to-teal-50 rounded-xl border border-teal-200/90 space-y-2 shadow-2xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-2 font-bold text-teal-950 font-prompt text-xs">
+                    <Users className="w-4 h-4 text-teal-700 shrink-0" />
+                    <span>
+                      {effectiveRole === 'dept_secretary'
+                        ? `ยื่นคำขอหรือบันทึกร่างแทนอาจารย์ในสังกัด (${activeUserProfile.department || 'ภาควิชา'})`
+                        : 'ยื่นคำขอหรือบันทึกร่างแทนอาจารย์/นักวิจัย (Act on Behalf)'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-300 font-semibold w-fit">
+                    ดึงข้อมูลส่วนตัว & เลขบัญชีอัตโนมัติ (ไม่ต้องสลับบัญชี)
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <select
+                    value={selectedBehalfUserId}
+                    onChange={(e) => handleSelectBehalfResearcher(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-white border border-teal-300 rounded-lg text-xs font-medium text-slate-900 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  >
+                    <option value="">-- เลือกรายชื่ออาจารย์/นักวิจัยเพื่อดึงข้อมูลอัตโนมัติ (หรือกรอกเองด้านล่าง) --</option>
+                    {selectableResearchers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.academicPosition ? `${u.academicPosition} ` : ''}{u.name} ({u.email}) — {u.department}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedBehalfUserId && (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectBehalfResearcher('')}
+                      className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[11px] font-medium transition-colors shrink-0"
+                    >
+                      ล้างค่าผู้รับทุน
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Notification if reloaded */}
             {profileReloadedNotice && (
@@ -830,17 +924,22 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
               <div className="flex items-center gap-2 text-slate-700">
                 <UserCheck className="w-4 h-4 text-blue-600 shrink-0" />
                 <span>
-                  เชื่อมต่อข้อมูลผู้ใช้งาน: <strong className="text-blue-950 font-mono">{email}</strong>
+                  เชื่อมต่อข้อมูลผู้ขอรับทุน: <strong className="text-blue-950 font-mono">{email}</strong>
                 </span>
               </div>
               <label className="flex items-center gap-1.5 text-slate-600 cursor-pointer text-[11px]">
                 <input
                   type="checkbox"
                   checked={rememberProfile}
+                  disabled={Boolean(selectedBehalfUserId)}
                   onChange={(e) => setRememberProfile(e.target.checked)}
-                  className="text-blue-600 rounded focus:ring-blue-500"
+                  className="text-blue-600 rounded focus:ring-blue-500 disabled:opacity-50"
                 />
-                <span>บันทึกเป็นโปรไฟล์ตั้งต้นของฉัน</span>
+                <span>
+                  {selectedBehalfUserId
+                    ? 'ปิดการบันทึกทับโปรไฟล์ตนเองอัตโนมัติ (โหมดยื่นแทนอาจารย์)'
+                    : 'บันทึกเป็นโปรไฟล์ตั้งต้นของฉัน'}
+                </span>
               </label>
             </div>
 
@@ -868,13 +967,24 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 mb-1">สังกัด*</label>
+                <label className="block font-medium text-slate-700 mb-1">
+                  สังกัด* {effectiveRole === 'dept_secretary' && <span className="text-[10px] text-teal-700 font-semibold">(ล็อกตามสังกัดเลขาภาควิชา)</span>}
+                </label>
                 <select
                   value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
+                  onChange={(e) => {
+                    if (effectiveRole !== 'dept_secretary') {
+                      setDepartment(e.target.value);
+                    }
+                  }}
+                  disabled={effectiveRole === 'dept_secretary' && department !== '-'}
                   required
-                  className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium ${
-                    department === '-' ? 'border-amber-400 text-slate-400' : 'border-slate-300 text-slate-900'
+                  className={`w-full px-3 py-2 border rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium ${
+                    effectiveRole === 'dept_secretary' && department !== '-'
+                      ? 'bg-slate-100 border-slate-300 text-slate-700 cursor-not-allowed'
+                      : department === '-'
+                      ? 'bg-white border-amber-400 text-slate-400'
+                      : 'bg-white border-slate-300 text-slate-900'
                   }`}
                 >
                   <option value="-">- ไม่ระบุ / ไม่มีข้อมูลในโปรไฟล์ -</option>

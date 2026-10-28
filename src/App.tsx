@@ -57,6 +57,7 @@ import {
   createUserInD1,
   deleteUserFromD1
 } from './services/userService';
+import { isSameDepartment } from './utils/permissionUtils';
 import { Bell, CheckCircle2, RotateCcw, LogOut, ShieldAlert } from 'lucide-react';
 
 export default function App() {
@@ -70,7 +71,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getCurrentAuthUser());
   const isGuest = !currentUser;
 
-  // Admin Impersonator State (จำตัวตนของผู้ดูแลระบบเดิมเมื่อสลับไปเป็น User อื่น เพื่อทดสอบหรือทำหน้าที่แทน)
+  // Admin Impersonator State (จำตัวตนของผู้ดูแลระบบ/เลขาภาควิชาเดิมเมื่อสลับไปเป็น User อื่น เพื่อทดสอบหรือทำหน้าที่แทน)
   const [impersonatorAdmin, setImpersonatorAdmin] = useState<UserProfile | null>(() => {
     try {
       const saved = sessionStorage.getItem('med_nu_impersonator_admin_v1');
@@ -347,10 +348,16 @@ export default function App() {
     }
   };
 
-  // Admin Impersonation: สลับไปเป็น user เป้าหมายด้วย id และสิทธิ์ของ user นั้นจริงๆ (ใช้ทดสอบระบบและทำหน้าที่แทน)
+  // Admin / Dept Secretary Impersonation: สลับไปเป็น user เป้าหมายด้วย id และสิทธิ์ของ user นั้นจริงๆ (ใช้ทดสอบระบบและทำหน้าที่แทน)
   const handleSwitchUser = (targetUser: UserProfile) => {
-    // หากขณะนี้มีสิทธิ์ admin (หรือมี admin ใน roles) และยังไม่ได้จำแอดมิน ให้จำตัวตน Admin ไว้
-    if (!impersonatorAdmin && (currentUser?.role === 'admin' || currentUser?.roles?.includes('admin'))) {
+    // หากขณะนี้มีสิทธิ์ admin หรือ dept_secretary และยังไม่ได้จำผู้ดำเนินการ ให้จำตัวตนเดิมไว้
+    if (
+      !impersonatorAdmin &&
+      (currentUser?.role === 'admin' ||
+        currentUser?.roles?.includes('admin') ||
+        currentUser?.role === 'dept_secretary' ||
+        currentUser?.roles?.includes('dept_secretary'))
+    ) {
       setImpersonatorAdmin(currentUser);
       try {
         sessionStorage.setItem('med_nu_impersonator_admin_v1', JSON.stringify(currentUser));
@@ -366,19 +373,19 @@ export default function App() {
     showToast(`🎭 สลับเข้าสู่โหมดตัวแทนของ "${targetUser.name}" (${targetUser.email}) ด้วยสิทธิ์: ${targetUser.role} สำเร็จ`);
   };
 
-  // Exit Impersonation: สลับกลับสู่ตัวตนผู้ดูแลระบบเดิม
+  // Exit Impersonation: สลับกลับสู่ตัวตนผู้ดูแลระบบหรือเลขาภาควิชาเดิม
   const handleExitImpersonation = () => {
     if (!impersonatorAdmin) return;
-    const admin = impersonatorAdmin;
-    setCurrentUser(admin);
-    setCurrentAuthUser(admin);
-    saveStoredUserProfile(admin);
-    setCurrentRole('admin');
+    const origUser = impersonatorAdmin;
+    setCurrentUser(origUser);
+    setCurrentAuthUser(origUser);
+    saveStoredUserProfile(origUser);
+    setCurrentRole(origUser.role || 'admin');
     setImpersonatorAdmin(null);
     try {
       sessionStorage.removeItem('med_nu_impersonator_admin_v1');
     } catch (e) {}
-    showToast(`🛡️ สลับกลับสู่บัญชีผู้ดูแลระบบ (${admin.name}) เรียบร้อยแล้ว`);
+    showToast(`🛡️ สลับกลับสู่บัญชีเดิม (${origUser.name}) เรียบร้อยแล้ว`);
   };
 
   const handleSwitchUserFromConsole = (user: UserProfile) => {
@@ -595,10 +602,8 @@ export default function App() {
         return;
       }
     } else if (currentRole === 'dept_secretary') {
-      const myDept = (currentUser?.department || '').trim().toLowerCase();
-      const appDept = (draftApp.department || '').trim().toLowerCase();
-      const isSameDept = Boolean(myDept && (appDept === myDept || appDept.includes(myDept) || myDept.includes(appDept)));
-      const isMine = (currentUser?.email && draftApp.email && draftApp.email.toLowerCase() === currentUser.email.toLowerCase());
+      const isSameDept = isSameDepartment(currentUser?.department, draftApp.department);
+      const isMine = Boolean(currentUser?.email && draftApp.email && draftApp.email.toLowerCase() === currentUser.email.toLowerCase());
       if (!isSameDept && !isMine) {
         showToast('⚠️ เลขาภาควิชาสามารถแก้ไขได้เฉพาะคำขอในภาควิชาที่สังกัดเท่านั้น');
         return;
@@ -627,6 +632,15 @@ export default function App() {
       // researcher ส่งคืนได้เฉพาะสถานะ submitted เท่านั้น (ยังไม่ผ่านเจ้าหน้าที่)
       if (app.status !== 'submitted') {
         showToast('⚠️ ไม่สามารถส่งคืนได้ — คำขอผ่านการตรวจสอบเจ้าหน้าที่แล้ว กรุณาติดต่อผู้ประสานงานวิจัย');
+        return;
+      }
+    } else if (currentRole === 'dept_secretary') {
+      const isSameDept = isSameDepartment(currentUser?.department, app.department);
+      const isMine =
+        (currentUser?.email && app.email && app.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+        (currentUser?.name && app.applicantName && app.applicantName.toLowerCase() === currentUser.name.toLowerCase());
+      if (!isSameDept && !isMine) {
+        showToast('⚠️ เลขาภาควิชาสามารถส่งคืนเพื่อแก้ไขได้เฉพาะคำขอในภาควิชาที่สังกัดเท่านั้น');
         return;
       }
     }
@@ -968,6 +982,9 @@ export default function App() {
     if (currentRole === 'researcher') {
       return isAppOwnedByUser(app);
     }
+    if (currentRole === 'dept_secretary') {
+      return isSameDepartment(currentUser?.department, app.department) || isAppOwnedByUser(app);
+    }
     return true;
   });
 
@@ -984,12 +1001,15 @@ export default function App() {
     );
   });
 
-  // Count drafts for current researcher
+  // Count drafts for current researcher / dept_secretary / staff
   const myDraftsCount = applications.filter((app) => {
     if (app.status !== 'draft') return false;
     if (isGuest) return false;
     if (currentRole === 'researcher') {
       return isAppOwnedByUser(app);
+    }
+    if (currentRole === 'dept_secretary') {
+      return isSameDepartment(currentUser?.department, app.department) || isAppOwnedByUser(app);
     }
     return true;
   }).length;
@@ -1040,7 +1060,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900">
       
-      {/* Admin Impersonation Active Banner */}
+      {/* Admin / Dept Secretary Impersonation Active Banner */}
       {impersonatorAdmin && (
         <aside aria-label="โหมดปฏิบัติหน้าที่แทน" className="bg-gradient-to-r from-purple-950 via-indigo-950 to-purple-900 border-b-2 border-purple-400 text-white px-4 py-2.5 shadow-lg flex flex-wrap items-center justify-between gap-3 text-xs sticky top-0 z-50">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -1048,24 +1068,24 @@ export default function App() {
               🎭
             </span>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <span className="font-bold text-amber-300 font-prompt">โหมดปฏิบัติหน้าที่แทน (Admin Impersonation):</span>
+              <span className="font-bold text-amber-300 font-prompt">โหมดปฏิบัติหน้าที่แทน (Impersonation Mode):</span>
               <span className="font-bold text-white underline underline-offset-2">{currentUser?.name}</span>
               <span className="text-purple-200 font-mono text-[11px]">({currentUser?.email})</span>
               <span className="px-2 py-0.2 rounded-full text-[10px] bg-purple-800 text-purple-200 border border-purple-500 font-semibold">
                 ID: {currentUser?.id} | สิทธิ์: {currentUser?.role}
               </span>
               <span className="text-[11px] text-purple-300 hidden md:inline">
-                (ดำเนินการโดยผู้ดูแลระบบ: {impersonatorAdmin.name})
+                (ดำเนินการโดย: {impersonatorAdmin.name})
               </span>
             </div>
           </div>
           <button
             onClick={handleExitImpersonation}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold rounded-lg text-xs shadow-md transition-all shrink-0 cursor-pointer font-prompt active:scale-95"
-            title="คลิกเพื่อสลับกลับสู่บัญชีผู้ดูแลระบบของคุณทันที"
+            title="คลิกเพื่อสลับกลับสู่บัญชีผู้ดำเนินการเดิมของคุณทันที"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>สลับกลับสู่ผู้ดูแลระบบ</span>
+            <span>สลับกลับสู่บัญชีเดิม ({impersonatorAdmin.role === 'dept_secretary' ? 'เลขาภาควิชา' : 'ผู้ดูแลระบบ'})</span>
           </button>
         </aside>
       )}
@@ -1163,7 +1183,7 @@ export default function App() {
           />
         )}
 
-        {/* Tab 1.5: Quota & 24-Month Expiry Planner View (Researcher, Coordinator & Admin ONLY — ไม่แสดงสำหรับ finance, executive) */}
+        {/* Tab 1.5: Quota & 24-Month Expiry Planner View (Researcher, Dept Secretary, Coordinator & Admin ONLY — ไม่แสดงสำหรับ finance, executive) */}
         {activeTab === 'quota_planner' && !isGuest && currentRole !== 'finance' && currentRole !== 'executive' && (
           <QuotaPlannerView
             applications={applications}
@@ -1209,7 +1229,7 @@ export default function App() {
           />
         )}
 
-        {/* Tab 3: Editable Table Grid for Personal Work */}
+        {/* Tab 3: Editable Table Grid for Personal / Department / Faculty Work */}
         {activeTab === 'table' && !isGuest && (
           <TableView
             applications={displayApplications}
@@ -1220,6 +1240,7 @@ export default function App() {
             onReturnToDraft={handleReturnToDraft}
             currentUserEmail={currentUser?.email || ''}
             currentUserName={currentUser?.name || ''}
+            currentUserDept={currentUser?.department || ''}
             currentRole={currentRole}
           />
         )}
@@ -1258,8 +1279,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 6: Admin User Management Console */}
-        {activeTab === 'user_management' && currentRole === 'admin' && !isGuest ? (
+        {/* Tab 6: Admin & Department Secretary User Management Console */}
+        {activeTab === 'user_management' && (currentRole === 'admin' || currentRole === 'dept_secretary') && !isGuest ? (
           <UserManagementView
             users={registeredUsers}
             currentLoggedInUser={currentUser || DEFAULT_LOGGED_IN_USER}
@@ -1279,7 +1300,7 @@ export default function App() {
               สิทธิ์การเข้าถึงไม่เพียงพอ (Access Denied)
             </h3>
             <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-              หน้าจอนี้สงวนไว้สำหรับผู้ดูแลระบบ (Admin) เท่านั้น กรุณาสลับบทบาทเป็นผู้ดูแลระบบและยืนยันตัวตน
+              หน้าจอนี้สงวนไว้สำหรับผู้ดูแลระบบ (Admin) และเลขาภาควิชา (Department Secretary) เท่านั้น
             </p>
             <button
               onClick={() => setActiveTab('dashboard')}
@@ -1337,6 +1358,8 @@ export default function App() {
           existingApplications={applications}
           nuDisbursements={nuDisbursements}
           currentUser={currentUser || DEFAULT_LOGGED_IN_USER}
+          currentRole={currentRole}
+          registeredUsers={registeredUsers}
           initialData={editingDraftApp}
         />
       )}
@@ -1350,7 +1373,7 @@ export default function App() {
         onPrint={(app) => setPrintApp(app)}
         onVerifyPayment={(app) => setPaymentApp(app)}
         onReturnToDraft={handleReturnToDraft}
-        canEdit={currentRole === 'coordinator' || currentRole === 'finance' || currentRole === 'admin'}
+        canEdit={currentRole === 'coordinator' || currentRole === 'finance' || currentRole === 'admin' || currentRole === 'dept_secretary'}
         currentRole={currentRole}
         currentUser={currentUser}
       />
