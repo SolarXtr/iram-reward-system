@@ -10,13 +10,62 @@ export function normalizeDeptName(dept?: string | null): string {
 }
 
 /**
+ * Thai ↔ English department aliases. Order matters: more specific entries come first.
+ * Each entry maps a canonical key to Thai/English keywords found in department strings.
+ */
+const DEPARTMENT_ALIASES: { key: string; keywords: string[] }[] = [
+  { key: 'orthopaedics', keywords: ['ออร์โธปิดิกส์', 'ออร์โธปิดิกซ์', 'orthopaedic', 'orthopedic'] },
+  { key: 'obgyn', keywords: ['สูติศาสตร์', 'นรีเวช', 'obstetric', 'gynecolog', 'gynaecolog', 'ob-gyn', 'obgyn'] },
+  { key: 'family_medicine', keywords: ['เวชศาสตร์ครอบครัว', 'family medicine'] },
+  { key: 'preventive_medicine', keywords: ['เวชศาสตร์ป้องกัน', 'เวชศาสตร์ชุมชน', 'preventive', 'community medicine', 'social medicine'] },
+  { key: 'rehabilitation', keywords: ['เวชศาสตร์ฟื้นฟู', 'rehabilitation', 'physical medicine'] },
+  { key: 'emergency', keywords: ['เวชศาสตร์ฉุกเฉิน', 'emergency medicine'] },
+  { key: 'forensic', keywords: ['นิติเวช', 'forensic'] },
+  { key: 'ent', keywords: ['โสต ศอ นาสิก', 'โสต ศอ นาสิกวิทยา', 'otolaryngolog', 'otorhinolaryngolog'] },
+  { key: 'ophthalmology', keywords: ['จักษุ', 'ophthalmolog'] },
+  { key: 'psychiatry', keywords: ['จิตเวช', 'psychiatr'] },
+  { key: 'radiology', keywords: ['รังสีวิทยา', 'radiolog'] },
+  { key: 'anesthesiology', keywords: ['วิสัญญี', 'anesthesi', 'anaesthesi'] },
+  { key: 'pediatrics', keywords: ['กุมารเวช', 'pediatric', 'paediatric'] },
+  { key: 'pathology', keywords: ['พยาธิวิทยา', 'pathology'] },
+  { key: 'anatomy', keywords: ['กายวิภาค', 'anatomy'] },
+  { key: 'physiology', keywords: ['สรีรวิทยา', 'physiology'] },
+  { key: 'biochemistry', keywords: ['ชีวเคมี', 'biochemistry'] },
+  { key: 'microbiology', keywords: ['จุลชีววิทยา', 'microbiology'] },
+  { key: 'parasitology', keywords: ['ปรสิต', 'parasitolog'] },
+  { key: 'pharmacology', keywords: ['เภสัชวิทยา', 'pharmacology'] },
+  { key: 'surgery', keywords: ['ศัลยศาสตร์', 'surgery', 'surgical'] },
+  { key: 'internal_medicine', keywords: ['อายุรศาสตร์', 'internal medicine', 'department of medicine', 'dept. of medicine', 'dept of medicine'] },
+];
+
+/**
+ * Resolves a department string (Thai or English) to a canonical key.
+ * Returns '' when no known department keyword is found.
+ */
+export function canonicalDepartmentKey(dept?: string | null): string {
+  const norm = normalizeDeptName(dept).replace(/\s+/g, ' ');
+  if (!norm) return '';
+  const padded = `${norm} `;
+  for (const entry of DEPARTMENT_ALIASES) {
+    if (entry.keywords.some((kw) => padded.includes(kw.toLowerCase()))) {
+      return entry.key;
+    }
+  }
+  return '';
+}
+
+/**
  * Checks if two department names are identical or equivalent
+ * (supports Thai/English naming variants, e.g. 'ภาควิชาอายุรศาสตร์' ≡ 'Department of Internal Medicine')
  */
 export function isSameDepartment(deptA?: string | null, deptB?: string | null): boolean {
   const normA = normalizeDeptName(deptA);
   const normB = normalizeDeptName(deptB);
   if (!normA || !normB) return false;
-  return normA === normB || normA.includes(normB) || normB.includes(normA);
+  if (normA === normB || normA.includes(normB) || normB.includes(normA)) return true;
+  const keyA = canonicalDepartmentKey(normA);
+  const keyB = canonicalDepartmentKey(normB);
+  return Boolean(keyA && keyB && keyA === keyB);
 }
 
 /**

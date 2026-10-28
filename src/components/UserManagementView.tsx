@@ -414,7 +414,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     const enforcedRole: UserRole = isDeptSecretary ? 'researcher' : (formData.role || 'researcher');
     const enforcedRoles: UserRole[] = isDeptSecretary
       ? ['researcher']
-      : (formData.roles && formData.roles.length > 0 ? formData.roles : [enforcedRole]);
+      : Array.from(new Set<UserRole>([enforcedRole, ...((formData.roles && formData.roles.length > 0) ? formData.roles : []), ...(enforcedRole === 'dept_secretary' ? (['researcher'] as UserRole[]) : [])]));
     const enforcedDepartment =
       isStrictDeptLocked && userDepartment ? userDepartment : formData.department.trim();
 
@@ -1057,7 +1057,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                         ) : (
                           <div className="flex flex-wrap gap-1 max-w-[150px]">
                             {user.roles && user.roles.length > 0 ? (
-                              user.roles.map((r) => (
+                              Array.from(new Set<UserRole>([user.role, ...user.roles])).map((r) => (
                                 <span
                                   key={r}
                                   className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${
