@@ -97,10 +97,14 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   onShowAlert,
   onBackToDashboard,
 }) => {
-  // Check if current view is operating under Department Secretary restrictions
+  const isRealAdmin =
+    currentLoggedInUser?.role === 'admin' ||
+    (currentLoggedInUser?.roles || []).includes('admin');
+
+  // Check if current view is operating under Department Secretary restrictions (only for non-admin department secretaries)
   const isDeptSecretary =
-    currentRole === 'dept_secretary' ||
-    (currentRole !== 'admin' && currentLoggedInUser?.role === 'dept_secretary');
+    !isRealAdmin &&
+    (currentRole === 'dept_secretary' || currentLoggedInUser?.role === 'dept_secretary');
   const userDepartment = currentLoggedInUser?.department?.trim() || '';
 
   // Determine whether the logged-in user is tied to a specific department with researchers
@@ -457,7 +461,13 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       onShowAlert?.('⚠️ เลขาภาควิชาไม่สามารถเปลี่ยนสถานะหรือเพิ่มสิทธิ์อื่นนอกเหนือจากนักวิจัยได้');
       return;
     }
-    const updatedRoles = Array.from(new Set([newRole, ...(user.roles || [])]));
+    const updatedRoles = Array.from(
+      new Set<UserRole>([
+        newRole,
+        ...(user.roles || []),
+        ...(newRole === 'dept_secretary' ? (['researcher'] as UserRole[]) : []),
+      ])
+    );
     const updated: UserProfile = {
       ...user,
       role: newRole,

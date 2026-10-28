@@ -50,7 +50,7 @@ export function setCurrentAuthUser(user: UserProfile | null): void {
 
 /**
  * Process Google Sign-In user and enforce NU account domain policy (@nu.ac.th)
- * Checks Cloudflare D1 and local registry. Auto-provisions new users to D1 immediately.
+ * Checks Cloudflare D1 first as Single Source of Truth. Auto-provisions new users to D1 immediately.
  */
 export async function processNuGoogleLogin(googleUser: {
   email?: string | null;
@@ -74,21 +74,22 @@ export async function processNuGoogleLogin(googleUser: {
     };
   }
 
-  // 1. Check local registry first
-  const registry = getStoredUsersRegistry();
-  let existing = registry.find((u) => u.email.toLowerCase() === cleanEmail);
-
-  // 2. If not found in local registry, check Cloudflare D1
-  if (!existing) {
-    try {
-      const d1User = await fetchUserProfileByEmailFromD1(cleanEmail);
-      if (d1User) {
-        existing = d1User;
-        upsertRegisteredUser(d1User);
-      }
-    } catch (e) {
-      console.warn('D1 lookup during login warning:', e);
+  // 1. Always query Cloudflare D1 first (Single Source of Truth) to get the latest role & profile
+  let existing: UserProfile | null = null;
+  try {
+    const d1User = await fetchUserProfileByEmailFromD1(cleanEmail);
+    if (d1User) {
+      existing = d1User;
+      upsertRegisteredUser(d1User);
     }
+  } catch (e) {
+    console.warn('D1 lookup during login warning:', e);
+  }
+
+  // 2. Fallback to local registry if Cloudflare D1 was unreachable (offline resilience)
+  if (!existing) {
+    const registry = getStoredUsersRegistry();
+    existing = registry.find((u) => u.email.toLowerCase() === cleanEmail) || null;
   }
 
   if (existing) {
@@ -169,7 +170,7 @@ export async function logoutNuUser(): Promise<void> {
 }
 
 /**
- * Demo Login Helper to quickly switch to any of the 5 roles during evaluation
+ * Demo Login Helper to quickly switch to any of the roles during evaluation
  */
 export function demoLoginAsRole(targetRole: UserRole): UserProfile {
   const registry = getStoredUsersRegistry();

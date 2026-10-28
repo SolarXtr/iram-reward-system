@@ -189,6 +189,9 @@ export default function App() {
               const merged: UserProfile = { ...prev, ...match };
               setCurrentAuthUser(merged);
               saveStoredUserProfile(merged);
+              if (!impersonatorAdmin && match.role && match.role !== currentRole) {
+                setCurrentRole(match.role);
+              }
               return merged;
             }
             return prev;
@@ -300,7 +303,8 @@ export default function App() {
   };
 
   const handleUpdateRegisteredUser = async (updatedUser: UserProfile): Promise<boolean> => {
-    const isSecretaryMode = currentRole === 'dept_secretary' || (currentRole !== 'admin' && currentUser?.role === 'dept_secretary');
+    const isRealAdmin = currentUser?.role === 'admin' || (currentUser?.roles || []).includes('admin');
+    const isSecretaryMode = !isRealAdmin && (currentRole === 'dept_secretary' || currentUser?.role === 'dept_secretary');
     if (isSecretaryMode) {
       const existingTarget = registeredUsers.find((u) => u.id === updatedUser.id);
       if (existingTarget && !isResearcherOnlyUser(existingTarget)) {
@@ -332,7 +336,8 @@ export default function App() {
   };
 
   const handleCreateRegisteredUser = async (newUser: UserProfile): Promise<boolean> => {
-    const isSecretaryMode = currentRole === 'dept_secretary' || (currentRole !== 'admin' && currentUser?.role === 'dept_secretary');
+    const isRealAdmin = currentUser?.role === 'admin' || (currentUser?.roles || []).includes('admin');
+    const isSecretaryMode = !isRealAdmin && (currentRole === 'dept_secretary' || currentUser?.role === 'dept_secretary');
     if (isSecretaryMode) {
       newUser = {
         ...newUser,
@@ -355,7 +360,8 @@ export default function App() {
   };
 
   const handleDeleteRegisteredUser = async (userId: string): Promise<boolean> => {
-    const isSecretaryMode = currentRole === 'dept_secretary' || (currentRole !== 'admin' && currentUser?.role === 'dept_secretary');
+    const isRealAdmin = currentUser?.role === 'admin' || (currentUser?.roles || []).includes('admin');
+    const isSecretaryMode = !isRealAdmin && (currentRole === 'dept_secretary' || currentUser?.role === 'dept_secretary');
     if (isSecretaryMode) {
       const target = registeredUsers.find((u) => u.id === userId);
       if (target && !isResearcherOnlyUser(target)) {
