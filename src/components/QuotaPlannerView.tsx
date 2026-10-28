@@ -780,7 +780,7 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                         </div>
 
                         {/* If draft has a returned tracking number, show badge */}
-                        {draft.trackingNo && draft.trackingNo !== 'DRAFT' && (
+                        {draft.trackingNo && draft.trackingNo !== 'DRAFT' && !draft.trackingNo.startsWith('DRAFT-') && (
                           <div className="mt-1">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 font-mono shadow-2xs" title="รายการนี้ถูกส่งคืนจากตารางคำขอเพื่อแก้ไข โดยจะคงรหัสเดิมเมื่อส่งเบิกใหม่">
                               <RotateCcw className="w-2.5 h-2.5 text-amber-700" />

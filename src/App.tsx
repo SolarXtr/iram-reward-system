@@ -59,6 +59,7 @@ import {
   deleteUserFromD1
 } from './services/userService';
 import { isSameDepartment, isResearcherOnlyUser } from './utils/permissionUtils';
+import { trackPageView } from './services/analyticsService';
 import { Bell, CheckCircle2, RotateCcw, LogOut, ShieldAlert } from 'lucide-react';
 
 export default function App() {
@@ -118,6 +119,23 @@ export default function App() {
       setActiveTab('dashboard');
     }
   }, [currentUser, activeTab]);
+
+  // Automatically track page views in Cloudflare Analytics when activeTab changes
+  useEffect(() => {
+    const tabToPathMap: Record<ActiveTab, string> = {
+      dashboard: '/',
+      quota_planner: '/quota',
+      article_table: '/articles',
+      table: '/applications',
+      kanban: '/pipeline',
+      calendar: '/calendar',
+      line_oa: '/line-oa',
+      user_management: '/admin',
+      user_guide: '/guide',
+    };
+    const path = tabToPathMap[activeTab] || '/';
+    trackPageView(path);
+  }, [activeTab]);
 
   // Load applications only for authenticated users; never cache personal records in localStorage.
   useEffect(() => {
@@ -551,24 +569,38 @@ export default function App() {
     const appFiscalYear = appInput.fiscalYear || 2570;
     const isActuallyDraft = asDraft || appInput.status === 'draft';
 
-    // For drafts, do not consume sequential tracking numbers
+    // For drafts, assign unique draft tracking number so D1 UNIQUE constraint never fails
     const finalTrackingNo = isActuallyDraft
-      ? (appInput.trackingNo && appInput.trackingNo !== 'DRAFT' ? appInput.trackingNo : 'DRAFT')
-      : (appInput.trackingNo && appInput.trackingNo !== 'DRAFT'
+      ? (appInput.trackingNo && !appInput.trackingNo.startsWith('DRAFT')
+          ? appInput.trackingNo
+          : (appInput.trackingNo && appInput.trackingNo.startsWith('DRAFT-')
+              ? appInput.trackingNo
+              : `DRAFT-${appFiscalYear}-${finalId.slice(-6).toUpperCase()}`))
+      : (appInput.trackingNo && !appInput.trackingNo.startsWith('DRAFT')
           ? appInput.trackingNo
           : generateNextTrackingNo(appFiscalYear, applications.map((a) => a.trackingNo)));
 
     const today = new Date().toISOString().split('T')[0];
 
+    // Priority to appInput fields (critical when secretary records on behalf of a researcher)
+    const targetApplicantName = appInput.applicantName || activeUser.name;
+    const targetAcademicPosition = appInput.academicPosition !== undefined ? appInput.academicPosition : activeUser.academicPosition;
+    const targetDepartment = appInput.department || activeUser.department;
+    const targetPhone = appInput.phone !== undefined ? appInput.phone : activeUser.phone;
+    const targetEmail = appInput.email || activeUser.email;
+    const targetBankName = appInput.bankName || activeUser.bankName || 'ธนาคารกรุงไทย';
+    const targetBankAccountNo = appInput.bankAccountNo !== undefined ? appInput.bankAccountNo : (activeUser.bankAccountNo || '');
+    const targetIdCardNo = appInput.idCardNo !== undefined ? appInput.idCardNo : (activeUser.idCardNo || '');
+
     const finalApp: ResearchApplication = {
-      applicantName: activeUser.name,
-      academicPosition: activeUser.academicPosition,
-      department: activeUser.department,
-      phone: activeUser.phone,
-      email: activeUser.email,
-      bankName: 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร',
-      bankAccountNo: activeUser.bankAccountNo || '',
-      idCardNo: activeUser.idCardNo || '',
+      applicantName: targetApplicantName,
+      academicPosition: targetAcademicPosition,
+      department: targetDepartment,
+      phone: targetPhone,
+      email: targetEmail,
+      bankName: targetBankName,
+      bankAccountNo: targetBankAccountNo,
+      idCardNo: targetIdCardNo,
       pdpaConsentAccepted: true,
       pdpaConsentDate: today,
       requestType: 'both',
@@ -622,12 +654,17 @@ export default function App() {
     setEditingDraftApp(null);
 
     if (isActuallyDraft) {
-      if (isExistingApp) {
-        updateRewardApplicationInD1(finalId, finalApp).catch((e) => console.warn('D1 update draft error:', e));
-      } else {
-        createRewardApplicationInD1(finalApp).catch((e) => console.warn('D1 create draft error:', e));
-      }
-      showToast(`💾 บันทึกร่างเตรียมเบิกรางวัล "${finalApp.articleTitle || 'ฉบับร่าง'}" สำเร็จ! ตรวจสอบได้ที่เมนู "เตรียมเบิกรางวัล & วงเงิน"`);
+      const d1DraftPromise = isExistingApp
+        ? updateRewardApplicationInD1(finalId, finalApp)
+        : createRewardApplicationInD1(finalApp);
+      d1DraftPromise
+        .then(() => {
+          showToast(`💾 บันทึกร่างเตรียมเบิกรางวัล "${finalApp.articleTitle || 'ฉบับร่าง'}" ลงฐานข้อมูล D1 สำเร็จ!`);
+        })
+        .catch((e) => {
+          console.warn('D1 draft sync error:', e);
+          showToast(`⚠️ บันทึกร่างในเครื่องแล้ว แต่การซิงก์เข้า D1 ขัดข้อง: ${e.message}`);
+        });
       return;
     }
 
@@ -746,9 +783,9 @@ export default function App() {
 
   const handleSubmitDraft = (draftApp: ResearchApplication) => {
     const today = new Date().toISOString().split('T')[0];
-    // Preserve existing tracking number if it was already assigned (e.g. returned from submitted)
+    // Convert DRAFT tracking number to official sequential tracking number
     const targetTrackingNo =
-      draftApp.trackingNo && draftApp.trackingNo !== 'DRAFT'
+      draftApp.trackingNo && !draftApp.trackingNo.startsWith('DRAFT')
         ? draftApp.trackingNo
         : generateNextTrackingNo(
             draftApp.fiscalYear,
@@ -792,7 +829,7 @@ export default function App() {
     const updatedDrafts: ResearchApplication[] = [];
     draftApps.forEach((draft) => {
       const nextTrackingNo =
-        draft.trackingNo && draft.trackingNo !== 'DRAFT'
+        draft.trackingNo && !draft.trackingNo.startsWith('DRAFT')
           ? draft.trackingNo
           : generateNextTrackingNo(draft.fiscalYear, currentTrackingList);
       if (!currentTrackingList.includes(nextTrackingNo)) {

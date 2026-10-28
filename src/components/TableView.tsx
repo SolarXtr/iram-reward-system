@@ -389,9 +389,15 @@ export const TableView: React.FC<TableViewProps> = ({
                     <tr key={rowKey} className="hover:bg-slate-50/70 transition-colors">
                       {/* Col 1: Tracking */}
                       <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-mono">
-                          {app.trackingNo}
-                        </span>
+                        {app.trackingNo?.startsWith('DRAFT') ? (
+                          <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-300 font-mono">
+                            ร่างคำขอ (DRAFT)
+                          </span>
+                        ) : (
+                          <span className="font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-mono">
+                            {app.trackingNo}
+                          </span>
+                        )}
                         <div className="text-[10px] text-slate-500 mt-0.5">
                           <span className="font-medium text-amber-700 bg-amber-50 px-1 rounded mr-1">ปี {app.fiscalYear}</span>
                           <span>{app.createdAt}</span>

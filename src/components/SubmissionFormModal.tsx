@@ -391,7 +391,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
       setSelectedBehalfUserId('');
       if (initialData) {
         if (initialData.fiscalYear) setFiscalYear(Number(initialData.fiscalYear));
-        if (initialData.trackingNo && initialData.trackingNo !== 'DRAFT') {
+        if (initialData.trackingNo && !initialData.trackingNo.startsWith('DRAFT')) {
           setTrackingNoInput(String(initialData.trackingNo));
         }
         setApplicantName(initialData.applicantName || activeUserProfile.name || '');
@@ -399,15 +399,24 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
         setDepartment(normalizeDepartment(initialData.department || activeUserProfile.department));
         setPhone(initialData.phone ? String(initialData.phone) : (activeUserProfile.phone ? String(activeUserProfile.phone) : ''));
         setEmail(initialData.email || activeUserProfile.email || '');
-        setBankName(initialData.bankName || activeUserProfile.bankName || 'ธนาคารกรุงศรีอยุธยา');
+        setBankName(initialData.bankName || activeUserProfile.bankName || 'ธนาคารกรุงไทย');
         setBankAccountNo(initialData.bankAccountNo ? String(initialData.bankAccountNo) : (activeUserProfile.bankAccountNo ? String(activeUserProfile.bankAccountNo) : ''));
         setIdCardNo(initialData.idCardNo ? String(initialData.idCardNo) : (activeUserProfile.idCardNo ? String(activeUserProfile.idCardNo) : ''));
+
+        if (initialData.email) {
+          const matchedResearcher = selectableResearchers.find(
+            (u) => u.email.toLowerCase() === initialData.email?.toLowerCase()
+          );
+          if (matchedResearcher) {
+            setSelectedBehalfUserId(matchedResearcher.id);
+          }
+        }
 
         setRequestType(initialData.requestType || 'reward_only');
         setArticleTitle(initialData.articleTitle || '');
         setJournalName(initialData.journalName || '');
         setJournalScope(initialData.journalScope || 'international');
-        setDatabase(initialData.database || 'Web of Science');
+        setDatabase(((initialData.database || (initialData as any).databaseName) || 'Web of Science') as DatabaseName);
         setQuartile(initialData.quartile || 'Q2');
         setIsTier1Top10(Boolean(initialData.isTier1Top10));
         setAuthorRole(initialData.authorRole || 'first_author');
@@ -427,11 +436,11 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
         setPageChargeInput(initClaimedPageCharge > 0 ? formatPageChargeInput(initClaimedPageCharge) : '');
         setPageChargePaidDate(initialData.pageChargePaidDate || '');
 
-        setMedNuAffiliationDeclared(Boolean(initialData.medNuAffiliationDeclared));
-        setNotForGraduation(Boolean(initialData.notForGraduation));
-        setWithin24Months(Boolean(initialData.within24Months));
+        setMedNuAffiliationDeclared(initialData.medNuAffiliationDeclared !== undefined ? Boolean(initialData.medNuAffiliationDeclared) : true);
+        setNotForGraduation(initialData.notForGraduation !== undefined ? Boolean(initialData.notForGraduation) : true);
+        setWithin24Months(initialData.within24Months !== undefined ? Boolean(initialData.within24Months) : true);
         setNotPreviouslyClaimed(true);
-        setPdpaConsentAccepted(Boolean(initialData.pdpaConsentAccepted));
+        setPdpaConsentAccepted(initialData.pdpaConsentAccepted !== undefined ? Boolean(initialData.pdpaConsentAccepted) : true);
       } else {
         const freshProfile = currentUser || getStoredUserProfile();
         if (freshProfile) {
@@ -526,7 +535,9 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
     const draftApp: Partial<ResearchApplication> = {
       ...(initialData || {}),
       id: generatedId,
-      trackingNo: initialData?.trackingNo && initialData.trackingNo !== 'DRAFT' ? initialData.trackingNo : 'DRAFT',
+      trackingNo: (initialData?.trackingNo && initialData.trackingNo !== 'DRAFT')
+        ? initialData.trackingNo
+        : `DRAFT-${fiscalYear}-${generatedId.slice(-6).toUpperCase()}`,
       fiscalYear,
       createdAt: initialData?.createdAt || today,
       updatedAt: today,
@@ -641,9 +652,10 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
     }
 
     const generatedId = initialData?.id || `app-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    const finalTrackingNo = (initialData?.trackingNo && initialData.trackingNo !== 'DRAFT')
+    const isInitialDraft = !initialData?.trackingNo || initialData.trackingNo === 'DRAFT' || initialData.trackingNo.startsWith('DRAFT-') || initialData.status === 'draft';
+    const finalTrackingNo = (!isInitialDraft && initialData?.trackingNo)
       ? initialData.trackingNo
-      : (trackingNoInput.trim() && trackingNoInput.trim() !== 'DRAFT'
+      : (trackingNoInput.trim() && !trackingNoInput.trim().startsWith('DRAFT')
           ? trackingNoInput.trim()
           : autoGeneratedTrackingNo);
     const today = new Date().toISOString().split('T')[0];
@@ -727,7 +739,8 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
 
   if (!isOpen) return null;
 
-  const hasOriginalTrackingNo = Boolean(initialData?.trackingNo && initialData.trackingNo !== 'DRAFT');
+  const isDraftRecord = Boolean(initialData?.status === 'draft' || initialData?.trackingNo?.startsWith('DRAFT'));
+  const hasOriginalTrackingNo = Boolean(initialData?.trackingNo && !isDraftRecord);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
@@ -774,6 +787,22 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
         {/* Modal Scrollable Body */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-6 text-xs text-slate-800">
           
+          {/* Return for Modification Alert Banner */}
+          {Boolean(initialData?.coordinatorNotes) && (
+            <div className="p-4 bg-amber-500/10 border-l-4 border-amber-500 rounded-r-xl space-y-1.5 text-xs text-amber-950 shadow-2xs animate-in fade-in">
+              <div className="flex items-center gap-2 font-bold text-amber-900 text-sm font-prompt">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>คำขอถูกส่งคืนเพื่อแก้ไข (Returned for Modification)</span>
+              </div>
+              <p className="pl-7 text-slate-800 font-medium leading-relaxed">
+                <strong>ข้อความแจ้งจากเจ้าหน้าที่ / ผู้ประสานงานวิจัย:</strong> {initialData?.coordinatorNotes}
+              </p>
+              <p className="pl-7 text-[11px] text-amber-800">
+                ท่านสามารถแก้ไขข้อมูลในแบบฟอร์มด้านล่างให้ถูกต้อง และกด <strong>"บันทึกและส่งคำขอ"</strong> เพื่อส่งข้อมูลกลับมาพิจารณาอีกครั้งโดยคงรหัสติดตามเดิม
+              </p>
+            </div>
+          )}
+
           {/* Section 0: กำหนดปีงบประมาณและเลขที่ติดตาม (Dynamic Fiscal Year & AWP Prefix) */}
           <div className="bg-gradient-to-r from-blue-50/90 via-amber-50/40 to-slate-50 p-4 rounded-xl border border-blue-200/90 shadow-sm space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-blue-200/70 pb-2.5">

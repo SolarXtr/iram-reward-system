@@ -196,18 +196,22 @@ export const Header: React.FC<HeaderProps> = ({
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
       roles: ['admin', 'dept_secretary'],
     },
-    {
-      id: 'user_guide',
-      label: 'คู่มือการใช้งาน (Manual)',
-      shortLabel: 'คู่มือการใช้งาน',
-      description: 'คู่มือขั้นตอนการยื่นขอรับเงินรางวัลและค่าตีพิมพ์สำหรับนักวิจัย',
-      icon: BookOpen,
-      roles: ['researcher', 'dept_secretary', 'coordinator', 'finance', 'executive', 'admin'],
-    },
   ];
 
   const availableTabs = allNavTabs.filter(tab => tab.roles.includes(currentRole));
-  const activeTabItem = availableTabs.find(tab => tab.id === activeTab) || availableTabs[0];
+  
+  const userGuideTabFallback = {
+    id: 'user_guide' as ActiveTab,
+    label: 'คู่มือการใช้งาน (User Guide)',
+    shortLabel: 'คู่มือการใช้งาน',
+    description: 'คู่มือขั้นตอนการยื่นขอรับเงินรางวัลและค่าตีพิมพ์สำหรับนักวิจัย',
+    icon: BookOpen,
+    roles: [],
+  };
+
+  const activeTabItem = activeTab === 'user_guide'
+    ? userGuideTabFallback
+    : (availableTabs.find(tab => tab.id === activeTab) || availableTabs[0]);
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-lg">

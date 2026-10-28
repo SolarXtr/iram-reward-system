@@ -30,10 +30,12 @@ import {
   Layers, 
   X, 
   AlertCircle,
-  LogOut
+  LogOut,
+  BarChart3
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 import { isSameDepartment, isResearcherOnlyUser } from '../utils/permissionUtils';
+import { PageviewAnalyticsModal } from './PageviewAnalyticsModal';
 
 interface UserManagementViewProps {
   users: UserProfile[];
@@ -158,6 +160,9 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   // Delete Confirm State
   const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserProfile | null>(null);
+
+  // Analytics Modal State
+  const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<Partial<UserProfile>>({
@@ -637,6 +642,17 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               <UserPlus className="w-4 h-4" />
               <span>{isDeptSecretary ? 'เพิ่มนักวิจัยในสังกัด' : 'เพิ่มผู้ใช้งานใหม่'}</span>
             </button>
+
+            {!isDeptSecretary && (
+              <button
+                onClick={() => setIsAnalyticsModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white rounded-xl text-xs font-semibold border border-blue-500/40 transition-colors shadow-sm cursor-pointer"
+                title="เปิดดูสถิติการเข้าชมหน้าเพจจาก Cloudflare Workers (Pageview Analytics)"
+              >
+                <BarChart3 className="w-4 h-4 text-blue-400" />
+                <span className="hidden sm:inline font-prompt">สถิติเข้าชมเพจ</span>
+              </button>
+            )}
 
             {!isDeptSecretary && (
               <button
@@ -1560,6 +1576,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Pageview Analytics Modal */}
+      <PageviewAnalyticsModal
+        isOpen={isAnalyticsModalOpen}
+        onClose={() => setIsAnalyticsModalOpen(false)}
+      />
     </div>
   );
 };

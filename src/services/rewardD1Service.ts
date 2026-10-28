@@ -135,7 +135,17 @@ export async function fetchRewardApplicationsFromD1(fiscalYear?: number): Promis
       throw new Error(`Failed to fetch applications: ${response.status}`);
     }
     const data = await response.json();
-    return data as ResearchApplication[];
+    const mapped = (data as any[]).map((row) => ({
+      ...row,
+      database: (row.database || row.databaseName || 'Scopus') as any,
+      databaseName: (row.databaseName || row.database || 'Scopus') as any,
+      pdpaConsentAccepted: Boolean(row.pdpaConsentAccepted),
+      isTier1Top10: Boolean(row.isTier1Top10),
+      within24Months: row.within24Months !== undefined ? Boolean(row.within24Months) : true,
+      notForGraduation: row.notForGraduation !== undefined ? Boolean(row.notForGraduation) : true,
+      medNuAffiliationDeclared: row.medNuAffiliationDeclared !== undefined ? Boolean(row.medNuAffiliationDeclared) : true,
+    }));
+    return mapped as ResearchApplication[];
   } catch (error) {
     console.error('Failed to fetch applications from D1:', error);
     throw error;
@@ -149,13 +159,17 @@ export async function fetchRewardApplicationsFromD1(fiscalYear?: number): Promis
  */
 export async function createRewardApplicationInD1(application: Partial<ResearchApplication>): Promise<{ status: string; id: string; trackingNo: string }> {
   try {
+    const payload = {
+      ...application,
+      databaseName: application.databaseName || application.database || 'Scopus',
+    };
     const response = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...await getAuthHeaders(),
       },
-      body: JSON.stringify(application)
+      body: JSON.stringify(payload)
     });
 
     const result = await response.json();
@@ -176,13 +190,17 @@ export async function createRewardApplicationInD1(application: Partial<ResearchA
  */
 export async function updateRewardApplicationInD1(id: string, updates: Partial<ResearchApplication>): Promise<{ status: string; id: string }> {
   try {
+    const payload = {
+      ...updates,
+      ...(updates.database ? { databaseName: updates.databaseName || updates.database } : {}),
+    };
     const response = await fetch(`${API_BASE_URL}/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         ...await getAuthHeaders(),
       },
-      body: JSON.stringify(updates)
+      body: JSON.stringify(payload)
     });
 
     const result = await response.json();
