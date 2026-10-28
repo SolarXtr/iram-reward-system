@@ -307,14 +307,25 @@ export default function App() {
     const isSecretaryMode = !isRealAdmin && (currentRole === 'dept_secretary' || currentUser?.role === 'dept_secretary');
     if (isSecretaryMode) {
       const existingTarget = registeredUsers.find((u) => u.id === updatedUser.id);
-      if (existingTarget && !isResearcherOnlyUser(existingTarget)) {
-        showToast('⚠️ เลขาภาควิชาสามารถแก้ไขข้อมูลส่วนตัวได้เฉพาะผู้ใช้สถานะนักวิจัยเท่านั้น');
+      if (!existingTarget) {
+        showToast('⚠️ ไม่พบบัญชีผู้ใช้งานที่ต้องการแก้ไข');
         return false;
       }
+      if (!isSameDepartment(currentUser?.department, existingTarget.department)) {
+        showToast('⚠️ เลขาภาควิชาสามารถแก้ไขได้เฉพาะบุคลากรในภาควิชาที่ตนเองสังกัดเท่านั้น');
+        return false;
+      }
+      const isTargetAdmin = existingTarget.role === 'admin' || (existingTarget.roles || []).includes('admin');
+      if (isTargetAdmin) {
+        showToast('⚠️ เลขาภาควิชาไม่สามารถแก้ไขบัญชีผู้ดูแลระบบได้');
+        return false;
+      }
+      // Preserve existing role and roles (cannot add or reduce roles)
       updatedUser = {
         ...updatedUser,
-        role: 'researcher',
-        roles: ['researcher'],
+        role: existingTarget.role,
+        roles: existingTarget.roles && existingTarget.roles.length > 0 ? existingTarget.roles : [existingTarget.role],
+        department: existingTarget.department,
       };
     }
     try {
@@ -363,11 +374,8 @@ export default function App() {
     const isRealAdmin = currentUser?.role === 'admin' || (currentUser?.roles || []).includes('admin');
     const isSecretaryMode = !isRealAdmin && (currentRole === 'dept_secretary' || currentUser?.role === 'dept_secretary');
     if (isSecretaryMode) {
-      const target = registeredUsers.find((u) => u.id === userId);
-      if (target && !isResearcherOnlyUser(target)) {
-        showToast('⚠️ เลขาภาควิชาไม่สามารถลบบัญชีที่มีสถานะอื่นนอกเหนือจากนักวิจัยได้');
-        return false;
-      }
+      showToast('⚠️ เลขาภาควิชาไม่มีสิทธิ์ลบบัญชีผู้ใช้งานในระบบ');
+      return false;
     }
     try {
       await deleteUserFromD1(userId);

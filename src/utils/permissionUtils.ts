@@ -82,7 +82,7 @@ export function isResearcherOnlyUser(user?: UserProfile | null): boolean {
 /**
  * Determines if the current user can access/view a target user's profile
  * - Admin & Faculty Coordinator: full access across faculty
- * - Department Secretary: only users with 'researcher' status in the same department
+ * - Department Secretary: users belonging to the same department (researcher, executive, coordinator, finance, dept_secretary; excluding admin)
  * - Others: only self
  */
 export function canAccessUserProfile(
@@ -94,7 +94,8 @@ export function canAccessUserProfile(
   if (activeRole === 'admin' || activeRole === 'coordinator') return true;
 
   if (activeRole === 'dept_secretary') {
-    return isResearcherOnlyUser(targetUser) && isSameDepartment(currentUser.department, targetUser.department);
+    const isTargetAdmin = targetUser.role === 'admin' || (targetUser.roles || []).includes('admin');
+    return !isTargetAdmin && isSameDepartment(currentUser.department, targetUser.department);
   }
 
   // researcher or others: only self
@@ -107,7 +108,7 @@ export function canAccessUserProfile(
 /**
  * Determines if the current user can edit/update a target user's profile
  * - Admin: can edit anyone
- * - Department Secretary: can edit only 'researcher' status users in the same department
+ * - Department Secretary: can edit users in the same department (excluding admin), but cannot alter roles
  * - Target user: can edit self
  */
 export function canEditUserProfile(
@@ -119,7 +120,8 @@ export function canEditUserProfile(
   if (activeRole === 'admin') return true;
 
   if (activeRole === 'dept_secretary') {
-    return isResearcherOnlyUser(targetUser) && isSameDepartment(currentUser.department, targetUser.department);
+    const isTargetAdmin = targetUser.role === 'admin' || (targetUser.roles || []).includes('admin');
+    return !isTargetAdmin && isSameDepartment(currentUser.department, targetUser.department);
   }
 
   return (

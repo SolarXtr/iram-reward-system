@@ -107,23 +107,25 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     (currentRole === 'dept_secretary' || currentLoggedInUser?.role === 'dept_secretary');
   const userDepartment = currentLoggedInUser?.department?.trim() || '';
 
-  // Determine whether the logged-in user is tied to a specific department with researchers
-  const hasResearchersInOwnDept = useMemo(() => {
+  // Determine whether the logged-in user is tied to a specific department
+  const hasMembersInOwnDept = useMemo(() => {
     if (!userDepartment) return false;
-    return users.some((u) => isResearcherOnlyUser(u) && isSameDepartment(userDepartment, u.department));
+    return users.some((u) => isSameDepartment(userDepartment, u.department));
   }, [users, userDepartment]);
 
   const isStrictDeptLocked =
-    isDeptSecretary && (currentLoggedInUser?.role === 'dept_secretary' || hasResearchersInOwnDept);
+    isDeptSecretary && (currentLoggedInUser?.role === 'dept_secretary' || hasMembersInOwnDept);
 
   // Scoped users:
   // - Admin: sees all users
-  // - Department Secretary: strictly sees ONLY users with 'researcher' status (no admin/executive/coordinator/finance/dept_secretary)
-  //   and scoped to their department when applicable.
+  // - Department Secretary: sees members belonging to their own department (researcher, executive, coordinator, finance, dept_secretary; excluding admin superusers)
   const scopedUsers = useMemo(() => {
     if (!isDeptSecretary) return users;
     return users.filter((u) => {
-      if (!isResearcherOnlyUser(u)) return false;
+      // Secretary cannot manage superadmin accounts
+      const isTargetAdmin = u.role === 'admin' || (u.roles || []).includes('admin');
+      if (isTargetAdmin) return false;
+
       if (isStrictDeptLocked && userDepartment) {
         return isSameDepartment(userDepartment, u.department);
       }
@@ -322,13 +324,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   // Filtered users
   const filteredUsers = scopedUsers.filter((user) => {
-    // When Department Secretary is active, strictly ensure only researcher status users are shown
-    if (isDeptSecretary && !isResearcherOnlyUser(user)) {
-      return false;
-    }
-
-    // Role filter (Admin only)
-    if (!isDeptSecretary && roleFilter !== 'all') {
+    // Role filter
+    if (roleFilter !== 'all') {
       const matchesPrimary = user.role === roleFilter;
       const matchesSecondary = user.roles?.includes(roleFilter as UserRole);
       if (!matchesPrimary && !matchesSecondary) return false;
@@ -388,15 +385,18 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   // Open modal for Edit
   const handleOpenEditModal = (user: UserProfile) => {
-    if (isDeptSecretary && !isResearcherOnlyUser(user)) {
-      onShowAlert?.('⚠️ เลขาภาควิชาสามารถแก้ไขข้อมูลส่วนตัวของผู้ใช้สถานะนักวิจัยเท่านั้น');
-      return;
+    if (isDeptSecretary) {
+      const isTargetAdmin = user.role === 'admin' || (user.roles || []).includes('admin');
+      if (isTargetAdmin) {
+        onShowAlert?.('⚠️ เลขาภาควิชาไม่สามารถแก้ไขบัญชีผู้ดูแลระบบได้');
+        return;
+      }
     }
     setEditingUser(user);
     setFormData({
       ...user,
-      role: isDeptSecretary ? 'researcher' : user.role,
-      roles: isDeptSecretary ? ['researcher'] : (user.roles && user.roles.length > 0 ? user.roles : [user.role]),
+      role: user.role,
+      roles: user.roles && user.roles.length > 0 ? user.roles : [user.role],
     });
     setIsModalOpen(true);
   };
@@ -409,16 +409,25 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       return;
     }
 
-    if (isDeptSecretary && editingUser && !isResearcherOnlyUser(editingUser)) {
-      onShowAlert?.('⚠️ เลขาภาควิชาไม่สามารถแก้ไขข้อมูลของผู้ใช้ที่มีสถานะอื่นนอกจากนักวิจัยได้');
-      return;
+    if (isDeptSecretary && editingUser) {
+      const isTargetAdmin = editingUser.role === 'admin' || (editingUser.roles || []).includes('admin');
+      if (isTargetAdmin) {
+        onShowAlert?.('⚠️ เลขาภาควิชาไม่สามารถแก้ไขบัญชีผู้ดูแลระบบได้');
+        return;
+      }
     }
 
-    // Department secretary is strictly locked to researcher role only
-    const enforcedRole: UserRole = isDeptSecretary ? 'researcher' : (formData.role || 'researcher');
+    // Department secretary cannot add or reduce roles (preserves existing roles when editing, locks to researcher for new users)
+    const enforcedRole: UserRole = isDeptSecretary
+      ? (editingUser ? editingUser.role : 'researcher')
+      : (formData.role || 'researcher');
     const enforcedRoles: UserRole[] = isDeptSecretary
-      ? ['researcher']
-      : Array.from(new Set<UserRole>([enforcedRole, ...((formData.roles && formData.roles.length > 0) ? formData.roles : []), ...(enforcedRole === 'dept_secretary' ? (['researcher'] as UserRole[]) : [])]));
+      ? (editingUser ? (editingUser.roles && editingUser.roles.length > 0 ? editingUser.roles : [editingUser.role]) : ['researcher'])
+      : Array.from(new Set<UserRole>([
+          enforcedRole,
+          ...((formData.roles && formData.roles.length > 0) ? formData.roles : []),
+          ...(enforcedRole === 'dept_secretary' ? (['researcher'] as UserRole[]) : [])
+        ]));
     const enforcedDepartment =
       isStrictDeptLocked && userDepartment ? userDepartment : formData.department.trim();
 
@@ -513,8 +522,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   // Delete User Confirmation
   const handleConfirmDelete = async () => {
     if (!deleteConfirmUser) return;
-    if (isDeptSecretary && !isResearcherOnlyUser(deleteConfirmUser)) {
-      onShowAlert?.('⚠️ เลขาภาควิชาไม่สามารถลบบัญชีที่มีสถานะอื่นนอกเหนือจากนักวิจัยได้');
+    if (isDeptSecretary) {
+      onShowAlert?.('⚠️ เลขาภาควิชาไม่มีสิทธิ์ลบบัญชีผู้ใช้งานในระบบ');
       setDeleteConfirmUser(null);
       return;
     }
@@ -587,17 +596,17 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 </span>
                 <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  {isDeptSecretary ? 'จำกัดเฉพาะผู้ใช้สถานะนักวิจัยเท่านั้น' : 'Admin Authenticated'}
+                  {isDeptSecretary ? 'สิทธิ์เลขาภาควิชา (เฉพาะบุคลากรในสังกัด)' : 'Admin Authenticated'}
                 </span>
               </div>
               <h2 className="text-2xl font-bold font-prompt text-white tracking-tight mt-1">
                 {isDeptSecretary
-                  ? `ระบบจัดการข้อมูลนักวิจัย${isStrictDeptLocked && userDepartment ? ` (${userDepartment})` : ''}`
+                  ? `ระบบจัดการข้อมูลบุคลากรในภาควิชา${isStrictDeptLocked && userDepartment ? ` (${userDepartment})` : ''}`
                   : 'ระบบจัดการผู้ใช้งานและสิทธิ์เข้าถึง (User Management Console)'}
               </h2>
               <p className="text-sm text-slate-300 mt-1 max-w-3xl leading-relaxed">
                 {isDeptSecretary
-                  ? 'เลขาภาควิชามองเห็นและแก้ไขข้อมูลส่วนตัวได้เฉพาะผู้ใช้สถานะ "นักวิจัย (Researcher)" เท่านั้น ไม่สามารถมองเห็นหรือแก้ไขสถานะเป็นผู้ดูแลระบบหรือบทบาทอื่นที่เกินสิทธิ์ได้'
+                  ? 'เลขาภาควิชาสามารถมองเห็นและแก้ไขข้อมูลส่วนตัวของบุคลากรในสังกัด (นักวิจัย, ผู้บริหาร, เจ้าหน้าที่วิจัย, การเงิน) ได้ แต่ไม่สามารถเพิ่ม/ลดสิทธิ์หรือลบบัญชีผู้ใช้งานได้'
                   : 'ศูนย์กลางควบคุมบัญชีผู้ใช้งาน สิทธิ์การเข้าถึงข้อมูลทั้ง 6 บทบาทในระบบเงินรางวัล คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร พร้อมระบบสลับมุมมองทดสอบ (Impersonation) และการคุ้มครองข้อมูลส่วนบุคคล'}
               </p>
             </div>
@@ -645,31 +654,54 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
       {/* Role Summary Stats Cards */}
       {isDeptSecretary ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-white rounded-xl p-4 border border-teal-200 ring-1 ring-teal-500/20 shadow-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div 
+            onClick={() => setRoleFilter('all')}
+            className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
+              roleFilter === 'all' ? 'ring-2 ring-teal-500 border-teal-500 shadow-sm' : 'border-teal-200 shadow-xs'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-teal-800">
-                นักวิจัยที่จัดการได้ {isStrictDeptLocked && userDepartment ? `(${userDepartment})` : '(สถานะนักวิจัยเท่านั้น)'}
+                บุคลากรในสังกัด {isStrictDeptLocked && userDepartment ? `(${userDepartment})` : ''}
               </span>
+              <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+                <Users className="w-4 h-4 text-teal-600" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-prompt text-slate-900 mt-2">{stats.total}</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">
+              รวมทุกบทบาทในสังกัดภาควิชา
+            </div>
+          </div>
+
+          <div 
+            onClick={() => setRoleFilter('researcher')}
+            className={`cursor-pointer bg-white rounded-xl p-4 border transition-all hover:shadow-md ${
+              roleFilter === 'researcher' ? 'ring-2 ring-amber-500 border-amber-500 shadow-sm' : 'border-slate-200 shadow-xs'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-amber-700">นักวิจัย</span>
               <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
                 <GraduationCap className="w-4 h-4 text-amber-600" />
               </div>
             </div>
-            <div className="text-2xl font-bold font-prompt text-slate-900 mt-2">{stats.researcher}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
-              แสดงเฉพาะผู้ใช้สถานะนักวิจัย (ซ่อนผู้ดูแลระบบและสถานะอื่นทั้งหมด)
-            </div>
+            <div className="text-2xl font-bold font-prompt text-amber-800 mt-2">{stats.researcher}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">อาจารย์และนักวิจัย</div>
           </div>
 
           <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-emerald-700">สถานะเปิดใช้งาน (Active)</span>
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <UserCheck className="w-4 h-4 text-emerald-600" />
+              <span className="text-xs font-medium text-indigo-700">ผู้บริหาร / เจ้าหน้าที่</span>
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center">
+                <Award className="w-4 h-4 text-indigo-600" />
               </div>
             </div>
-            <div className="text-2xl font-bold font-prompt text-emerald-800 mt-2">{stats.activeResearchers}</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">พร้อมยื่นคำขอรับเงินรางวัล</div>
+            <div className="text-2xl font-bold font-prompt text-indigo-800 mt-2">
+              {stats.executive + stats.coordinator + stats.finance}
+            </div>
+            <div className="text-[11px] text-slate-400 mt-0.5">หัวหน้าภาคฯ / เจ้าหน้าที่สังกัดภาค</div>
           </div>
 
           <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
@@ -679,12 +711,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 <Lock className="w-4 h-4 text-slate-600" />
               </div>
             </div>
-            <div className="text-sm font-bold font-prompt text-teal-800 mt-2.5 flex items-center gap-1.5">
-              <Shield className="w-4 h-4 text-teal-600 shrink-0" />
-              <span>แก้ไขข้อมูลส่วนตัวนักวิจัยเท่านั้น</span>
+            <div className="text-xs font-bold font-prompt text-teal-800 mt-2 flex items-center gap-1">
+              <Shield className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+              <span>แก้ไขข้อมูลส่วนตัวได้</span>
             </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              ไม่สามารถเพิ่มเติมหรือเปลี่ยนสถานะเป็นผู้ดูแลระบบ/สิทธิ์อื่นได้
+            <div className="text-[11px] text-rose-600 font-medium mt-1">
+              🔒 ห้ามเพิ่มลดสิทธิ์ / ห้ามลบข้อมูล
             </div>
           </div>
         </div>
@@ -825,11 +857,23 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          {/* Role Filter: Only shown to Admin; locked badge for Dept Secretary */}
+          {/* Role Filter */}
           {isDeptSecretary ? (
-            <div className="flex items-center gap-1.5 text-xs bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-lg font-medium">
-              <Lock className="w-3.5 h-3.5 text-amber-600" />
-              <span>สถานะที่มองเห็น: เฉพาะนักวิจัย ({stats.researcher})</span>
+            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+              <Filter className="w-3.5 h-3.5 text-teal-600" />
+              <span>บทบาท:</span>
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+              >
+                <option value="all">ทุกบทบาทในสังกัด ({stats.total})</option>
+                <option value="researcher">นักวิจัย ({stats.researcher})</option>
+                {stats.executive > 0 && <option value="executive">ผู้บริหาร ({stats.executive})</option>}
+                {stats.coordinator > 0 && <option value="coordinator">เจ้าหน้าที่วิจัย ({stats.coordinator})</option>}
+                {stats.finance > 0 && <option value="finance">งานการเงิน ({stats.finance})</option>}
+                {stats.dept_secretary > 0 && <option value="dept_secretary">เลขาภาควิชา ({stats.dept_secretary})</option>}
+              </select>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 text-xs text-slate-600">
@@ -1027,11 +1071,13 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                       <td className="py-3.5 px-4">
                         {isDeptSecretary ? (
                           <span
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold py-1 px-2.5 rounded-lg border bg-amber-500/10 text-amber-800 border-amber-300 select-none"
-                            title="เลขาภาควิชาไม่สามารถเปลี่ยนแปลงบทบาทผู้ใช้งานได้"
+                            className={`inline-flex items-center gap-1.5 text-xs font-semibold py-1 px-2.5 rounded-lg border select-none ${
+                              ROLE_CONFIG[user.role]?.badgeClass || 'bg-slate-100 text-slate-700 border-slate-300'
+                            }`}
+                            title="เลขาภาควิชาไม่สามารถเปลี่ยนแปลงบทบาทผู้ใช้งานได้ (ล็อกตามสิทธิ์เดิม)"
                           >
-                            <Lock className="w-3 h-3 text-amber-600" />
-                            <span>นักวิจัย (Researcher)</span>
+                            <Lock className="w-3 h-3 opacity-60" />
+                            <span>{ROLE_CONFIG[user.role]?.label || user.role}</span>
                           </span>
                         ) : (
                           <div className="relative inline-block">
@@ -1059,31 +1105,24 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
                       {/* Secondary Roles */}
                       <td className="py-3.5 px-4">
-                        {isDeptSecretary ? (
-                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                            <Lock className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span>ไม่อนุญาตให้เพิ่มสถานะอื่น</span>
-                          </span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1 max-w-[150px]">
-                            {user.roles && user.roles.length > 0 ? (
-                              Array.from(new Set<UserRole>([user.role, ...user.roles])).map((r) => (
-                                <span
-                                  key={r}
-                                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-                                    r === user.role
-                                      ? 'bg-slate-200 text-slate-800 border-slate-300 font-bold'
-                                      : 'bg-slate-100 text-slate-600 border-slate-200'
-                                  }`}
-                                >
-                                  {ROLE_CONFIG[r]?.label || r}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-slate-400 text-[11px]">-</span>
-                            )}
-                          </div>
-                        )}
+                        <div className="flex flex-wrap gap-1 max-w-[150px]">
+                          {user.roles && user.roles.length > 0 ? (
+                            Array.from(new Set<UserRole>([user.role, ...user.roles])).map((r) => (
+                              <span
+                                key={r}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                                  r === user.role
+                                    ? 'bg-slate-200 text-slate-800 border-slate-300 font-bold'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                                }`}
+                              >
+                                {ROLE_CONFIG[r]?.label || r}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-slate-400 text-[11px]">-</span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Finance & PDPA Data */}
@@ -1132,24 +1171,26 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                           <button
                             onClick={() => handleOpenEditModal(user)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-100 transition-colors"
-                            title="แก้ไขข้อมูลส่วนตัวนักวิจัย"
+                            title="แก้ไขข้อมูลส่วนตัวบุคลากร"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
 
-                          {/* Delete Button (disabled for logged-in user) */}
-                          <button
-                            onClick={() => setDeleteConfirmUser(user)}
-                            disabled={isCurrent}
-                            className={`p-1.5 rounded-lg transition-colors ${
-                              isCurrent
-                                ? 'text-slate-300 cursor-not-allowed'
-                                : 'text-slate-500 hover:text-rose-600 hover:bg-rose-100'
-                            }`}
-                            title={isCurrent ? 'ไม่สามารถลบบัญชีที่กำลังล็อกอินอยู่ได้' : 'ลบบัญชีผู้ใช้'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {/* Delete Button (Only available for Admin, hidden for Dept Secretary) */}
+                          {!isDeptSecretary && (
+                            <button
+                              onClick={() => setDeleteConfirmUser(user)}
+                              disabled={isCurrent}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                isCurrent
+                                  ? 'text-slate-300 cursor-not-allowed'
+                                  : 'text-slate-500 hover:text-rose-600 hover:bg-rose-100'
+                              }`}
+                              title={isCurrent ? 'ไม่สามารถลบบัญชีที่กำลังล็อกอินอยู่ได้' : 'ลบบัญชีผู้ใช้'}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1187,7 +1228,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   <h3 className="font-bold text-base font-prompt">
                     {editingUser
                       ? isDeptSecretary
-                        ? 'แก้ไขข้อมูลส่วนตัวนักวิจัย'
+                        ? `แก้ไขข้อมูลส่วนตัวบุคลากร (${ROLE_CONFIG[editingUser.role]?.label || editingUser.role})`
                         : 'แก้ไขข้อมูลผู้ใช้งาน'
                       : isDeptSecretary
                       ? 'เพิ่มข้อมูลนักวิจัยใหม่ในสังกัด'
@@ -1195,7 +1236,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   </h3>
                   <p className="text-xs text-slate-300">
                     {isDeptSecretary
-                      ? 'เลขาภาควิชาสามารถแก้ไขข้อมูลส่วนตัวของนักวิจัยเท่านั้น ไม่สามารถเพิ่มเติมสถานะอื่นได้'
+                      ? 'เลขาภาควิชาสามารถแก้ไขข้อมูลส่วนตัวได้ แต่ไม่สามารถเพิ่มหรือลดบทบาท/สิทธิ์การใช้งานได้'
                       : 'บันทึกข้อมูลประจำตัว สิทธิ์บทบาท และข้อมูลบัญชีธนาคารตามเกณฑ์ PDPA'}
                   </p>
                 </div>
@@ -1310,15 +1351,18 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   </p>
                 </div>
 
-                {/* Primary Role: Locked to Researcher for Dept Secretary */}
+                {/* Primary Role: Locked for Dept Secretary */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     บทบาทหลัก (Primary Role) <span className="text-rose-500">*</span>
                   </label>
                   {isDeptSecretary ? (
-                    <div className="w-full px-3 py-2 border border-amber-300 bg-amber-50/70 rounded-lg text-xs text-amber-900 font-semibold flex items-center gap-1.5 select-none">
-                      <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                      <span>นักวิจัย (Researcher) — ล็อกตามสิทธิ์เลขาภาควิชา</span>
+                    <div className="w-full px-3 py-2 border border-slate-300 bg-slate-50 rounded-lg text-xs text-slate-800 font-semibold flex items-center justify-between select-none">
+                      <div className="flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span>{ROLE_CONFIG[formData.role || 'researcher']?.label || formData.role}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-normal">ล็อกตามสิทธิ์เดิม (ไม่สามารถแก้ไขได้)</span>
                     </div>
                   ) : (
                     <select
@@ -1358,10 +1402,23 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 {/* Additional Roles Multi-select Checkboxes (Locked for Dept Secretary) */}
                 {isDeptSecretary ? (
                   <div className="md:col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-start gap-2.5">
-                    <Lock className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
+                    <Lock className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
                     <div className="text-xs text-slate-700 leading-relaxed">
-                      <span className="font-bold text-slate-900">จำกัดสิทธิ์เฉพาะสถานะนักวิจัยเท่านั้น:</span>{' '}
-                      เลขาภาควิชาสามารถแก้ไขข้อมูลส่วนตัวของนักวิจัยได้เท่านั้น ไม่สามารถเพิ่มเติมสถานะผู้ดูแลระบบ (Admin) หรือบทบาทอื่นที่เกินสิทธิ์ได้
+                      <div className="font-bold text-slate-800">สิทธิ์เพิ่มเติมของบัญชีนี้:</div>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {formData.roles && formData.roles.length > 0 ? (
+                          formData.roles.map((r) => (
+                            <span key={r} className="px-2 py-0.5 rounded bg-white text-slate-700 border border-slate-200 text-[11px] font-medium">
+                              {ROLE_CONFIG[r]?.label || r}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 text-[11px]">-</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1">
+                        🔒 เลขาภาควิชาสามารถแก้ไขข้อมูลส่วนตัวได้ แต่ไม่สามารถเพิ่มหรือลดบทบาท/สิทธิ์การใช้งานได้
+                      </div>
                     </div>
                   </div>
                 ) : (
