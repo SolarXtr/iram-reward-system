@@ -14,6 +14,7 @@ import { OfficialPrintModal } from './components/OfficialPrintModal';
 import { PaymentVerificationModal } from './components/PaymentVerificationModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { UserManagementView } from './components/UserManagementView';
+import { UserGuideView } from './components/UserGuideView';
 import { LoginModal } from './components/LoginModal';
 import { ResearcherActivationModal } from './components/ResearcherActivationModal';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
@@ -113,7 +114,7 @@ export default function App() {
 
   // Enforce Guest Mode to remain on dashboard tab
   useEffect(() => {
-    if (!currentUser && activeTab !== 'dashboard') {
+    if (!currentUser && activeTab !== 'dashboard' && activeTab !== 'user_guide') {
       setActiveTab('dashboard');
     }
   }, [currentUser, activeTab]);
@@ -530,12 +531,12 @@ export default function App() {
     if (!currentUser) return;
     setCurrentRole(newRole);
     const roleAllowedTabs: Record<UserRole, ActiveTab[]> = {
-      researcher: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar'],
-      dept_secretary: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar', 'user_management'],
-      finance: ['dashboard', 'article_table', 'table', 'calendar'],
-      executive: ['dashboard', 'article_table', 'table', 'calendar'],
-      coordinator: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
-      admin: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
+      researcher: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar', 'user_guide'],
+      dept_secretary: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar', 'user_management', 'user_guide'],
+      finance: ['dashboard', 'article_table', 'table', 'calendar', 'user_guide'],
+      executive: ['dashboard', 'article_table', 'table', 'calendar', 'user_guide'],
+      coordinator: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', 'user_guide', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
+      admin: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', 'user_guide', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
     };
     const allowed = roleAllowedTabs[newRole] || ['dashboard'];
     if (!allowed.includes(activeTab)) {
@@ -1368,6 +1369,14 @@ export default function App() {
             </button>
           </div>
         ) : null}
+
+        {/* User Guide Tab */}
+        {activeTab === 'user_guide' && (
+          <UserGuideView
+            onBackToDashboard={() => setActiveTab('dashboard')}
+            onOpenNewSubmission={() => setIsSubmissionModalOpen(true)}
+          />
+        )}
 
           </div>
 

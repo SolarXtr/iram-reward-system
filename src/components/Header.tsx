@@ -32,7 +32,7 @@ import { UserProfile, UserRole } from '../types';
 import { LINE_NOTIFICATION_SYSTEM_ENABLED } from '../data/lineNotificationService';
 
 export type { UserRole };
-export type ActiveTab = 'dashboard' | 'quota_planner' | 'article_table' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management';
+export type ActiveTab = 'dashboard' | 'quota_planner' | 'article_table' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management' | 'user_guide';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -196,6 +196,14 @@ export const Header: React.FC<HeaderProps> = ({
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
       roles: ['admin', 'dept_secretary'],
     },
+    {
+      id: 'user_guide',
+      label: 'คู่มือการใช้งาน (Manual)',
+      shortLabel: 'คู่มือการใช้งาน',
+      description: 'คู่มือขั้นตอนการยื่นขอรับเงินรางวัลและค่าตีพิมพ์สำหรับนักวิจัย',
+      icon: BookOpen,
+      roles: ['researcher', 'dept_secretary', 'coordinator', 'finance', 'executive', 'admin'],
+    },
   ];
 
   const availableTabs = allNavTabs.filter(tab => tab.roles.includes(currentRole));
@@ -225,8 +233,23 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action Bar */}
           <div className="flex items-center gap-2.5">
-            {/* GUEST MODE: Header right bar is kept clean (login action is in content) */}
-            {isGuest ? null : (
+            {/* GUEST MODE: Show User Guide button */}
+            {isGuest ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setActiveTab('user_guide')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === 'user_guide'
+                      ? 'bg-amber-600 text-white border-amber-500 shadow-sm ring-1 ring-amber-400/50'
+                      : 'bg-slate-800/90 hover:bg-slate-700 text-amber-300 border-amber-500/40 hover:border-amber-400 hover:text-white'
+                  }`}
+                  title="เปิดดูคู่มือการใช้งานระบบสำหรับนักวิจัย"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="font-prompt">คู่มือการใช้งาน</span>
+                </button>
+              </div>
+            ) : (
               /* AUTHENTICATED MODE: Role switcher, Profile, D1, Submission, Logout */
               <>
                 {/* Search input: Show for ALL users */}
@@ -382,6 +405,20 @@ export const Header: React.FC<HeaderProps> = ({
                     <span>เปิดสิทธิ์นักวิจัย</span>
                   </button>
                 )}
+
+                {/* User Guide Box Link Button (Before Logout) */}
+                <button
+                  onClick={() => setActiveTab('user_guide')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === 'user_guide'
+                      ? 'bg-amber-600 text-white border-amber-500 shadow-sm ring-2 ring-amber-400/40'
+                      : 'bg-slate-800/90 hover:bg-slate-700 text-amber-300 border-amber-500/40 hover:border-amber-400 hover:text-white'
+                  }`}
+                  title="เปิดดูคู่มือการใช้งานระบบสำหรับนักวิจัย"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="hidden sm:inline font-prompt whitespace-nowrap">คู่มือการใช้งาน</span>
+                </button>
 
                 {/* Logout Button */}
                 <button
