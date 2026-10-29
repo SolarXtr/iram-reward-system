@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header, UserRole, ActiveTab } from './components/Header';
 import { DashboardView } from './components/DashboardView';
 import { QuotaPlannerView } from './components/QuotaPlannerView';
@@ -72,6 +72,9 @@ export default function App() {
   // Active authenticated user profile (null = Guest Mode)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getCurrentAuthUser());
   const isGuest = !currentUser;
+
+  // Registered users list in system (Single source of truth)
+  const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(() => getStoredUsersRegistry());
 
   // Admin Impersonator State (จำตัวตนของผู้ดูแลระบบ/เลขาภาควิชาเดิมเมื่อสลับไปเป็น User อื่น เพื่อทดสอบหรือทำหน้าที่แทน)
   const [impersonatorAdmin, setImpersonatorAdmin] = useState<UserProfile | null>(() => {
@@ -235,7 +238,9 @@ export default function App() {
   }, [currentUser?.id]);
 
   // Proactive Auto-Enrichment: Backfill empty profile bank details from application history
+  const hasEnrichedHistoryRef = useRef(false);
   useEffect(() => {
+    if (hasEnrichedHistoryRef.current) return;
     if (!applications || applications.length === 0 || !registeredUsers || registeredUsers.length === 0) return;
 
     let hasUpdates = false;
@@ -279,6 +284,7 @@ export default function App() {
     }
 
     if (hasUpdates) {
+      hasEnrichedHistoryRef.current = true;
       setRegisteredUsers(updatedUsers);
       saveStoredUsersRegistry(updatedUsers);
     }
@@ -355,8 +361,7 @@ export default function App() {
     showToast(`นำเข้าข้อมูลจากระบบ มน. สำเร็จ (${newRecords.length} รายการ)`);
   };
 
-  // User Management Registry state & handlers
-  const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(() => getStoredUsersRegistry());
+  // User Management Handlers
 
   const handleSaveProfile = async (updated: UserProfile): Promise<boolean> => {
     try {
