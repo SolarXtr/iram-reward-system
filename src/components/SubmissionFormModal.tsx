@@ -234,17 +234,19 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   const [pdpaConsentAccepted, setPdpaConsentAccepted] = useState<boolean>(false);
   const [rememberProfile, setRememberProfile] = useState<boolean>(true);
   const [profileReloadedNotice, setProfileReloadedNotice] = useState<boolean>(false);
+  const [historyRestoredNotice, setHistoryRestoredNotice] = useState<boolean>(false);
 
   // Reload data from active profile
   const handleReloadFromUserProfile = () => {
     const freshProfile = currentUser || getStoredUserProfile();
     setSelectedBehalfUserId('');
+    setHistoryRestoredNotice(false);
     setApplicantName(freshProfile.name || '');
     setAcademicPosition(freshProfile.academicPosition || '');
     setDepartment(normalizeDepartment(freshProfile.department));
     setPhone(freshProfile.phone || '');
     setEmail(freshProfile.email || '');
-    setBankName(freshProfile.bankName || 'ธนาคารกรุงศรีอยุธยา');
+    setBankName(freshProfile.bankName || 'ธนาคารกรุงไทย');
     setBankAccountNo(freshProfile.bankAccountNo || '');
     setIdCardNo(freshProfile.idCardNo || '');
     setRememberProfile(true);
@@ -255,6 +257,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   // Select a researcher to act on behalf of (for dept_secretary / coordinator / admin)
   const handleSelectBehalfResearcher = (userId: string) => {
     setSelectedBehalfUserId(userId);
+    setHistoryRestoredNotice(false);
     if (!userId) {
       handleReloadFromUserProfile();
       return;
@@ -265,11 +268,45 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
     setApplicantName(targetUser.name || '');
     setAcademicPosition(targetUser.academicPosition || '');
     setDepartment(normalizeDepartment(targetUser.department || activeUserProfile.department));
-    setPhone(targetUser.phone || '');
     setEmail(targetUser.email || '');
-    setBankName(targetUser.bankName || 'ธนาคารกรุงศรีอยุธยา');
-    setBankAccountNo(targetUser.bankAccountNo || '');
-    setIdCardNo(targetUser.idCardNo || '');
+
+    let resolvedBankName = targetUser.bankName || 'ธนาคารกรุงไทย';
+    let resolvedBankAccountNo = targetUser.bankAccountNo || '';
+    let resolvedIdCardNo = targetUser.idCardNo || '';
+    let resolvedPhone = targetUser.phone || '';
+    let isRestoredFromHistory = false;
+
+    // Intelligent Fallback: If bank account or ID card is empty in profile, lookup latest previous application
+    if ((!resolvedBankAccountNo || !resolvedIdCardNo) && existingApplications && existingApplications.length > 0) {
+      const prevApps = existingApplications
+        .filter((a) =>
+          (a.email && targetUser.email && a.email.trim().toLowerCase() === targetUser.email.trim().toLowerCase()) ||
+          (a.applicantName && targetUser.name && a.applicantName.trim() === targetUser.name.trim())
+        )
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+      for (const prev of prevApps) {
+        if (!resolvedBankAccountNo && prev.bankAccountNo) {
+          resolvedBankAccountNo = prev.bankAccountNo;
+          if (prev.bankName) resolvedBankName = prev.bankName;
+          isRestoredFromHistory = true;
+        }
+        if (!resolvedIdCardNo && prev.idCardNo) {
+          resolvedIdCardNo = prev.idCardNo;
+          isRestoredFromHistory = true;
+        }
+        if (!resolvedPhone && prev.phone) {
+          resolvedPhone = prev.phone;
+        }
+      }
+    }
+
+    setPhone(resolvedPhone);
+    setBankName(resolvedBankName);
+    setBankAccountNo(resolvedBankAccountNo);
+    setIdCardNo(resolvedIdCardNo);
+    setHistoryRestoredNotice(isRestoredFromHistory);
+
     // Do NOT overwrite the secretary's or admin's own profile in localStorage when acting on behalf!
     setRememberProfile(false);
   };
@@ -389,28 +426,75 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setSelectedBehalfUserId('');
+      setHistoryRestoredNotice(false);
       if (initialData) {
         if (initialData.fiscalYear) setFiscalYear(Number(initialData.fiscalYear));
         if (initialData.trackingNo && !initialData.trackingNo.startsWith('DRAFT')) {
           setTrackingNoInput(String(initialData.trackingNo));
         }
-        setApplicantName(initialData.applicantName || activeUserProfile.name || '');
-        setAcademicPosition(initialData.academicPosition || activeUserProfile.academicPosition || '');
-        setDepartment(normalizeDepartment(initialData.department || activeUserProfile.department));
-        setPhone(initialData.phone ? String(initialData.phone) : (activeUserProfile.phone ? String(activeUserProfile.phone) : ''));
-        setEmail(initialData.email || activeUserProfile.email || '');
-        setBankName(initialData.bankName || activeUserProfile.bankName || 'ธนาคารกรุงไทย');
-        setBankAccountNo(initialData.bankAccountNo ? String(initialData.bankAccountNo) : (activeUserProfile.bankAccountNo ? String(activeUserProfile.bankAccountNo) : ''));
-        setIdCardNo(initialData.idCardNo ? String(initialData.idCardNo) : (activeUserProfile.idCardNo ? String(activeUserProfile.idCardNo) : ''));
 
-        if (initialData.email) {
-          const matchedResearcher = selectableResearchers.find(
-            (u) => u.email.toLowerCase() === initialData.email?.toLowerCase()
-          );
-          if (matchedResearcher) {
-            setSelectedBehalfUserId(matchedResearcher.id);
+        const isEditingOtherUser = Boolean(
+          initialData.email &&
+          activeUserProfile.email &&
+          initialData.email.trim().toLowerCase() !== activeUserProfile.email.trim().toLowerCase()
+        );
+
+        let matchedResearcher = initialData.email
+          ? selectableResearchers.find((u) => u.email.toLowerCase() === initialData.email?.toLowerCase())
+          : null;
+        if (!matchedResearcher && initialData.applicantName) {
+          matchedResearcher = selectableResearchers.find(
+            (u) => u.name && u.name.trim() === initialData.applicantName?.trim()
+          ) || null;
+        }
+
+        if (matchedResearcher) {
+          setSelectedBehalfUserId(matchedResearcher.id);
+        }
+
+        setApplicantName(initialData.applicantName || (isEditingOtherUser ? matchedResearcher?.name : activeUserProfile.name) || '');
+        setAcademicPosition(initialData.academicPosition || (isEditingOtherUser ? matchedResearcher?.academicPosition : activeUserProfile.academicPosition) || '');
+        setDepartment(normalizeDepartment(initialData.department || (isEditingOtherUser ? matchedResearcher?.department : activeUserProfile.department)));
+        setEmail(initialData.email || (isEditingOtherUser ? matchedResearcher?.email : activeUserProfile.email) || '');
+
+        let initBankName = initialData.bankName || (isEditingOtherUser ? matchedResearcher?.bankName : activeUserProfile.bankName) || 'ธนาคารกรุงไทย';
+        let initBankAccountNo = initialData.bankAccountNo ? String(initialData.bankAccountNo) : ((isEditingOtherUser ? matchedResearcher?.bankAccountNo : activeUserProfile.bankAccountNo) || '');
+        let initIdCardNo = initialData.idCardNo ? String(initialData.idCardNo) : ((isEditingOtherUser ? matchedResearcher?.idCardNo : activeUserProfile.idCardNo) || '');
+        let initPhone = initialData.phone ? String(initialData.phone) : ((isEditingOtherUser ? matchedResearcher?.phone : activeUserProfile.phone) || '');
+        let isRestored = false;
+
+        // Fallback: If bank account or ID card is empty, search existingApplications
+        if ((!initBankAccountNo || !initIdCardNo) && existingApplications && existingApplications.length > 0) {
+          const prevApps = existingApplications
+            .filter((a) =>
+              a.id !== initialData.id && (
+                (a.email && initialData.email && a.email.trim().toLowerCase() === initialData.email.trim().toLowerCase()) ||
+                (a.applicantName && initialData.applicantName && a.applicantName.trim() === initialData.applicantName.trim())
+              )
+            )
+            .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+          for (const prev of prevApps) {
+            if (!initBankAccountNo && prev.bankAccountNo) {
+              initBankAccountNo = prev.bankAccountNo;
+              if (prev.bankName) initBankName = prev.bankName;
+              isRestored = true;
+            }
+            if (!initIdCardNo && prev.idCardNo) {
+              initIdCardNo = prev.idCardNo;
+              isRestored = true;
+            }
+            if (!initPhone && prev.phone) {
+              initPhone = prev.phone;
+            }
           }
         }
+
+        setBankName(initBankName);
+        setBankAccountNo(initBankAccountNo);
+        setIdCardNo(initIdCardNo);
+        setPhone(initPhone);
+        setHistoryRestoredNotice(isRestored);
 
         setRequestType(initialData.requestType || 'reward_only');
         setArticleTitle(initialData.articleTitle || '');
@@ -945,6 +1029,21 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
               <div className="p-2 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg text-xs flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-600" />
                 <span>ดึงข้อมูลตั้งต้นจากบัญชีล็อกอินเรียบร้อยแล้ว</span>
+              </div>
+            )}
+
+            {/* Notification if restored from previous application history */}
+            {historyRestoredNotice && (
+              <div className="p-2.5 bg-teal-50 border border-teal-300 text-teal-900 rounded-lg text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-teal-600 shrink-0" />
+                  <span>
+                    ดึงข้อมูลเลขที่บัญชีธนาคารและเลขบัตร ปชช. จากประวัติคำขอก่อนหน้าของอาจารย์ให้เรียบร้อยแล้ว
+                  </span>
+                </div>
+                <span className="text-[10px] bg-teal-200 text-teal-900 px-2 py-0.5 rounded-full font-bold">
+                  ดึงจากประวัติคำขอเดิม
+                </span>
               </div>
             )}
 

@@ -234,6 +234,56 @@ export default function App() {
     };
   }, [currentUser?.id]);
 
+  // Proactive Auto-Enrichment: Backfill empty profile bank details from application history
+  useEffect(() => {
+    if (!applications || applications.length === 0 || !registeredUsers || registeredUsers.length === 0) return;
+
+    let hasUpdates = false;
+    const updatedUsers = [...registeredUsers];
+
+    for (let i = 0; i < updatedUsers.length; i++) {
+      const u = updatedUsers[i];
+      if (!u.bankAccountNo || !u.idCardNo) {
+        const matchingApp = applications
+          .filter((a) =>
+            (a.email && u.email && a.email.trim().toLowerCase() === u.email.trim().toLowerCase()) ||
+            (a.applicantName && u.name && a.applicantName.trim() === u.name.trim())
+          )
+          .find((a) => a.bankAccountNo || a.idCardNo);
+
+        if (matchingApp) {
+          const newBankNo = u.bankAccountNo || matchingApp.bankAccountNo || '';
+          const newBankName = u.bankName || matchingApp.bankName || 'ธนาคารกรุงไทย';
+          const newIdCard = u.idCardNo || matchingApp.idCardNo || '';
+          const newPhone = u.phone || matchingApp.phone || '';
+
+          if ((newBankNo && newBankNo !== u.bankAccountNo) || (newIdCard && newIdCard !== u.idCardNo)) {
+            hasUpdates = true;
+            updatedUsers[i] = {
+              ...u,
+              bankAccountNo: newBankNo,
+              bankName: newBankName,
+              idCardNo: newIdCard,
+              phone: newPhone,
+            };
+            // Sync to D1
+            updateUserProfileInD1(u.id, {
+              bankAccountNo: newBankNo,
+              bankName: newBankName,
+              idCardNo: newIdCard,
+              phone: newPhone,
+            }).catch((err) => console.warn('Background backfill user bank info to D1:', err));
+          }
+        }
+      }
+    }
+
+    if (hasUpdates) {
+      setRegisteredUsers(updatedUsers);
+      saveStoredUsersRegistry(updatedUsers);
+    }
+  }, [applications.length, registeredUsers.length]);
+
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -652,6 +702,53 @@ export default function App() {
 
     setIsSubmissionModalOpen(false);
     setEditingDraftApp(null);
+
+    // Automatically persist bank info and citizen ID back to researcher's profile in D1 & registeredUsers
+    if (targetEmail && (targetBankAccountNo || targetIdCardNo || targetPhone)) {
+      const targetUser = registeredUsers.find(
+        (u) => (u.email && u.email.trim().toLowerCase() === targetEmail.trim().toLowerCase()) ||
+               (u.name && targetApplicantName && u.name.trim() === targetApplicantName.trim())
+      );
+
+      const targetKey = targetUser ? targetUser.id : targetEmail;
+      const needsProfileUpdate = targetUser
+        ? Boolean(
+            (targetBankAccountNo && targetUser.bankAccountNo !== targetBankAccountNo) ||
+            (targetBankName && targetUser.bankName !== targetBankName) ||
+            (targetIdCardNo && targetUser.idCardNo !== targetIdCardNo) ||
+            (targetPhone && targetUser.phone !== targetPhone)
+          )
+        : true;
+
+      if (needsProfileUpdate) {
+        if (targetUser) {
+          const updatedTargetUser: UserProfile = {
+            ...targetUser,
+            bankAccountNo: targetBankAccountNo || targetUser.bankAccountNo,
+            bankName: targetBankName || targetUser.bankName,
+            idCardNo: targetIdCardNo || targetUser.idCardNo,
+            phone: targetPhone || targetUser.phone,
+          };
+          const nextUsers = upsertRegisteredUser(updatedTargetUser);
+          setRegisteredUsers(nextUsers);
+
+          if (currentUser && currentUser.email?.trim().toLowerCase() === targetEmail.trim().toLowerCase()) {
+            setCurrentUser(updatedTargetUser);
+            saveStoredUserProfile(updatedTargetUser);
+          }
+        }
+
+        // Asynchronously update irUser in Cloudflare D1
+        updateUserProfileInD1(targetKey, {
+          bankAccountNo: targetBankAccountNo,
+          bankName: targetBankName,
+          idCardNo: targetIdCardNo,
+          phone: targetPhone,
+        }).catch((err) => {
+          console.warn('Auto-sync researcher profile bank info to D1 failed:', err);
+        });
+      }
+    }
 
     if (isActuallyDraft) {
       const d1DraftPromise = isExistingApp
