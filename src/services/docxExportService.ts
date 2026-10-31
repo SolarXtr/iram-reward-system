@@ -1474,12 +1474,12 @@ export async function generateMemoRewardDocx(app: ResearchApplication, isDraftPr
           ],
         }),
 
-        // 10. ส่วนลงนามของหัวหน้างานวิจัยและรองคณบดีฯ (บล็อกซ้าย จัดกึ่งกลางในบล็อก, 14.5 pt)
+        // 10. ส่วนลงนามของเจ้าหน้าที่วิจัยและรองคณบดีฯ (บล็อกซ้าย จัดกึ่งกลางในบล็อก, 14.5 pt)
         new Paragraph({
           spacing: { line: LINE_SPACING_BODY, before: 120, after: 120 },
           children: [
-            createThaiTextRun({ text: 'เรียน  คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_APPROVERS, bold: true }),
-            createThaiTextRun({ text: '          ขอเบิกจ่ายจาก งบประมาณรายได้ปี ........................', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
+            createThaiTextRun({ text: 'เรียน คณบดีคณะแพทยศาสตร์', font: FONT_NAME, size: FONT_SIZE_APPROVERS, bold: true }),
+            createThaiTextRun({ text: '          ขอเบิกจ่ายจาก งบประมาณรายได้ปี 2570', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
             createThaiTextRun({ text: '          จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
           ],
         }),
@@ -1499,8 +1499,8 @@ export async function generateMemoRewardDocx(app: ResearchApplication, isDraftPr
                       spacing: { line: LINE_SPACING_BODY, before: 120, after: 0 },
                       children: [
                         createThaiTextRun({ text: 'ลงชื่อ....................................................', font: FONT_NAME, size: FONT_SIZE_APPROVERS }),
-                        createThaiTextRun({ text: '(นางสาวปรารถนา เอนกปัญญากุล)', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
-                        createThaiTextRun({ text: 'รักษาการในตำแหน่งหัวหน้างานวิจัย', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
+                        createThaiTextRun({ text: '(นายทินกรณ์ หาญณรงค์)', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
+                        createThaiTextRun({ text: 'เจ้าหน้าที่วิจัย', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
                         createThaiTextRun({ text: 'วันที่......../........./...........', font: FONT_NAME, size: FONT_SIZE_APPROVERS, break: 1 }),
                       ],
                     }),

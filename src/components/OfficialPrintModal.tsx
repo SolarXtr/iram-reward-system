@@ -1616,15 +1616,15 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     <div className="avoid-break grid grid-cols-12 text-[14.5pt]">
                       <div className="col-span-8">
                         <div className="leading-tight" style={{ marginTop: '4pt', marginBottom: '2pt' }}>
-                          <div className="font-bold">เรียน  คณบดีคณะแพทยศาสตร์</div>
-                          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ขอเบิกจ่ายจาก งบประมาณรายได้ปี ........................</div>
+                          <div className="font-bold">เรียน คณบดีคณะแพทยศาสตร์</div>
+                          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ขอเบิกจ่ายจาก งบประมาณรายได้ปี 2570</div>
                           <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ</div>
                         </div>
 
                         <div className="text-center leading-tight" style={{ marginTop: '4pt' }}>
                           <div>ลงชื่อ....................................................</div>
-                          <div>(นางสาวปรารถนา เอนกปัญญากุล)</div>
-                          <div>รักษาการในตำแหน่งหัวหน้างานวิจัย</div>
+                          <div>(นายทินกรณ์ หาญณรงค์)</div>
+                          <div>เจ้าหน้าที่วิจัย</div>
                           <div>วันที่......../........./...........</div>
                         </div>
 
