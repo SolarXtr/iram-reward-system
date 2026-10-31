@@ -32,7 +32,7 @@ import { ResearchApplication, UserProfile, UserRole } from '../types';
 import { bahtText, formatBaht, getTrackingPrefix } from '../data/regulations';
 import { MED_NU_LOGO_URL } from '../services/medNuLogo';
 import { TEMPLATE_CHECKLIST_LOGO_BASE64 } from '../services/templateChecklistLogo';
-import { GARUDA_MONOCHROME_URL } from '../services/garudaBase64';
+import { GARUDA_SVG_DATA_URL, GARUDA_MONOCHROME_URL } from '../services/garudaBase64';
 import {
   generateChecklistDocx,
   generateMemoRewardDocx,
@@ -73,7 +73,7 @@ export type FormDocType =
   | 'receipt' 
   | 'certification';
 
-const GARUDA_URL = GARUDA_MONOCHROME_URL;
+const GARUDA_URL = GARUDA_SVG_DATA_URL || GARUDA_MONOCHROME_URL;
 const TEMPLATE_LOGO_DATA_URL = `data:image/png;base64,${TEMPLATE_CHECKLIST_LOGO_BASE64}`;
 
 export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
@@ -1495,7 +1495,8 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <img 
                           src={GARUDA_URL} 
                           alt="Garuda" 
-                          className="w-[54px] h-[54px] object-contain"
+                          className="h-[1.5cm] w-auto max-w-[1.5cm] object-contain shrink-0"
+                          style={{ height: '1.5cm', width: 'auto' }}
                         />
                       </div>
                       <div className="col-span-8 text-center font-bold text-[28pt] leading-none">
@@ -1665,7 +1666,8 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <img 
                           src={GARUDA_URL} 
                           alt="Garuda" 
-                          className="w-[54px] h-[54px] object-contain"
+                          className="h-[1.5cm] w-auto max-w-[1.5cm] object-contain shrink-0"
+                          style={{ height: '1.5cm', width: 'auto' }}
                         />
                       </div>
                       <div className="col-span-8 text-center font-bold text-[28pt] leading-none">

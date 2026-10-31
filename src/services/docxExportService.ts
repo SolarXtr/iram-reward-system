@@ -1186,8 +1186,8 @@ export async function generateMemoRewardDocx(app: ResearchApplication, isDraftPr
                         new ImageRun({
                           data: garudaImg,
                           transformation: {
-                            width: 57, // 1.5 cm ≈ 56.7 pt
-                            height: 57,
+                            width: 52.3, // 1.38 cm (proportional to 1.5 cm height, ratio 0.9225)
+                            height: 56.7, // 1.5 cm = 15 mm = 56.7 pt
                           },
                           type: 'png',
                         } as any),
@@ -1610,8 +1610,8 @@ export async function generateMemoDisbursementDocx(app: ResearchApplication, isD
                         new ImageRun({
                           data: garudaImg,
                           transformation: {
-                            width: 57, // 1.5 cm ≈ 56.7 pt
-                            height: 57,
+                            width: 52.3, // 1.38 cm (proportional to 1.5 cm height, ratio 0.9225)
+                            height: 56.7, // 1.5 cm = 15 mm = 56.7 pt
                           },
                           type: 'png',
                         } as any),
