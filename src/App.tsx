@@ -154,7 +154,20 @@ export default function App() {
       try {
         const d1Data = await fetchRewardApplicationsFromD1();
         if (!cancelled && Array.isArray(d1Data)) {
-          setApplications(d1Data);
+          // Merge with any offline doc details cache from localStorage as fallback
+          const merged = d1Data.map((app) => {
+            const cached = localStorage.getItem(`iram_doc_details_${app.id}`);
+            if (cached) {
+              try {
+                const parsed = JSON.parse(cached);
+                return { ...app, ...parsed };
+              } catch (e) {
+                return app;
+              }
+            }
+            return app;
+          });
+          setApplications(merged);
         }
       } catch (err) {
         console.warn('Failed to load applications from D1:', err);
@@ -1063,6 +1076,15 @@ export default function App() {
 
   // 3.1 Update Document Numbering & Online Review Details
   const handleUpdateDocDetails = (appId: string, updates: Partial<ResearchApplication>) => {
+    // 1. Persist to localStorage cache
+    try {
+      const existingCache = localStorage.getItem(`iram_doc_details_${appId}`);
+      const prevParsed = existingCache ? JSON.parse(existingCache) : {};
+      localStorage.setItem(`iram_doc_details_${appId}`, JSON.stringify({ ...prevParsed, ...updates }));
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
+    }
+
     setApplications((prev) =>
       prev.map((app) => {
         if (app.id !== appId) return app;

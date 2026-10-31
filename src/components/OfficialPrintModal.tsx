@@ -76,6 +76,55 @@ export type FormDocType =
 const GARUDA_URL = GARUDA_SVG_DATA_URL || GARUDA_MONOCHROME_URL;
 const TEMPLATE_LOGO_DATA_URL = `data:image/png;base64,${TEMPLATE_CHECKLIST_LOGO_BASE64}`;
 
+// Helper to extract publication details, falling back to volumeIssue parser
+export function extractPublicationDetails(app: Partial<ResearchApplication> | null) {
+  if (!app) {
+    return {
+      databaseYear: '2025',
+      vol: '',
+      no: '',
+      publishMonth: '',
+      publishYear: '2026',
+      pages: '',
+    };
+  }
+
+  let databaseYear = (app.databaseYear || '').trim() || '2025';
+  let vol = (app.vol || '').trim();
+  let no = (app.no || '').trim();
+  let publishMonth = (app.publishMonth || '').trim();
+  let publishYear = (app.publishYear || '').trim();
+  let pages = (app.pages || '').trim();
+
+  // If vol, no, publishMonth, pages are empty, parse them from volumeIssue
+  if ((!vol || vol === '-') && (!no || no === '-') && (!publishMonth || publishMonth === '-') && (!pages || pages === '-') && app.volumeIssue?.trim()) {
+    const volMatch = app.volumeIssue.match(/vol\.?\s*([^\s,]+)/i);
+    const noMatch = app.volumeIssue.match(/(?:no|issue)\.?\s*([^\s,]+)/i);
+    const monthMatch = app.volumeIssue.match(/month\s+([^\s,]+)|(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)/i);
+    const yearMatch = app.volumeIssue.match(/(?:year|\()?(\b20\d\d\b)/i);
+    const pagesMatch = app.volumeIssue.match(/(?:pages?|pp?\.?)\s*[:.]?\s*([0-9]+(?:\s*-\s*[0-9]+)?|[^\s,;]+)/i);
+
+    if (volMatch && volMatch[1] && volMatch[1] !== '-') vol = volMatch[1];
+    if (noMatch && noMatch[1] && noMatch[1] !== '-') no = noMatch[1];
+    if (monthMatch) {
+      const m = monthMatch[1] || monthMatch[2];
+      if (m && m !== '-') publishMonth = m;
+    }
+    if (yearMatch && (!publishYear || publishYear === '-')) publishYear = yearMatch[1];
+    if (pagesMatch && pagesMatch[1] && pagesMatch[1] !== '-') pages = pagesMatch[1];
+  }
+
+  if (!publishYear || publishYear === '-') {
+    if (app.publishedDate) {
+      const parsedYear = new Date(app.publishedDate).getFullYear();
+      if (!isNaN(parsedYear) && parsedYear > 1900) publishYear = parsedYear.toString();
+    }
+    if (!publishYear || publishYear === '-') publishYear = '2026';
+  }
+
+  return { databaseYear, vol, no, publishMonth, publishYear, pages };
+}
+
 export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
   application,
   currentUser,
@@ -132,30 +181,19 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
     return application.disbursementOfficialDocDate || '';
   });
 
+  // Date picker refs for calendar icon clicks
+  const datePickerRef1 = React.useRef<HTMLInputElement>(null);
+  const datePickerRef2 = React.useRef<HTMLInputElement>(null);
+
+  const initialPub = extractPublicationDetails(application);
+
   // Publication & Database fields for memo
-  const [databaseYear, setDatabaseYear] = useState<string>(() => {
-    return application.databaseYear || '2025';
-  });
-  const [vol, setVol] = useState<string>(() => {
-    return application.vol || '';
-  });
-  const [no, setNo] = useState<string>(() => {
-    return application.no || '';
-  });
-  const [publishMonth, setPublishMonth] = useState<string>(() => {
-    return application.publishMonth || '';
-  });
-  const [publishYear, setPublishYear] = useState<string>(() => {
-    if (application.publishYear) return application.publishYear;
-    if (application.publishedDate) {
-      const parsedYear = new Date(application.publishedDate).getFullYear();
-      if (!isNaN(parsedYear) && parsedYear > 1900) return parsedYear.toString();
-    }
-    return '2026';
-  });
-  const [pages, setPages] = useState<string>(() => {
-    return application.pages || '';
-  });
+  const [databaseYear, setDatabaseYear] = useState<string>(() => initialPub.databaseYear);
+  const [vol, setVol] = useState<string>(() => initialPub.vol);
+  const [no, setNo] = useState<string>(() => initialPub.no);
+  const [publishMonth, setPublishMonth] = useState<string>(() => initialPub.publishMonth);
+  const [publishYear, setPublishYear] = useState<string>(() => initialPub.publishYear);
+  const [pages, setPages] = useState<string>(() => initialPub.pages);
 
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
 
@@ -171,15 +209,13 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
       setOfficialDocDate(application.officialDocDate || '');
       setDisbursementDocRunningNo(application.disbursementDocRunningNo || '');
       setDisbursementOfficialDocDate(application.disbursementOfficialDocDate || '');
-      setDatabaseYear(application.databaseYear || '2025');
-      setVol(application.vol || '');
-      setNo(application.no || '');
-      setPublishMonth(application.publishMonth || '');
-      setPublishYear(
-        application.publishYear || 
-        (application.publishedDate ? new Date(application.publishedDate).getFullYear().toString() : '2026')
-      );
-      setPages(application.pages || '');
+      const pub = extractPublicationDetails(application);
+      setDatabaseYear(pub.databaseYear);
+      setVol(pub.vol);
+      setNo(pub.no);
+      setPublishMonth(pub.publishMonth);
+      setPublishYear(pub.publishYear);
+      setPages(pub.pages);
     }
   }, [application.id, currentUser?.department]);
 
@@ -222,6 +258,43 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
     publishMonth: publishMonth.trim(),
     publishYear: publishYear.trim(),
     pages: pages.trim(),
+  };
+
+  const handlePickDate1 = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      setOfficialDocDate(formatThaiDateOfficial(e.target.value));
+    }
+  };
+
+  const handlePickDate2 = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      setDisbursementOfficialDocDate(formatThaiDateOfficial(e.target.value));
+    }
+  };
+
+  const handleToggleOnlineReview = () => {
+    const nextVal = !isOnlineReviewComplete;
+    setIsOnlineReviewComplete(nextVal);
+    if (onSaveDocDetails) {
+      onSaveDocDetails(application.id, {
+        deptCode,
+        docRunningNo: docRunningNo.trim(),
+        officialDocDate: officialDocDate.trim(),
+        disbursementDocRunningNo: disbursementDocRunningNo.trim(),
+        disbursementOfficialDocDate: disbursementOfficialDocDate.trim(),
+        disbursementInternalDocNo: disbursementDocRunningNo.trim()
+          ? formatInternalDocNo(deptCode, disbursementDocRunningNo.trim())
+          : undefined,
+        isOnlineReviewComplete: nextVal,
+        internalDocNo: previewDocNo,
+        databaseYear: databaseYear.trim(),
+        vol: vol.trim(),
+        no: no.trim(),
+        publishMonth: publishMonth.trim(),
+        publishYear: publishYear.trim(),
+        pages: pages.trim(),
+      });
+    }
   };
 
   const handleSaveNumbering = () => {
@@ -792,7 +865,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     </span>
                     {!isResearcher ? (
                       <button
-                        onClick={() => setIsOnlineReviewComplete(!isOnlineReviewComplete)}
+                        onClick={handleToggleOnlineReview}
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                           isOnlineReviewComplete
                             ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
@@ -922,14 +995,38 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                               className={`w-full px-2 py-1 border border-slate-300 rounded-lg text-xs ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900 border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500'}`}
                             />
                             {!isResearcher && (
-                              <button
-                                type="button"
-                                onClick={handleSetToday}
-                                className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer shadow-xs"
-                                title="ใส่วันที่ปัจจุบัน"
-                              >
-                                วันนี้
-                              </button>
+                              <>
+                                <input
+                                  ref={datePickerRef1}
+                                  type="date"
+                                  onChange={handlePickDate1}
+                                  className="sr-only"
+                                  tabIndex={-1}
+                                  aria-hidden="true"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    try {
+                                      datePickerRef1.current?.showPicker?.();
+                                    } catch {
+                                      datePickerRef1.current?.focus();
+                                    }
+                                  }}
+                                  className="p-1.5 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-600 border border-slate-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer shadow-xs flex items-center justify-center transition-colors"
+                                  title="เลือกวันที่จากปฏิทิน"
+                                >
+                                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleSetToday}
+                                  className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer shadow-xs"
+                                  title="ใส่วันที่ปัจจุบัน"
+                                >
+                                  วันนี้
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
@@ -991,14 +1088,38 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                               className={`w-full px-2 py-1 border border-slate-300 rounded-lg text-xs ${isResearcher ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900 border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500'}`}
                             />
                             {!isResearcher && (
-                              <button
-                                type="button"
-                                onClick={handleSetDisbursementToday}
-                                className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer shadow-xs"
-                                title="ใส่วันที่ปัจจุบัน"
-                              >
-                                วันนี้
-                              </button>
+                              <>
+                                <input
+                                  ref={datePickerRef2}
+                                  type="date"
+                                  onChange={handlePickDate2}
+                                  className="sr-only"
+                                  tabIndex={-1}
+                                  aria-hidden="true"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    try {
+                                      datePickerRef2.current?.showPicker?.();
+                                    } catch {
+                                      datePickerRef2.current?.focus();
+                                    }
+                                  }}
+                                  className="p-1.5 bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border border-slate-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer shadow-xs flex items-center justify-center transition-colors"
+                                  title="เลือกวันที่จากปฏิทิน"
+                                >
+                                  <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleSetDisbursementToday}
+                                  className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[10px] font-semibold shrink-0 cursor-pointer shadow-xs"
+                                  title="ใส่วันที่ปัจจุบัน"
+                                >
+                                  วันนี้
+                                </button>
+                              </>
                             )}
                           </div>
                           {/* Live preview + warning if same as Memo 2 */}
