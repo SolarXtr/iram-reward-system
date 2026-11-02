@@ -22,7 +22,8 @@ import {
   formatThaiCitizenId, 
   formatKrungsriAccountNo, 
   maskThaiCitizenId, 
-  maskBankAccountNo 
+  maskBankAccountNo,
+  THAI_BANKS
 } from '../data/regulations';
 import { getStoredUsersRegistry, MOCK_NU_USERS } from '../data/userProfile';
 
@@ -71,7 +72,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   // Synchronize formData whenever currentUser prop updates
   useEffect(() => {
     if (currentUser) {
-      setFormData({ ...currentUser });
+      setFormData({
+        ...currentUser,
+        bankName: currentUser.bankName || 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร',
+        bankAccountNo: formatKrungsriAccountNo(currentUser.bankAccountNo),
+        idCardNo: formatThaiCitizenId(currentUser.idCardNo),
+      });
     }
   }, [currentUser]);
 
@@ -356,6 +362,26 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <label className="block font-medium text-slate-700 mb-1">
+                  ธนาคาร
+                </label>
+                <select
+                  value={formData.bankName || 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร'}
+                  onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  {THAI_BANKS.map((b) => (
+                    <option key={b.value} value={b.value}>
+                      {b.label}
+                    </option>
+                  ))}
+                  {formData.bankName && !THAI_BANKS.some((b) => b.value === formData.bankName) && (
+                    <option value={formData.bankName}>{formData.bankName}</option>
+                  )}
+                </select>
+              </div>
+
               <div>
                 <label className="block font-medium text-slate-700 mb-1">
                   เลขประจำตัวประชาชน (13 หลัก)
@@ -364,6 +390,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   <input
                     type="text"
                     maxLength={17}
+                    inputMode="numeric"
                     value={
                       showSensitiveData
                         ? (formData.idCardNo || '')
@@ -374,20 +401,21 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                       setFormData({ ...formData, idCardNo: val });
                     }}
                     placeholder="x-xxxx-xxxxx-xx-x"
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono tracking-wider focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono tracking-wider font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block font-medium text-slate-700 mb-1">
-                  เลขที่บัญชี ธ.กรุงศรีอยุธยา สาขา ม.นเรศวร
+                  เลขที่บัญชีธนาคาร (10 หลัก)
                 </label>
                 <div className="relative">
                   <CreditCard className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     maxLength={13}
+                    inputMode="numeric"
                     value={
                       showSensitiveData
                         ? (formData.bankAccountNo || '')
@@ -398,7 +426,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                       setFormData({ ...formData, bankAccountNo: val });
                     }}
                     placeholder="xxx-x-xxxxx-x"
-                    className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono tracking-wider focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono tracking-wider font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
               </div>

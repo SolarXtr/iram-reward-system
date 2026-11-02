@@ -338,6 +338,21 @@ export function formatKrungsriAccountNo(value: string | number | null | undefine
  * Mask Bank Account Number according to PDPA principles
  * E.g. 346-1-48984-7 -> 346-X-XXXXX-7
  */
+export const THAI_BANKS = [
+  { value: 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร', label: 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร (BAY)' },
+  { value: 'ธนาคารกรุงศรีอยุธยา', label: 'ธนาคารกรุงศรีอยุธยา (BAY)' },
+  { value: 'ธนาคารกรุงไทย', label: 'ธนาคารกรุงไทย (KTB)' },
+  { value: 'ธนาคารไทยพาณิชย์', label: 'ธนาคารไทยพาณิชย์ (SCB)' },
+  { value: 'ธนาคารกสิกรไทย', label: 'ธนาคารกสิกรไทย (KBANK)' },
+  { value: 'ธนาคารกรุงเทพ', label: 'ธนาคารกรุงเทพ (BBL)' },
+  { value: 'ธนาคารออมสิน', label: 'ธนาคารออมสิน (GSB)' },
+  { value: 'ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร', label: 'ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร (ธ.ก.ส. / BAAC)' },
+  { value: 'ธนาคารทหารไทยธนชาต', label: 'ธนาคารทหารไทยธนชาต (TTB)' },
+  { value: 'อื่นๆ', label: 'อื่นๆ' },
+];
+
+export const formatBankAccountNo = formatKrungsriAccountNo;
+
 export function maskBankAccountNo(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') return '';
   const formatted = formatKrungsriAccountNo(value);

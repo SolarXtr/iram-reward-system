@@ -34,6 +34,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
+import { formatKrungsriAccountNo, formatThaiCitizenId, THAI_BANKS } from '../data/regulations';
 import { isSameDepartment, isResearcherOnlyUser } from '../utils/permissionUtils';
 import { PageviewAnalyticsModal } from './PageviewAnalyticsModal';
 
@@ -400,6 +401,9 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     setEditingUser(user);
     setFormData({
       ...user,
+      bankName: user.bankName || 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร',
+      bankAccountNo: formatKrungsriAccountNo(user.bankAccountNo),
+      idCardNo: formatThaiCitizenId(user.idCardNo),
       role: user.role,
       roles: user.roles && user.roles.length > 0 ? user.roles : [user.role],
     });
@@ -445,8 +449,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       phone: formData.phone?.trim() || '',
       email: formData.email.trim().toLowerCase(),
       bankName: formData.bankName || 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร',
-      bankAccountNo: formData.bankAccountNo?.trim() || '',
-      idCardNo: formData.idCardNo?.trim() || '',
+      bankAccountNo: formatKrungsriAccountNo(formData.bankAccountNo?.trim() || ''),
+      idCardNo: formatThaiCitizenId(formData.idCardNo?.trim() || ''),
       role: enforcedRole,
       roles: enforcedRoles,
       isNuAccount: formData.email.trim().toLowerCase().endsWith('@nu.ac.th'),
@@ -545,7 +549,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   // Masking helpers for PDPA
   const maskBankAccount = (acc: string) => {
-    if (!maskSensitiveData || !acc) return acc || '-';
+    if (!acc) return '-';
+    if (!maskSensitiveData) return formatKrungsriAccountNo(acc);
     const clean = acc.replace(/[^0-9]/g, '');
     if (clean.length === 10) {
       return `${clean.slice(0, 3)}-X-XX${clean.slice(6, 9)}-${clean.slice(9)}`;
@@ -554,7 +559,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   };
 
   const maskCitizenId = (id: string) => {
-    if (!maskSensitiveData || !id) return id || '-';
+    if (!id) return '-';
+    if (!maskSensitiveData) return formatThaiCitizenId(id);
     const clean = id.replace(/[^0-9]/g, '');
     if (clean.length === 13) {
       return `${clean.slice(0, 1)}-XXXX-XXXXX-${clean.slice(10, 12)}-${clean.slice(12)}`;
@@ -1480,17 +1486,40 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   </div>
                 )}
 
+                {/* Bank Selection */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    ธนาคาร
+                  </label>
+                  <select
+                    value={formData.bankName || 'ธนาคารกรุงศรีอยุธยา สาขามหาวิทยาลัยนเรศวร'}
+                    onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 font-medium"
+                  >
+                    {THAI_BANKS.map((b) => (
+                      <option key={b.value} value={b.value}>
+                        {b.label}
+                      </option>
+                    ))}
+                    {formData.bankName && !THAI_BANKS.some((b) => b.value === formData.bankName) && (
+                      <option value={formData.bankName}>{formData.bankName}</option>
+                    )}
+                  </select>
+                </div>
+
                 {/* Bank Account */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    เลขที่บัญชีธนาคารกรุงศรีอยุธยา (10 หลัก)
+                    เลขที่บัญชีธนาคาร (10 หลัก)
                   </label>
                   <input
                     type="text"
+                    maxLength={13}
+                    inputMode="numeric"
                     value={formData.bankAccountNo || ''}
-                    onChange={(e) => setFormData({ ...formData, bankAccountNo: e.target.value })}
-                    placeholder="เช่น 346-1-xxxxx-x"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 font-mono"
+                    onChange={(e) => setFormData({ ...formData, bankAccountNo: formatKrungsriAccountNo(e.target.value) })}
+                    placeholder="เช่น 980-7-83438-4"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 font-mono tracking-wider font-semibold text-slate-900"
                   />
                 </div>
 
@@ -1501,10 +1530,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   </label>
                   <input
                     type="text"
+                    maxLength={17}
+                    inputMode="numeric"
                     value={formData.idCardNo || ''}
-                    onChange={(e) => setFormData({ ...formData, idCardNo: e.target.value })}
-                    placeholder="เช่น 1-6500-xxxxx-xx-x"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 font-mono"
+                    onChange={(e) => setFormData({ ...formData, idCardNo: formatThaiCitizenId(e.target.value) })}
+                    placeholder="เช่น 1-6798-00105-72-0"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 font-mono tracking-wider font-semibold text-slate-900"
                   />
                 </div>
               </div>
