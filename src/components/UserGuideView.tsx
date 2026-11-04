@@ -24,8 +24,15 @@ import {
   Info,
   Calendar,
   Layers,
-  ArrowLeft
+  ArrowLeft,
+  Users,
+  UserCheck,
+  CreditCard,
+  Lock,
+  FileCheck,
+  CheckSquare
 } from 'lucide-react';
+import { OFFICIAL_WORKFLOW_STEPS_DEF } from '../data/initialData';
 import { calculateFacultyReward } from '../data/regulations';
 import { AuthorRole, DatabaseName, JournalScope, QuartileRank } from '../types';
 
@@ -39,7 +46,7 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
   onOpenNewSubmission,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeSection, setActiveSection] = useState<'all' | 'rules' | 'steps' | 'calculator' | 'faq' | 'contact'>('all');
+  const [activeSection, setActiveSection] = useState<'all' | 'official_workflow' | 'rules' | 'steps' | 'calculator' | 'faq' | 'contact'>('all');
 
   // Mini Interactive Calculator State
   const [calcScope, setCalcScope] = useState<JournalScope>('international');
@@ -131,6 +138,7 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto scrollbar-none text-xs">
           {[
             { id: 'all', label: 'ทั้งหมด' },
+            { id: 'official_workflow', label: 'กระบวนการ 12 ขั้นตอน' },
             { id: 'rules', label: 'เกณฑ์และวงเงิน' },
             { id: 'steps', label: '6 ขั้นตอนใช้งาน' },
             { id: 'calculator', label: 'จำลองการคำนวณ' },
@@ -162,6 +170,259 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
           อาจารย์และนักวิจัย คณะแพทยศาสตร์ สามารถเบิกเงินรางวัลและเงินสนับสนุนค่าตีพิมพ์ (Page Charge) รวมกันได้ <strong>ไม่เกิน 150,000 บาท ต่อคน ต่อปีงบประมาณ</strong> โดยบทความต้องได้รับการตีพิมพ์เผยแพร่มาแล้วไม่เกิน <strong>24 เดือน</strong> และระบุสังกัด <em>Faculty of Medicine, Naresuan University</em>
         </p>
       </div>
+
+      {/* SECTION: กระบวนการ 12 ขั้นตอน (Official 12-Step Workflow & 7 Roles) */}
+      {(activeSection === 'all' || activeSection === 'official_workflow') && (
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+            <Layers className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                กระบวนการ 12 ขั้นตอน (Official 12-Step Workflow & 7 Roles)
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                วงจรชีวิตคำขอรับเงินรางวัลและค่าตีพิมพ์ตามระเบียบคณะแพทยศาสตร์ พร้อมบทบาทและความรับผิดชอบของ 7 กลุ่มผู้ใช้งาน
+              </p>
+            </div>
+          </div>
+
+          {/* Sub-section 1: The 12 Official Workflow Steps */}
+          <div className="space-y-3">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-500" />
+              <span>ลำดับขั้นตอนการดำเนินงาน 12 ขั้นตอนมาตรฐาน (SLA รวมประมาณ 35 วันทำการ)</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {OFFICIAL_WORKFLOW_STEPS_DEF.map((step) => {
+                const isResearcher = step.responsibleParty === 'นักวิจัย';
+                const isCoordinator = step.responsibleParty === 'เจ้าหน้าที่วิจัย';
+                const isFinance = step.responsibleParty === 'การเงิน';
+                const isExecutive = step.responsibleParty === 'ผู้บริหาร';
+                const isDean = step.responsibleParty === 'คณบดี';
+
+                const badgeColor = isResearcher
+                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                  : isCoordinator
+                  ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                  : isFinance
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                  : isExecutive || isDean
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                  : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-200';
+
+                return (
+                  <div 
+                    key={step.stepNumber} 
+                    className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between space-y-2"
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold text-xs flex items-center justify-center shrink-0">
+                          {step.stepNumber}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10.5px] px-2 py-0.5 rounded-full font-semibold border ${badgeColor}`}>
+                            {step.responsibleParty}
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                            {step.slaDays} วัน
+                          </span>
+                        </div>
+                      </div>
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-snug">
+                        {step.title}
+                      </h4>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {step.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sub-section 2: Role Responsibilities (7 Roles) */}
+          <div className="space-y-3 pt-2">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+              <Users className="w-4 h-4 text-blue-500" />
+              <span>บทบาท หน้าที่ และขั้นตอนการดำเนินงานแยกตาม 7 กลุ่มผู้ใช้งาน (Role Responsibilities)</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              
+              {/* Role 1: Public */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold">
+                    1
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-white">ผู้ใช้ทั่วไป (Public / Guest)</h4>
+                    <span className="text-[10px] text-slate-500">เข้าชมได้โดยไม่ต้องล็อกอิน</span>
+                  </div>
+                </div>
+                <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <li>ดูสถิติภาพรวมเงินรางวัลการตีพิมพ์รายปีงบประมาณ (Public Reward Summary)</li>
+                  <li>ค้นหาและติดตามสถานะคำขอด้วย Tracking No. (เช่น <code>AWP69-xxx</code>, <code>AWP70-xxx</code>), DOI หรือชื่องานวิจัย</li>
+                  <li>ได้รับการคุ้มครองข้อมูลส่วนบุคคลตามเกณฑ์ PDPA (ระบบ Mask เลขที่บัญชีและเลขบัตรประชาชนอัตโนมัติ)</li>
+                  <li>เข้าสู่ระบบผ่าน Google NU Account (<code>@nu.ac.th</code>) เพื่อดำเนินการตามสิทธิ์</li>
+                </ul>
+              </div>
+
+              {/* Role 2: Researcher */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-blue-200 dark:border-blue-900/50 shadow-2xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold">
+                    2
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-white">นักวิจัย (Researcher)</h4>
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">ผู้ยื่นคำขอรับรางวัลและค่าตีพิมพ์</span>
+                  </div>
+                </div>
+                <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <li><strong>เปิดใช้งานระบบครั้งแรก:</strong> ยินยอมข้อกำหนด PDPA ตรวจสอบเลขบัญชี 10 หลัก และเลขบัตรประชาชน 13 หลัก</li>
+                  <li><strong>ยื่นคำขอรับรางวัล (Step 1):</strong> ระบุ DOI ดึงข้อมูล Scopus อัตโนมัติ เลือกระดับ Quartile / Tier 1 และแนบหลักฐาน (Reprint, ใบเสร็จ)</li>
+                  <li><strong>ตรวจสอบโควตาอัตโนมัติ:</strong> เพดาน 150,000 บาท/คน/ปีงบประมาณ และระบบยกยอดเงินรางวัล (Carry Over)</li>
+                  <li><strong>แก้ไขคำขอ (Step 3):</strong> กรณีถูกส่งกลับ สามารถดูคำแนะนำและแก้ไขข้อมูลเดิมที่คงอยู่ครบถ้วน แล้วส่งตรวจซ้ำ</li>
+                  <li><strong>พิมพ์เอกสารและรับเงิน (Step 12):</strong> พรีวิว/ดาวน์โหลดชุดเอกสารราชการ 5 ฉบับ และรับแจ้งเตือนเมื่อเงินโอนเข้าบัญชีผ่าน LINE OA</li>
+                </ul>
+              </div>
+
+              {/* Role 3: Department Secretary */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-teal-200 dark:border-teal-900/50 shadow-2xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 flex items-center justify-center font-bold">
+                    3
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-white">เลขาภาควิชา (Department Secretary)</h4>
+                    <span className="text-[10px] text-teal-600 dark:text-teal-400 font-medium">ยื่นแทนและดูแลคณาจารย์ในภาควิชา</span>
+                  </div>
+                </div>
+                <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <li><strong>ยื่นคำขอและร่างคำขอแทนอาจารย์:</strong> เลือกอาจารย์ในภาควิชาตนเอง ระบบดึงข้อมูลบัญชี/บัตรประชาชนที่บันทึกไว้มาแสดงอัตโนมัติ</li>
+                  <li><strong>สลับผู้ใช้เต็มรูปแบบ (Full CRUD Impersonation):</strong> สลับบทบาทไปเป็นนักวิจัยในภาควิชาเพื่อสร้าง/แก้ไข/ลบคำขอแทนได้เสมือนอาจารย์ดำเนินการเอง</li>
+                  <li><strong>ติดตามงานระดับภาควิชา:</strong> ตรวจสอบสถานะคำขอทั้งหมดของคณาจารย์ในภาควิชาเพื่อช่วยประสานงานกับงานวิจัย</li>
+                  <li><strong>จัดการข้อมูลนักวิจัยในภาค:</strong> เพิ่ม/แก้ไขข้อมูลอาจารย์ในภาควิชาตนเอง (ล็อกความปลอดภัยไม่ให้แก้ไขข้ามภาควิชาหรือแก้ข้อมูล Admin)</li>
+                </ul>
+              </div>
+
+              {/* Role 4: Research Coordinator */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-purple-200 dark:border-purple-900/50 shadow-2xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold">
+                    4
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-white">เจ้าหน้าที่วิจัย / ผู้ประสานงาน (Coordinator)</h4>
+                    <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">ผู้ตรวจสอบและขับเคลื่อนกระบวนการสารบรรณ</span>
+                  </div>
+                </div>
+                <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <li><strong>ตรวจความถูกต้อง 100% (Step 2):</strong> ตรวจ Checklist เอกสารแนบ, สัดส่วนผู้ประพันธ์, Affiliation คณะแพทย์ ม.นเรศวร, และความซ้ำซ้อน DOI</li>
+                  <li><strong>ส่งคืนแก้ไข:</strong> ส่งคำขอกลับให้นักวิจัยแก้ไขพร้อมระบุข้อความแนะนำ</li>
+                  <li><strong>อนุมัติผลตรวจและออกเลขหนังสือ (Step 4):</strong> กด "ตรวจครบ 100%" บันทึกสถานะลง D1 ปลดล็อกการลงเลขหนังสือและวันที่ผ่าน Calendar Date Picker</li>
+                  <li><strong>พิมพ์ชุดเอกสารราชการ 5 ฉบับ:</strong> ตรวจสอบเอกสารตราครุฑมาตรฐาน 1.5 ซม. SVG และส่งออกไฟล์ Word (.docx)</li>
+                  <li><strong>เสนอผู้บริหารและส่งต่อเรื่อง (Step 5, 6, 9):</strong> ส่งเสนอหัวหน้างานวิจัยลงนาม และส่งชุดเอกสารทางการไปยังหน่วยการคลัง</li>
+                  <li><strong>แจ้งเตือนผ่าน LINE OA:</strong> ส่งข้อความอัปเดตสถานะคำขอถึงนักวิจัยอัตโนมัติ</li>
+                </ul>
+              </div>
+
+              {/* Role 5: Finance Officer */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-emerald-200 dark:border-emerald-900/50 shadow-2xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold">
+                    5
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-white">เจ้าหน้าที่การเงิน (Finance Officer)</h4>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">หน่วยการคลังและเบิกจ่ายเงินรางวัล</span>
+                  </div>
+                </div>
+                <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <li><strong>ลงรับเรื่องเบิกจ่าย (Step 7):</strong> ตรวจสอบใบสำคัญรับเงินและความถูกต้องของยอดเงิน ออกเลขรับการเงินและใบ Blue Slip</li>
+                  <li><strong>ทำฎีกาเบิกเงิน (Step 10):</strong> ส่งเรื่องเบิกจ่ายผ่านระบบการเงินมหาวิทยาลัย บันทึกเลขฎีกา (Disbursement Voucher No.) และรหัสงบประมาณ</li>
+                  <li><strong>โอนเงินและแนบสลิป (Step 11):</strong> โอนเงินเข้าบัญชีธนาคารของนักวิจัย อัปโหลด Payment Transfer Slip เข้าระบบ iRAM</li>
+                  <li><strong>ปรับสถานะคำขอ:</strong> เปลี่ยนสถานะคำขอเป็น "Paid" (ชำระเงินเรียบร้อยแล้ว)</li>
+                </ul>
+              </div>
+
+              {/* Role 6: Executive / Dean */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-amber-200 dark:border-amber-900/50 shadow-2xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold">
+                    6
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-white">ผู้บริหาร / คณบดี (Executive & Dean)</h4>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">พิจารณาและอนุมัติงบประมาณ</span>
+                  </div>
+                </div>
+                <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <li><strong>หัวหน้างานวิจัย / รองคณบดีฝ่ายวิจัย (Step 5):</strong> กลั่นกรองทางวิชาการและลงนามรับรองในบันทึกข้อความขออนุมัติ</li>
+                  <li><strong>คณบดีคณะแพทยศาสตร์ (Step 8):</strong> ลงนามอนุมัติให้เบิกจ่ายเงินรางวัลจากงบประมาณรายได้ของคณะแพทยศาสตร์</li>
+                  <li><strong>Executive Dashboard:</strong> ติดตามสถิติภาพรวมการใช้งบประมาณ อัตราการตีพิมพ์รายภาควิชา และแนวโน้มผลงานวิจัย</li>
+                </ul>
+              </div>
+
+              {/* Role 7: System Administrator */}
+              <div className="md:col-span-2 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold">
+                    7
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-white">ผู้ดูแลระบบ (System Administrator)</h4>
+                    <span className="text-[10px] text-slate-500 font-medium">ควบคุมระบบ ตั้งค่าเกณฑ์ และดูแลความปลอดภัย</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li><strong>จัดการผู้ใช้และสิทธิ์:</strong> กำหนดบทบาท ปรับปรุงข้อมูลบัญชีธนาคารและเลขบัตรประชาชนตามเกณฑ์ PDPA</li>
+                    <li><strong>ตั้งค่าเกณฑ์เงินรางวัล:</strong> กำหนดปีงบประมาณ เพดานโควตา อัตราเงินรางวัล และรอบยกยอดงบประมาณ</li>
+                  </ul>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li><strong>Cloudflare D1 & Sync Console:</strong> ตรวจสอบความสมบูรณ์ของฐานข้อมูล ซิงค์ข้อมูลกับ Google Sheets และการสำรองข้อมูล</li>
+                    <li><strong>Super Impersonation & Analytics:</strong> สลับเป็นผู้ใช้รายใดก็ได้เพื่อแก้ปัญหาหน้างาน และดูสถิติ Pageview Analytics</li>
+                  </ul>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Sub-section 3: 5 Official Printable Documents */}
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+            <h3 className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+              <FileCheck className="w-4 h-4 text-emerald-600" />
+              <span>ชุดเอกสารราชการ 5 ฉบับที่ระบบจัดทำและสร้างขึ้นให้อัตโนมัติ</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-[11px] text-slate-600 dark:text-slate-300">
+              <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span className="font-bold text-slate-800 dark:text-slate-200">1. AWP Checklist:</span> รายการตรวจสอบเอกสารและข้อกำหนดการให้เงินรางวัล
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span className="font-bold text-slate-800 dark:text-slate-200">2. บันทึกขออนุมัติเงินรางวัล:</span> ตราครุฑ 1.5 ซม. เรียนคณบดีเพื่อขออนุมัติเงินรางวัล
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span className="font-bold text-slate-800 dark:text-slate-200">3. บันทึกขออนุมัติเบิกเงิน:</span> บันทึกข้อความฉบับเบิกเงินส่งงานคลัง อ้างอิงเลขและวันที่ฉบับ 2
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span className="font-bold text-slate-800 dark:text-slate-200">4. ใบสำคัญรับเงิน:</span> แบบฟอร์มใบสำคัญรับเงินพร้อมแจกแจงยอดและหักค่าธรรมเนียม
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span className="font-bold text-slate-800 dark:text-slate-200">5. แบบคำขอและรับรอง AWP46:</span> คำขอและรับรองการตีพิมพ์ผลงานวิจัยตามประกาศคณะฯ
+              </div>
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-medium">
+                ✓ รองรับการส่งออก Word (.docx) และ PDF
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* SECTION 1: RULES & REWARD RATES */}
       {(activeSection === 'all' || activeSection === 'rules') && (
