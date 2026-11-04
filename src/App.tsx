@@ -15,6 +15,7 @@ import { PaymentVerificationModal } from './components/PaymentVerificationModal'
 import { UserProfileModal } from './components/UserProfileModal';
 import { UserManagementView } from './components/UserManagementView';
 import { UserGuideView } from './components/UserGuideView';
+import { AboutView } from './components/AboutView';
 import { LoginModal } from './components/LoginModal';
 import { ResearcherActivationModal } from './components/ResearcherActivationModal';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
@@ -118,7 +119,7 @@ export default function App() {
 
   // Enforce Guest Mode to remain on dashboard tab
   useEffect(() => {
-    if (!currentUser && activeTab !== 'dashboard' && activeTab !== 'user_guide') {
+    if (!currentUser && activeTab !== 'dashboard' && activeTab !== 'user_guide' && activeTab !== 'about') {
       setActiveTab('dashboard');
     }
   }, [currentUser, activeTab]);
@@ -135,6 +136,7 @@ export default function App() {
       line_oa: '/line-oa',
       user_management: '/admin',
       user_guide: '/guide',
+      about: '/about',
     };
     const path = tabToPathMap[activeTab] || '/';
     trackPageView(path);
@@ -617,12 +619,12 @@ export default function App() {
     if (!currentUser) return;
     setCurrentRole(newRole);
     const roleAllowedTabs: Record<UserRole, ActiveTab[]> = {
-      researcher: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar', 'user_guide'],
-      dept_secretary: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar', 'user_management', 'user_guide'],
-      finance: ['dashboard', 'article_table', 'table', 'calendar', 'user_guide'],
-      executive: ['dashboard', 'article_table', 'table', 'calendar', 'user_guide'],
-      coordinator: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', 'user_guide', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
-      admin: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', 'user_guide', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
+      researcher: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar', 'user_guide', 'about'],
+      dept_secretary: ['dashboard', 'quota_planner', 'article_table', 'table', 'calendar', 'user_management', 'user_guide', 'about'],
+      finance: ['dashboard', 'article_table', 'table', 'calendar', 'user_guide', 'about'],
+      executive: ['dashboard', 'article_table', 'table', 'calendar', 'user_guide', 'about'],
+      coordinator: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', 'user_guide', 'about', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
+      admin: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', 'user_guide', 'about', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
     };
     const allowed = roleAllowedTabs[newRole] || ['dashboard'];
     if (!allowed.includes(activeTab)) {
@@ -1530,6 +1532,15 @@ export default function App() {
             </button>
           </div>
         ) : null}
+
+        {/* About Tab */}
+        {activeTab === 'about' && (
+          <AboutView
+            onBackToDashboard={() => setActiveTab('dashboard')}
+            onNavigate={handleTabChange}
+            isGuest={isGuest}
+          />
+        )}
 
         {/* User Guide Tab */}
         {activeTab === 'user_guide' && (

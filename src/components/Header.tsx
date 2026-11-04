@@ -21,6 +21,7 @@ import {
   LogIn,
   Sparkles,
   BookOpen,
+  Info,
   Menu,
   X,
   LayoutGrid,
@@ -32,7 +33,7 @@ import { UserProfile, UserRole } from '../types';
 import { LINE_NOTIFICATION_SYSTEM_ENABLED } from '../data/lineNotificationService';
 
 export type { UserRole };
-export type ActiveTab = 'dashboard' | 'quota_planner' | 'article_table' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management' | 'user_guide';
+export type ActiveTab = 'dashboard' | 'quota_planner' | 'article_table' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management' | 'user_guide' | 'about';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -209,7 +210,18 @@ export const Header: React.FC<HeaderProps> = ({
     roles: [],
   };
 
-  const activeTabItem = activeTab === 'user_guide'
+  const aboutTabFallback = {
+    id: 'about' as ActiveTab,
+    label: 'เกี่ยวกับระบบ (About)',
+    shortLabel: 'เกี่ยวกับระบบ',
+    description: 'ความเป็นมา สถาปัตยกรรม และแนวทางพัฒนาระบบ iRAM',
+    icon: Info,
+    roles: [],
+  };
+
+  const activeTabItem = activeTab === 'about'
+    ? aboutTabFallback
+    : activeTab === 'user_guide'
     ? userGuideTabFallback
     : (availableTabs.find(tab => tab.id === activeTab) || availableTabs[0]);
 
@@ -251,6 +263,18 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <BookOpen className="w-3.5 h-3.5 text-amber-400" />
                   <span className="font-prompt">คู่มือการใช้งาน</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('about')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === 'about'
+                      ? 'bg-amber-600 text-white border-amber-500 shadow-sm ring-1 ring-amber-400/50'
+                      : 'bg-slate-800/90 hover:bg-slate-700 text-amber-300 border-amber-500/40 hover:border-amber-400 hover:text-white'
+                  }`}
+                  title="เกี่ยวกับระบบ iRAM"
+                >
+                  <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="hidden sm:inline font-prompt whitespace-nowrap">เกี่ยวกับระบบ</span>
                 </button>
               </div>
             ) : (
@@ -422,6 +446,19 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span className="hidden sm:inline font-prompt whitespace-nowrap">คู่มือการใช้งาน</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('about')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === 'about'
+                      ? 'bg-amber-600 text-white border-amber-500 shadow-sm ring-1 ring-amber-400/50'
+                      : 'bg-slate-800/90 hover:bg-slate-700 text-amber-300 border-amber-500/40 hover:border-amber-400 hover:text-white'
+                  }`}
+                  title="เกี่ยวกับระบบ iRAM"
+                >
+                  <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="hidden sm:inline font-prompt whitespace-nowrap">เกี่ยวกับระบบ</span>
                 </button>
 
                 {/* Logout Button */}
