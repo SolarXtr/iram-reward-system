@@ -249,9 +249,9 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action Bar */}
           <div className="flex items-center gap-2.5">
-            {/* GUEST MODE: Show User Guide button */}
+            {/* GUEST MODE: Show User Guide button, About button, and Login button */}
             {isGuest ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                 <button
                   onClick={() => setActiveTab('user_guide')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
@@ -259,7 +259,7 @@ export const Header: React.FC<HeaderProps> = ({
                       ? 'bg-amber-600 text-white border-amber-500 shadow-sm ring-1 ring-amber-400/50'
                       : 'bg-slate-800/90 hover:bg-slate-700 text-amber-300 border-amber-500/40 hover:border-amber-400 hover:text-white'
                   }`}
-                  title="เปิดดูคู่มือการใช้งานระบบสำหรับนักวิจัย"
+                  title="เปิดดูคู่มือการใช้งานระบบสำหรับนักวิจัย (เข้าดูได้โดยไม่ต้องเข้าสู่ระบบ)"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-amber-400" />
                   <span className="font-prompt">คู่มือการใช้งาน</span>
@@ -274,23 +274,45 @@ export const Header: React.FC<HeaderProps> = ({
                   title="เกี่ยวกับระบบ iRAM"
                 >
                   <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span className="hidden sm:inline font-prompt whitespace-nowrap">เกี่ยวกับระบบ</span>
+                  <span className="hidden xl:inline font-prompt whitespace-nowrap">เกี่ยวกับระบบ</span>
                 </button>
+                {onOpenLoginModal && (
+                  <button
+                    onClick={onOpenLoginModal}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-lg text-xs shadow-sm transition-all font-prompt cursor-pointer"
+                    title="เข้าสู่ระบบด้วย Google NU Account"
+                  >
+                    <LogIn className="w-3.5 h-3.5 text-slate-950" />
+                    <span>เข้าสู่ระบบ</span>
+                  </button>
+                )}
               </div>
             ) : (
               /* AUTHENTICATED MODE: Role switcher, Profile, D1, Submission, Logout */
               <>
-                {/* Search input: Show for ALL users */}
-                <div className="relative hidden md:block w-48 lg:w-56">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                {/* Search input: Show for pages that have tables/cards */}
+                {activeTab !== 'user_guide' && activeTab !== 'about' && (
+                <div className="relative hidden md:block w-32 lg:w-40 xl:w-48 shrink min-w-0">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="ค้นหา AWP.., ชื่อ, วารสาร..."
-                    className="w-full pl-9 pr-3 py-1.5 bg-slate-800/90 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
+                    placeholder="ค้นหา AWP, ชื่อ..."
+                    title="ค้นหาและกรองคำขอในแดชบอร์ด ตาราง และ Kanban แบบเรียลไทม์"
+                    className="w-full pl-8 pr-7 py-1 bg-slate-800/90 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all"
                   />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer"
+                      title="ล้างคำค้นหา"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
+                )}
 
                 {/* Role Switcher: Only display if account has multiple roles, is Admin, or is Dept Secretary */}
                 {(userRoles.length > 1 || isProfileAdmin || isDeptSecretary) && (
@@ -445,7 +467,7 @@ export const Header: React.FC<HeaderProps> = ({
                   title="เปิดดูคู่มือการใช้งานระบบสำหรับนักวิจัย"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span className="hidden sm:inline font-prompt whitespace-nowrap">คู่มือการใช้งาน</span>
+                  <span className="hidden xl:inline font-prompt whitespace-nowrap">คู่มือการใช้งาน</span>
                 </button>
 
                 <button
@@ -458,7 +480,7 @@ export const Header: React.FC<HeaderProps> = ({
                   title="เกี่ยวกับระบบ iRAM"
                 >
                   <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span className="hidden sm:inline font-prompt whitespace-nowrap">เกี่ยวกับระบบ</span>
+                  <span className="hidden xl:inline font-prompt whitespace-nowrap">เกี่ยวกับระบบ</span>
                 </button>
 
                 {/* Logout Button */}

@@ -11,7 +11,8 @@ import {
   ChevronRight, 
   PanelRightClose,
   ShieldCheck,
-  Crown
+  Crown,
+  Layers
 } from 'lucide-react';
 import { ActiveTab } from './Header';
 import { UserProfile } from '../types';
@@ -95,6 +96,14 @@ export const AdminRightSideMenu: React.FC<AdminRightSideMenuProps> = ({
       icon: Users,
       badge: 'Admin',
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+    },
+    {
+      id: 'user_guide',
+      label: 'กระบวนการ 12 ขั้นตอน & คู่มือ',
+      description: 'คู่มือระเบียบและกระบวนการ 12 ขั้นตอนอย่างเป็นทางการ',
+      icon: Layers,
+      badge: '12 ขั้นตอน',
+      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
     },
   ];
 

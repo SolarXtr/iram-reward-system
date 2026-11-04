@@ -109,6 +109,8 @@ export interface ResearchApplication {
   journalName: string;
   journalScope: JournalScope;
   database: DatabaseName;
+  /** ชื่อคอลัมน์ฐานข้อมูลฝั่ง Cloudflare D1 (สำรอง/ส่งต่อให้ Worker API ควบคู่กับ database) */
+  databaseName?: DatabaseName;
   quartile: QuartileRank;
   isTier1Top10?: boolean;
   authorRole: AuthorRole;

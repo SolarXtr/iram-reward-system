@@ -25,6 +25,7 @@ import {
   DEFAULT_LOGGED_IN_USER,
   saveStoredUserProfile,
   getStoredUsersRegistry,
+  saveStoredUsersRegistry,
   upsertRegisteredUser,
   deleteRegisteredUser
 } from './data/userProfile';
@@ -607,7 +608,7 @@ export default function App() {
   };
 
   const handleTabChange = (tab: ActiveTab) => {
-    if (!currentUser && tab !== 'dashboard') {
+    if (!currentUser && tab !== 'dashboard' && tab !== 'user_guide' && tab !== 'about') {
       setIsLoginModalOpen(true);
       showToast('กรุณาเข้าสู่ระบบด้วย NU Account (@nu.ac.th) เพื่อเข้าใช้งานเมนูนี้');
       return;
@@ -1336,11 +1337,11 @@ export default function App() {
         onOpenActivationModal={() => setIsActivationModalOpen(true)}
       />
 
-      {/* Main Workspace Canvas */}
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Main Workspace Canvas (ขยายเต็มจออัตโนมัติเมื่อย่อ/ยุบเมนู) */}
+      <main className="flex-1 w-full max-w-[1600px] xl:max-w-[1760px] 2xl:max-w-none mx-auto px-4 sm:px-6 lg:px-8 py-6 transition-all duration-300">
         <div className="flex items-start gap-6">
           {/* Main Content Area */}
-          <div className="flex-1 min-w-0 transition-all duration-200">
+          <div className="flex-1 min-w-0 w-full transition-all duration-300">
 
             {/* Pending Researcher Verification Banner */}
             {currentUser?.isPendingProfile && (
@@ -1546,7 +1547,8 @@ export default function App() {
         {activeTab === 'user_guide' && (
           <UserGuideView
             onBackToDashboard={() => setActiveTab('dashboard')}
-            onOpenNewSubmission={() => setIsSubmissionModalOpen(true)}
+            onOpenNewSubmission={handleOpenNewSubmission}
+            isAdmin={!isGuest && currentRole === 'admin'}
           />
         )}
 
@@ -1580,7 +1582,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">งานวิจัย คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</span>
             <span>•</span>
-            <span>หน่วยบริหารและจัดการงานวิจัย (โทร. 0-5596-7928)</span>
+            <span>หน่วยบริหารและจัดการงานวิจัย (โทร. 0-5596-5761)</span>
           </div>
         </div>
       </footer>

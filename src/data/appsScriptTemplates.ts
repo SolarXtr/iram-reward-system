@@ -507,7 +507,7 @@ function renderDefaultWebPortal() {
     '<div class="bg-gradient-to-r from-blue-900 via-blue-950 to-slate-900 p-6 text-white">' +
     '<div class="text-xs text-amber-400 font-semibold uppercase tracking-wider mb-1">คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร • ปีงบประมาณ 2570</div>' +
     '<h1 class="text-xl sm:text-2xl font-bold">ระบบติดตามคำขอรับเงินรางวัลและค่าตีพิมพ์บทความวิจัย</h1>' +
-    '<p class="text-xs text-blue-200 mt-1">งานบริหารงานวิจัยและนวัตกรรม • โทร. 0-5596-7844 • LINE OA: @414jvrca</p>' +
+    '<p class="text-xs text-blue-200 mt-1">งานบริหารงานวิจัยและนวัตกรรม • โทร. 0-5596-5761 • LINE OA: @414jvrca</p>' +
     '</div>' +
     '<div class="p-6 space-y-6">' +
     '<div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900">' +
@@ -1177,7 +1177,7 @@ export const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
           </p>
           <div class="pt-2 border-t border-white/10 flex justify-between text-[11px]">
             <span class="text-blue-200">งานบริหารงานวิจัย</span>
-            <span class="font-semibold text-emerald-300">โทร. 0-5596-7844</span>
+            <span class="font-semibold text-emerald-300">โทร. 0-5596-5761</span>
           </div>
         </div>
       </div>
@@ -1672,7 +1672,7 @@ export const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 no-print mt-auto">
     <div class="max-w-7xl mx-auto px-4">
-      คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร • งานบริหารงานวิจัยและนวัตกรรม อาคารสิรินธร ชั้น 3 โทร. 0-5596-7844
+      คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร • งานบริหารงานวิจัยและนวัตกรรม อาคารสิรินธร ชั้น 3 โทร. 0-5596-5761
     </div>
   </footer>
 
