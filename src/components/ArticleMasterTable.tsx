@@ -1281,7 +1281,7 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
                   className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg text-xs font-semibold border border-blue-200 transition-colors flex items-center gap-1.5"
                 >
                   <Eye className="w-4 h-4" />
-                  <span>ดูไทม์ไลน์ 12 ขั้นตอน</span>
+                  <span>ดูไทม์ไลน์ 19 ขั้นตอน</span>
                 </button>
               )}
               <button

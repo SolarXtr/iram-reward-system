@@ -236,7 +236,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
               </h2>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              ระบบเชื่อมต่อ Hook อัตโนมัติจากเวิร์กโฟลว์ 12 ขั้นตอน แจ้งเตือนผู้ขอรับทุนและผู้เกี่ยวข้องโดยไม่ต้องพิมพ์ส่งเอง
+              ระบบเชื่อมต่อ Hook อัตโนมัติจากเวิร์กโฟลว์ 19 ขั้นตอน แจ้งเตือนผู้ขอรับทุนและผู้เกี่ยวข้องโดยไม่ต้องพิมพ์ส่งเอง
             </p>
           </div>
 
@@ -620,7 +620,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                         <div className="w-full py-1.5 bg-[#06c755] hover:bg-[#05b34c] text-white font-bold text-center rounded-lg text-[11px] shadow-sm cursor-pointer transition-colors">
                           {activeMilestone === 'payment_transferred' 
                             ? 'เปิดดูใบเสร็จและสลิปโอนเงิน' 
-                            : 'ติดตามสถานะคำขอ (SLA 12 ขั้นตอน)'}
+                            : 'ติดตามสถานะคำขอ (SLA 19 ขั้นตอน)'}
                         </div>
                         <div className="text-[9px] text-slate-400 text-center">
                           Powered by iRAM-U Services • คณะแพทยศาสตร์ มน.

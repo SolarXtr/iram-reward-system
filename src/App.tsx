@@ -19,6 +19,7 @@ import { AboutView } from './components/AboutView';
 import { LoginModal } from './components/LoginModal';
 import { ResearcherActivationModal } from './components/ResearcherActivationModal';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
+import { generateTimelineFor19Steps } from './data/workflow19Steps';
 import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, PublicRewardSummary, ResearchApplication, UserProfile, WorkflowStepId, NuDisbursementRecord } from './types';
 import { generateNextTrackingNo } from './data/regulations';
 import { 
@@ -696,11 +697,7 @@ export default function App() {
       attachments: [],
       lineNotified: false,
       calendarSynced: false,
-      timeline: OFFICIAL_WORKFLOW_STEPS_DEF.map((s, idx) => ({
-        ...s,
-        status: idx === 0 ? (isActuallyDraft ? 'in_progress' : 'completed') : 'pending',
-        completedAt: idx === 0 && !isActuallyDraft ? today : undefined,
-      })),
+      timeline: generateTimelineFor19Steps(isActuallyDraft ? 1 : 2),
       ...appInput,
       id: finalId,
       trackingNo: finalTrackingNo,

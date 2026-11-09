@@ -33,13 +33,14 @@ import {
   CheckSquare
 } from 'lucide-react';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from '../data/initialData';
+import { WORKFLOW_19_STEPS_DEF, WORKFLOW_ROLES_DEF } from '../data/workflow19Steps';
 import { calculateFacultyReward } from '../data/regulations';
 import { AuthorRole, DatabaseName, JournalScope, QuartileRank } from '../types';
 
 interface UserGuideViewProps {
   onBackToDashboard: () => void;
   onOpenNewSubmission?: () => void;
-  /** แสดงเมนู "กระบวนการ 12 ขั้นตอน" เฉพาะผู้ดูแลระบบ */
+  /** สิทธิ์ผู้ดูแลระบบ */
   isAdmin?: boolean;
 }
 
@@ -50,6 +51,8 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSection, setActiveSection] = useState<'all' | 'official_workflow' | 'rules' | 'steps' | 'calculator' | 'faq' | 'contact'>('all');
+  const [infographicViewMode, setInfographicViewMode] = useState<'swimlane' | 'phases'>('swimlane');
+  const [selectedInfographicRole, setSelectedInfographicRole] = useState<string>('all');
 
   // ---- Search: กรองหมวดเนื้อหาตามคำค้น ----
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,9 +73,8 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
     setMatchedSections(next);
   }, [trimmedQuery]);
 
-  // ระหว่างค้นหา: เรนเดอร์ทุกหมวดแล้วซ่อนหมวดที่ไม่ตรงคำค้น (หมวด 12 ขั้นตอนแสดงเฉพาะ Admin)
+  // ระหว่างค้นหา: เรนเดอร์ทุกหมวดแล้วซ่อนหมวดที่ไม่ตรงคำค้น
   const renderSection = (id: string) => {
-    if (id === 'official_workflow' && !isAdmin) return false;
     return isSearching || activeSection === 'all' || activeSection === id;
   };
   const hiddenCls = (id: string) => (isSearching && matchedSections[id] === false ? ' hidden' : '');
@@ -182,12 +184,12 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
           <div className="flex flex-wrap items-center gap-1.5 text-sm min-w-0">
             {[
               { id: 'all', label: 'ทั้งหมด' },
+              { id: 'official_workflow', label: 'แผนผังกระบวนการ 19 ขั้นตอน (Infographic)' },
               { id: 'rules', label: 'เกณฑ์และวงเงิน' },
               { id: 'steps', label: '6 ขั้นตอนใช้งาน' },
               { id: 'calculator', label: 'จำลองการคำนวณ' },
               { id: 'faq', label: 'คำถามที่พบบ่อย' },
               { id: 'contact', label: 'ติดต่อหน่วยวิจัย' },
-              ...(isAdmin ? [{ id: 'official_workflow', label: 'กระบวนการ 12 ขั้นตอน' }] : []),
             ].map((sec) => (
               <button
                 key={sec.id}
@@ -447,7 +449,7 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
                   <span className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 font-bold text-sm flex items-center justify-center">5</span>
                   <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">Tracking</span>
                 </div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">ติดตามสถานะ 12 ขั้นตอน</h3>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">ติดตามสถานะกระบวนการ (19 ขั้นตอน)</h3>
                 <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
                   ติดตามสถานะคำขอได้แบบเรียลไทม์ผ่านหน้าเว็บ ตั้งแต่ตรวจสอบเอกสาร เสนอผู้บริหาร จนถึงส่งงานการเงินเพื่อออกเลขฎีกา
                 </p>
@@ -701,76 +703,396 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
         </section>
       )}
 
-      {/* SECTION: กระบวนการ 12 ขั้นตอน (Official 12-Step Workflow & 7 Roles) */}
+      {/* SECTION: แผนผังกระบวนการดำเนินการระบบเงินรางวัล 19 ขั้นตอน (Infographic Workflow) */}
       {renderSection('official_workflow') && (
         <section data-guide-section="official_workflow" className={`space-y-6${hiddenCls('official_workflow')}`}>
-          <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-            <Layers className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                กระบวนการ 12 ขั้นตอน (Official 12-Step Workflow & 7 Roles)
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                วงจรชีวิตคำขอรับเงินรางวัลและค่าตีพิมพ์ตามระเบียบคณะแพทยศาสตร์ พร้อมบทบาทและความรับผิดชอบของ 7 กลุ่มผู้ใช้งาน
-              </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <Layers className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>แผนผังกระบวนการดำเนินการระบบเงินรางวัล (Infographic)</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-semibold">19 ขั้นตอน</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร • การขออนุมัติและเบิกจ่ายเงินรางวัล / ค่าตีพิมพ์ (5 ฝ่าย 3 ระยะ 19 ขั้นตอน)
+                </p>
+              </div>
+            </div>
+
+            {/* View Mode Switcher & Print */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setInfographicViewMode('swimlane')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+                    infographicViewMode === 'swimlane'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  มุมมอง Swimlane
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInfographicViewMode('phases')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+                    infographicViewMode === 'phases'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  มุมมอง 3 ระยะดำเนินงาน
+                </button>
+              </div>
+
+              <a
+                href="/reward-process-infographic.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs sm:text-sm font-semibold border border-amber-300 dark:border-amber-700 cursor-pointer transition-all"
+                title="เปิดอินโฟกราฟิกฉบับเต็มในแท็บใหม่"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-amber-500" />
+                <span>เปิดอินโฟกราฟิกเต็มจอ</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-medium border border-slate-200 dark:border-slate-700 cursor-pointer"
+                title="พิมพ์เฉพาะแผนผัง / บันทึก PDF"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>พิมพ์แผนผัง</span>
+              </button>
             </div>
           </div>
 
-          {/* Sub-section 1: The 12 Official Workflow Steps */}
-          <div className="space-y-3">
-            <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-500" />
-              <span>ลำดับขั้นตอนการดำเนินงาน 12 ขั้นตอนมาตรฐาน (SLA รวมประมาณ 35 วันทำการ)</span>
-            </h3>
+          {/* Quick KPI Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50">
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400">ขั้นตอนทั้งหมด</div>
+              <div className="text-2xl font-bold text-blue-950 dark:text-blue-200 mt-1">19 <span className="text-xs font-normal text-blue-600 dark:text-blue-400">ขั้นตอน</span></div>
+            </div>
+            <div className="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50">
+              <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400">กลุ่มผู้มีส่วนเกี่ยวข้อง</div>
+              <div className="text-2xl font-bold text-emerald-950 dark:text-emerald-200 mt-1">5 <span className="text-xs font-normal text-emerald-600 dark:text-emerald-400">ฝ่าย/ตำแหน่ง</span></div>
+            </div>
+            <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50">
+              <div className="text-xs font-medium text-amber-600 dark:text-amber-400">ระยะดำเนินงานหลัก</div>
+              <div className="text-2xl font-bold text-amber-950 dark:text-amber-200 mt-1">3 <span className="text-xs font-normal text-amber-600 dark:text-amber-400">ระยะ (Phases)</span></div>
+            </div>
+            <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/50">
+              <div className="text-xs font-medium text-purple-600 dark:text-purple-400">ผลลัพธ์ปลายทาง</div>
+              <div className="text-2xl font-bold text-purple-950 dark:text-purple-200 mt-1">โอนเงิน <span className="text-xs font-normal text-purple-600 dark:text-purple-400">เข้าบัญชี</span></div>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {OFFICIAL_WORKFLOW_STEPS_DEF.map((step) => {
-                const isResearcher = step.responsibleParty === 'นักวิจัย';
-                const isCoordinator = step.responsibleParty === 'ผู้ประสานงานวิจัย';
-                const isFinance = step.responsibleParty === 'งานการเงิน';
-                const isExecutive = step.responsibleParty === 'ผู้บริหาร';
+          {/* Role Filter Buttons */}
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <span>คลิกเพื่อกรองหรือไฮไลท์ขั้นตอนตามฝ่ายที่รับผิดชอบ:</span>
+              {selectedInfographicRole !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedInfographicRole('all')}
+                  className="text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                >
+                  ล้างตัวกรอง (แสดงทั้งหมด)
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedInfographicRole('all')}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  selectedInfographicRole === 'all'
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-xs font-semibold'
+                    : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <div className="text-xs font-bold leading-tight">แสดงทั้งหมด</div>
+                <div className="text-[11px] opacity-80">19 ขั้นตอน</div>
+              </button>
 
-                const badgeColor = isResearcher
-                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                  : isCoordinator
-                  ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800'
-                  : isFinance
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                  : isExecutive
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                  : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-200';
+              {WORKFLOW_ROLES_DEF.map((role) => (
+                <button
+                  key={role.key}
+                  type="button"
+                  onClick={() => setSelectedInfographicRole(role.key)}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    selectedInfographicRole === role.key
+                      ? 'ring-2 ring-amber-500 shadow-xs ' + role.badgeColor
+                      : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${role.dotColor}`}></span>
+                    <span className="text-xs font-bold truncate">{role.name}</span>
+                  </div>
+                  <div className="text-[11px] opacity-75 mt-0.5">{role.count} ขั้นตอน ({role.steps})</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* VIEW 1: SWIMLANE VIEW */}
+          {infographicViewMode === 'swimlane' && (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="p-3.5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-800 text-white flex items-center justify-between">
+                <div className="text-xs sm:text-sm font-semibold flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>ตารางกระบวนการ Swimlane 5 ฝ่าย (ขั้นตอนที่ 1 - 19)</span>
+                </div>
+                <span className="text-[11px] text-slate-300 bg-white/10 px-2 py-0.5 rounded">
+                  {selectedInfographicRole === 'all' ? 'แสดงทั้ง 19 ขั้นตอน' : `กรองเฉพาะ: ${WORKFLOW_ROLES_DEF.find(r => r.key === selectedInfographicRole)?.name}`}
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <div className="min-w-[920px]">
+                  {/* Swimlane Column Headers */}
+                  <div className="grid grid-cols-5 bg-slate-100 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 sticky top-0 z-10">
+                    <div className="p-3 text-center border-r border-slate-200 dark:border-slate-700 text-blue-800 dark:text-blue-300 bg-blue-50/50 dark:bg-blue-950/20">
+                      นักวิจัย / เลขานุการ
+                    </div>
+                    <div className="p-3 text-center border-r border-slate-200 dark:border-slate-700 text-emerald-800 dark:text-emerald-300 bg-emerald-50/50 dark:bg-emerald-950/20">
+                      เจ้าหน้าที่งานวิจัย
+                    </div>
+                    <div className="p-3 text-center border-r border-slate-200 dark:border-slate-700 text-amber-800 dark:text-amber-300 bg-amber-50/50 dark:bg-amber-950/20">
+                      จนท. นโยบายและแผน
+                    </div>
+                    <div className="p-3 text-center border-r border-slate-200 dark:border-slate-700 text-purple-800 dark:text-purple-300 bg-purple-50/50 dark:bg-purple-950/20">
+                      เจ้าหน้าที่การเงิน
+                    </div>
+                    <div className="p-3 text-center text-rose-800 dark:text-rose-300 bg-rose-50/50 dark:bg-rose-950/20">
+                      ผู้บริหาร
+                    </div>
+                  </div>
+
+                  {/* 19 Step Rows */}
+                  {WORKFLOW_19_STEPS_DEF.map((step) => {
+                    const isHighlighted = selectedInfographicRole === 'all' || selectedInfographicRole === step.roleKey;
+                    const isPhase1Start = step.stepNumber === 1;
+                    const isPhase2Start = step.stepNumber === 5;
+                    const isPhase3Start = step.stepNumber === 13;
+
+                    return (
+                      <React.Fragment key={step.stepNumber}>
+                        {/* Phase Dividers */}
+                        {isPhase1Start && (
+                          <div className="bg-sky-50 dark:bg-sky-950/30 px-4 py-2 border-b border-sky-200 dark:border-sky-900/50 flex items-center justify-between text-xs font-semibold text-sky-800 dark:text-sky-300">
+                            <span className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded bg-sky-200 dark:bg-sky-900/60 text-sky-900 dark:text-sky-200 text-[10px]">ระยะที่ 1</span>
+                              <span>การยื่นคำขอและตรวจเช็คระบบออนไลน์ (ขั้นตอนที่ 1 - 4)</span>
+                            </span>
+                            <span className="text-[11px] font-normal text-sky-600 dark:text-sky-400">ระบบสารสนเทศ</span>
+                          </div>
+                        )}
+                        {isPhase2Start && (
+                          <div className="bg-amber-50 dark:bg-amber-950/30 px-4 py-2 border-y border-amber-200 dark:border-amber-900/50 flex items-center justify-between text-xs font-semibold text-amber-900 dark:text-amber-300">
+                            <span className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-[10px]">ระยะที่ 2</span>
+                              <span>การเสนอขออนุมัติหลักการและกรอบงบประมาณ (ขั้นตอนที่ 5 - 12)</span>
+                            </span>
+                            <span className="text-[11px] font-normal text-amber-700 dark:text-amber-400">ตรวจงบประมาณและลงนาม</span>
+                          </div>
+                        )}
+                        {isPhase3Start && (
+                          <div className="bg-purple-50 dark:bg-purple-950/30 px-4 py-2 border-y border-purple-200 dark:border-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-900 dark:text-purple-300">
+                            <span className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded bg-purple-200 dark:bg-purple-900/60 text-purple-900 dark:text-purple-200 text-[10px]">ระยะที่ 3</span>
+                              <span>การขออนุมัติเบิกเงินและโอนเงินเข้าบัญชี (ขั้นตอนที่ 13 - 19)</span>
+                            </span>
+                            <span className="text-[11px] font-normal text-purple-700 dark:text-purple-400">ฎีกาเบิกจ่ายและโอนเงิน</span>
+                          </div>
+                        )}
+
+                        {/* Swimlane Step Row */}
+                        <div
+                          className={`grid grid-cols-5 border-b border-slate-100 dark:border-slate-800 transition-opacity ${
+                            isHighlighted ? 'opacity-100' : 'opacity-25 grayscale'
+                          }`}
+                        >
+                          {/* Col 1: Researcher */}
+                          <div className="p-2.5 border-r border-slate-100 dark:border-slate-800 flex items-center">
+                            {step.roleKey === 'researcher' ? (
+                              <div className={`w-full p-2.5 rounded-xl border ${
+                                step.stepNumber === 19
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-400 text-emerald-950 dark:text-emerald-200 shadow-xs'
+                                  : 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/50 text-blue-950 dark:text-blue-200'
+                              }`}>
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${
+                                    step.stepNumber === 19 ? 'bg-emerald-600' : 'bg-blue-600'
+                                  }`}>
+                                    {step.stepNumber}
+                                  </span>
+                                  <span className="font-bold text-xs">{step.title}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">{step.description}</p>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          {/* Col 2: Research Office */}
+                          <div className="p-2.5 border-r border-slate-100 dark:border-slate-800 flex items-center">
+                            {step.roleKey === 'research-office' ? (
+                              <div className="w-full p-2.5 rounded-xl border bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50 text-emerald-950 dark:text-emerald-200">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                    {step.stepNumber}
+                                  </span>
+                                  <span className="font-bold text-xs">{step.title}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">{step.description}</p>
+                                {step.isFeedbackLoop && (
+                                  <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200">
+                                    <span>↺ ส่งคืนแก้ไข (ย้อนกลับข้อ 2)</span>
+                                  </div>
+                                )}
+                              </div>
+                            ) : null}
+                          </div>
+
+                          {/* Col 3: Policy & Planning */}
+                          <div className="p-2.5 border-r border-slate-100 dark:border-slate-800 flex items-center">
+                            {step.roleKey === 'policy-plan' ? (
+                              <div className="w-full p-2.5 rounded-xl border bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 text-amber-950 dark:text-amber-200">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                    {step.stepNumber}
+                                  </span>
+                                  <span className="font-bold text-xs">{step.title}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">{step.description}</p>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          {/* Col 4: Finance */}
+                          <div className="p-2.5 border-r border-slate-100 dark:border-slate-800 flex items-center">
+                            {step.roleKey === 'finance' ? (
+                              <div className="w-full p-2.5 rounded-xl border bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-900/50 text-purple-950 dark:text-purple-200">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                    {step.stepNumber}
+                                  </span>
+                                  <span className="font-bold text-xs">{step.title}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">{step.description}</p>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          {/* Col 5: Executives */}
+                          <div className="p-2.5 flex items-center">
+                            {step.roleKey === 'executives' ? (
+                              <div className="w-full p-2.5 rounded-xl border bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50 text-rose-950 dark:text-rose-200">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                    {step.stepNumber}
+                                  </span>
+                                  <span className="font-bold text-xs">{step.title}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">{step.description}</p>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW 2: 3-PHASE TIMELINE VIEW */}
+          {infographicViewMode === 'phases' && (
+            <div className="space-y-4">
+              {[1, 2, 3].map((phaseNum) => {
+                const phaseSteps = WORKFLOW_19_STEPS_DEF.filter(s => s.phase === phaseNum);
+                const phaseTitle = phaseNum === 1
+                  ? 'ระยะที่ 1: การยื่นคำขอและตรวจเช็คระบบออนไลน์'
+                  : phaseNum === 2
+                  ? 'ระยะที่ 2: การเสนอขออนุมัติหลักการและกรอบงบประมาณ'
+                  : 'ระยะที่ 3: การขออนุมัติเบิกเงินและโอนเงินเข้าบัญชี';
+                const phaseDesc = phaseNum === 1
+                  ? 'ขั้นตอนที่ 1 - 4 (กรอกข้อมูลในระบบ ตรวจสอบคุณสมบัติบทความ และมีช่องทางส่งคืนแก้ไข)'
+                  : phaseNum === 2
+                  ? 'ขั้นตอนที่ 5 - 12 (ดาวน์โหลดเอกสาร บันทึกข้อมูลงบประมาณ และผู้บริหารลงนามอนุมัติกรอบวงเงิน)'
+                  : 'ขั้นตอนที่ 13 - 19 (จัดทำเอกสารเบิกจ่าย ออกฎีกา และโอนเงินรางวัลเข้าบัญชีธนาคาร)';
+                const headerGrad = phaseNum === 1
+                  ? 'from-sky-600 to-blue-700'
+                  : phaseNum === 2
+                  ? 'from-amber-600 to-orange-700'
+                  : 'from-purple-700 to-indigo-800';
 
                 return (
-                  <div 
-                    key={step.stepNumber} 
-                    className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between space-y-2"
-                  >
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold text-sm flex items-center justify-center shrink-0">
-                          {step.stepNumber}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-xs sm:text-sm px-2.5 py-0.5 rounded-full font-semibold border ${badgeColor}`}>
-                            {step.responsibleParty}
-                          </span>
-                          <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-                            {step.slaDays} วัน
-                          </span>
+                  <div key={phaseNum} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+                    <div className={`p-4 bg-gradient-to-r ${headerGrad} text-white flex items-center justify-between`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold text-sm">
+                          0{phaseNum}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-sm sm:text-base">{phaseTitle}</h3>
+                          <p className="text-xs opacity-80">{phaseDesc}</p>
                         </div>
                       </div>
-                      <h4 className="font-bold text-base text-slate-900 dark:text-white leading-snug">
-                        {step.title}
-                      </h4>
-                      <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
-                        {step.description}
-                      </p>
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-white/20 font-medium">
+                        {phaseSteps.length} ขั้นตอน
+                      </span>
+                    </div>
+
+                    <div className="p-4 sm:p-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {phaseSteps.map((step) => {
+                          const isHighlighted = selectedInfographicRole === 'all' || selectedInfographicRole === step.roleKey;
+                          const roleInfo = WORKFLOW_ROLES_DEF.find(r => r.key === step.roleKey);
+
+                          return (
+                            <div
+                              key={step.stepNumber}
+                              className={`p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 transition-all ${
+                                isHighlighted ? 'opacity-100' : 'opacity-25 grayscale'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1 mb-2">
+                                <span className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center">
+                                  {step.stepNumber}
+                                </span>
+                                <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold border ${roleInfo?.badgeColor}`}>
+                                  {step.responsibleParty}
+                                </span>
+                              </div>
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white mb-1">
+                                {step.title}
+                              </h4>
+                              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                {step.description}
+                              </p>
+                              {step.isFeedbackLoop && (
+                                <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                  <span>↺ Feedback Loop ส่งคืนแก้ไข</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
+          )}
 
           {/* Sub-section 2: Role Responsibilities (7 Roles) */}
           <div className="space-y-3 pt-2">

@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แผนผังกระบวนการดำเนินการระบบเงินรางวัล คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Prompt', 'Sarabun', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; color: black !important; }
+      .print-shadow-none { box-shadow: none !important; }
+    }
+    .custom-scroll::-webkit-scrollbar {
+      height: 8px;
+      width: 8px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased p-4 sm:p-6 lg:p-8 min-h-screen">
+
+  <div class="max-w-7xl mx-auto space-y-6">
+    
+    <!-- Top Header Card -->
+    <header class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 relative overflow-hidden">
+      <!-- Decorative background glow -->
+      <div class="absolute -right-16 -top-16 w-64 h-64 bg-orange-100 rounded-full blur-3xl opacity-70 pointer-events-none"></div>
+      <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-blue-100 rounded-full blur-3xl opacity-70 pointer-events-none"></div>
+
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="space-y-2">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200">
+            <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+            งานวิจัยและนวัตกรรม • Faculty of Medicine, Naresuan University
+          </div>
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">
+            แผนผังกระบวนการดำเนินการระบบเงินรางวัล
+          </h1>
+          <p class="text-slate-600 text-sm sm:text-base max-w-2xl font-light">
+            คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร • การขออนุมัติและเบิกจ่ายเงินรางวัล / ค่าตอบแทนตีพิมพ์ผลงานวิจัย (19 ขั้นตอน)
+          </p>
+        </div>
+
+        <!-- Controls / Actions -->
+        <div class="flex flex-wrap items-center gap-3 no-print">
+          <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors shadow-sm">
+            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+            </svg>
+            พิมพ์ / บันทึก PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick KPI Stats -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-slate-100">
+        <div class="p-3 sm:p-4 rounded-xl bg-blue-50/70 border border-blue-100">
+          <div class="text-xs font-medium text-blue-600">ขั้นตอนทั้งหมด</div>
+          <div class="text-2xl font-bold text-blue-900 mt-1">19 <span class="text-xs font-normal text-blue-600">ขั้นตอน</span></div>
+        </div>
+        <div class="p-3 sm:p-4 rounded-xl bg-teal-50/70 border border-teal-100">
+          <div class="text-xs font-medium text-teal-600">กลุ่มผู้มีส่วนเกี่ยวข้อง</div>
+          <div class="text-2xl font-bold text-teal-900 mt-1">5 <span class="text-xs font-normal text-teal-600">ฝ่าย/ตำแหน่ง</span></div>
+        </div>
+        <div class="p-3 sm:p-4 rounded-xl bg-amber-50/70 border border-amber-100">
+          <div class="text-xs font-medium text-amber-600">ระยะดำเนินงานหลัก</div>
+          <div class="text-2xl font-bold text-amber-900 mt-1">3 <span class="text-xs font-normal text-amber-600">ระยะ (Phases)</span></div>
+        </div>
+        <div class="p-3 sm:p-4 rounded-xl bg-purple-50/70 border border-purple-100">
+          <div class="text-xs font-medium text-purple-600">ผลลัพธ์ปลายทาง</div>
+          <div class="text-2xl font-bold text-purple-900 mt-1">โอนเงิน <span class="text-xs font-normal text-purple-600">เข้าบัญชี</span></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Role Legend Cards -->
+    <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">
+          บทบาทและผู้มีส่วนเกี่ยวข้อง (5 หน่วยงาน / บทบาท)
+        </h2>
+        <span class="text-xs text-slate-400">คลิกที่ฝ่ายเพื่อไฮไลท์ขั้นตอนที่เกี่ยวข้อง</span>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="roleFilterButtons">
+        <button onclick="filterRole('all')" class="role-btn active p-3 rounded-xl border text-left transition-all flex items-center gap-3 bg-slate-900 text-white border-slate-900 shadow-sm" data-role="all">
+          <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold text-xs">ALL</div>
+          <div>
+            <div class="text-xs font-semibold">แสดงทั้งหมด</div>
+            <div class="text-[11px] opacity-80">19 ขั้นตอน</div>
+          </div>
+        </button>
+
+        <button onclick="filterRole('researcher')" class="role-btn p-3 rounded-xl border text-left transition-all flex items-center gap-3 bg-blue-50 hover:bg-blue-100/80 border-blue-200 text-blue-900" data-role="researcher">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          </div>
+          <div>
+            <div class="text-xs font-semibold leading-tight">นักวิจัย / เลขานุการ</div>
+            <div class="text-[11px] text-blue-600 font-medium">5 ขั้นตอน (1, 2, 5, 6, 13, 19)</div>
+          </div>
+        </button>
+
+        <button onclick="filterRole('research-office')" class="role-btn p-3 rounded-xl border text-left transition-all flex items-center gap-3 bg-emerald-50 hover:bg-emerald-100/80 border-emerald-200 text-emerald-900" data-role="research-office">
+          <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div>
+            <div class="text-xs font-semibold leading-tight">เจ้าหน้าที่งานวิจัย</div>
+            <div class="text-[11px] text-emerald-600 font-medium">6 ขั้นตอน (3, 4, 7, 8, 12, 14, 15)</div>
+          </div>
+        </button>
+
+        <button onclick="filterRole('policy-plan')" class="role-btn p-3 rounded-xl border text-left transition-all flex items-center gap-3 bg-amber-50 hover:bg-amber-100/80 border-amber-200 text-amber-900" data-role="policy-plan">
+          <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm font-bold shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <div>
+            <div class="text-xs font-semibold leading-tight">จนท. นโยบายและแผน</div>
+            <div class="text-[11px] text-amber-600 font-medium">1 ขั้นตอน (9)</div>
+          </div>
+        </button>
+
+        <button onclick="filterRole('finance')" class="role-btn p-3 rounded-xl border text-left transition-all flex items-center gap-3 bg-purple-50 hover:bg-purple-100/80 border-purple-200 text-purple-900" data-role="finance">
+          <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <div class="text-xs font-semibold leading-tight">เจ้าหน้าที่การเงิน</div>
+            <div class="text-[11px] text-purple-600 font-medium">3 ขั้นตอน (10, 17, 18)</div>
+          </div>
+        </button>
+
+        <button onclick="filterRole('executives')" class="role-btn p-3 rounded-xl border text-left transition-all flex items-center gap-3 bg-rose-50 hover:bg-rose-100/80 border-rose-200 text-rose-900 col-span-2 sm:col-span-1" data-role="executives">
+          <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          </div>
+          <div>
+            <div class="text-xs font-semibold leading-tight">ผู้บริหาร</div>
+            <div class="text-[11px] text-rose-600 font-medium">2 ขั้นตอน (11, 16)</div>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- View Mode Switcher -->
+    <div class="flex items-center justify-between no-print px-1">
+      <div class="flex items-center gap-2">
+        <button id="viewSwimlaneBtn" onclick="switchView('swimlane')" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-slate-900 text-white shadow-sm flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          มุมมอง Swimlane (ตามตารางต้นฉบับ)
+        </button>
+        <button id="viewPhasesBtn" onclick="switchView('phases')" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-sm flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          มุมมอง 3 ระยะดำเนินงาน (Phase Timeline)
+        </button>
+      </div>
+      <div class="text-xs text-slate-500 hidden sm:block">
+        💡 มีระบบย้อนขั้นตอนแก้ไข (Feedback loop) ในขั้นตอนที่ 4
+      </div>
+    </div>
+
+    <!-- VIEW 1: MODERN SWIMLANE VIEW (Enhanced representation of the spreadsheet) -->
+    <div id="swimlaneView" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <!-- Section header -->
+      <div class="p-4 sm:p-5 bg-gradient-to-r from-slate-800 to-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="p-2 rounded-lg bg-white/10 text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+          </span>
+          <div>
+            <h3 class="font-bold text-base sm:text-lg">แผนผัง Swimlane กระบวนการ 19 ขั้นตอน</h3>
+            <p class="text-xs text-slate-300">แสดงความเชื่อมโยงของการส่งต่องานระหว่าง 5 ฝ่ายอย่างเป็นลำดับ</p>
+          </div>
+        </div>
+        <span class="text-xs px-2.5 py-1 rounded bg-white/20 text-white font-medium">ลำดับที่ 1 - 19</span>
+      </div>
+
+      <div class="overflow-x-auto custom-scroll">
+        <div class="min-w-[980px]">
+          
+          <!-- Swimlane Columns Header -->
+          <div class="grid grid-cols-5 bg-slate-100/90 border-b border-slate-200 text-xs font-bold text-slate-700 sticky top-0 z-10 shadow-sm">
+            <div class="p-3 text-center border-r border-slate-200 flex items-center justify-center gap-1.5 text-blue-800 bg-blue-50/50">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+              นักวิจัย / เลขานุการ
+            </div>
+            <div class="p-3 text-center border-r border-slate-200 flex items-center justify-center gap-1.5 text-emerald-800 bg-emerald-50/50">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              เจ้าหน้าที่งานวิจัย
+            </div>
+            <div class="p-3 text-center border-r border-slate-200 flex items-center justify-center gap-1.5 text-amber-800 bg-amber-50/50">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+              จนท.นโยบายและแผน
+            </div>
+            <div class="p-3 text-center border-r border-slate-200 flex items-center justify-center gap-1.5 text-purple-800 bg-purple-50/50">
+              <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+              เจ้าหน้าที่การเงิน
+            </div>
+            <div class="p-3 text-center flex items-center justify-center gap-1.5 text-rose-800 bg-rose-50/50">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+              ผู้บริหาร
+            </div>
+          </div>
+
+          <!-- Phase 1 Banner -->
+          <div class="bg-sky-50/80 px-4 py-2 border-b border-sky-200 flex items-center justify-between text-xs font-semibold text-sky-800">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-sky-200 text-sky-900 text-[11px]">ระยะที่ 1</span>
+              <span>การยื่นคำขอและตรวจเช็คระบบออนไลน์ (ขั้นตอนที่ 1 - 4)</span>
+            </div>
+            <span class="text-sky-600 font-normal">ระบบสารสนเทศงานวิจัย</span>
+          </div>
+
+          <!-- Steps 1 - 4 Rows -->
+          <!-- Step 1 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="researcher">
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-blue-50 border border-blue-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">1</span>
+                <div>
+                  <div class="text-xs font-bold text-blue-950">นักวิจัยเข้าสู่ระบบ</div>
+                  <div class="text-[11px] text-blue-700">เข้าสู่ระบบสารสนเทศเงินรางวัล</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="researcher">
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-blue-50 border border-blue-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">2</span>
+                <div>
+                  <div class="text-xs font-bold text-blue-950">ยื่นคำขอ / ร่างคำขอ</div>
+                  <div class="text-[11px] text-blue-700">กรอกข้อมูลและแนบหลักฐานในระบบ</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100 flex items-center">
+              <div class="w-full flex items-center text-slate-300">
+                <div class="h-0.5 bg-gradient-to-r from-blue-300 to-emerald-400 w-full"></div>
+                <svg class="w-4 h-4 text-emerald-500 -ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="research-office">
+            <div class="p-3 border-r border-slate-200"></div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-emerald-50 border border-emerald-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">3</span>
+                <div>
+                  <div class="text-xs font-bold text-emerald-950">เจ้าหน้าที่ตรวจสอบ</div>
+                  <div class="text-[11px] text-emerald-700">ตรวจเอกสารหลักฐานและคุณสมบัติตามเกณฑ์</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="grid grid-cols-5 border-b border-slate-200 hover:bg-slate-50/80 transition-colors step-row bg-slate-50/30" data-step-role="research-office">
+            <div class="p-3 border-r border-slate-200 flex items-center">
+              <div class="w-full flex items-center justify-end text-amber-500">
+                <span class="text-[10px] font-bold text-amber-700 mr-1 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">หากต้องแก้ไข</span>
+                <svg class="w-4 h-4 text-amber-600 transform rotate-180" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                <div class="h-0.5 bg-amber-300 w-12"></div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-emerald-50 border border-emerald-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">4</span>
+                <div>
+                  <div class="text-xs font-bold text-emerald-950">ส่งคืนแก้ไข / แจ้งผลการตรวจสอบ</div>
+                  <div class="text-[11px] text-emerald-700">ส่งแจ้งนักวิจัยผ่านระบบ / แจ้งผ่านการตรวจ</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Phase 2 Banner -->
+          <div class="bg-amber-50/80 px-4 py-2 border-b border-amber-200 flex items-center justify-between text-xs font-semibold text-amber-900">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-amber-200 text-amber-900 text-[11px]">ระยะที่ 2</span>
+              <span>การเสนอขออนุมัติหลักการ/กรอบวงเงินรางวัล (ขั้นตอนที่ 5 - 12)</span>
+            </div>
+            <span class="text-amber-700 font-normal">การตรวจงบประมาณและลงนามอนุมัติ</span>
+          </div>
+
+          <!-- Step 5 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="researcher">
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-blue-50 border border-blue-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">5</span>
+                <div>
+                  <div class="text-xs font-bold text-blue-950">นักวิจัยดาวน์โหลดเอกสารขออนุมัติเงินรางวัล</div>
+                  <div class="text-[11px] text-blue-700">ดาวน์โหลดแบบฟอร์มขออนุมัติจากระบบ</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 6 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="researcher">
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-blue-50 border border-blue-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">6</span>
+                <div>
+                  <div class="text-xs font-bold text-blue-950">เสนอบันทึกข้อความพร้อมเอกสารแนบ</div>
+                  <div class="text-[11px] text-blue-700">จัดส่งบันทึกข้อความถึงงานวิจัย</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100 flex items-center">
+              <div class="w-full flex items-center text-slate-300">
+                <div class="h-0.5 bg-gradient-to-r from-blue-300 to-emerald-400 w-full"></div>
+                <svg class="w-4 h-4 text-emerald-500 -ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 7 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="research-office">
+            <div class="p-3 border-r border-slate-200"></div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-emerald-50 border border-emerald-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">7</span>
+                <div>
+                  <div class="text-xs font-bold text-emerald-950">งานวิจัยตรวจความครบถ้วน</div>
+                  <div class="text-[11px] text-emerald-700">ตรวจสอบเอกสารชุดบันทึกข้อความ</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 8 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="research-office">
+            <div class="p-3 border-r border-slate-200"></div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-emerald-50 border border-emerald-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">8</span>
+                <div>
+                  <div class="text-xs font-bold text-emerald-950">งานวิจัยเสนอผู้บริหารอนุมัติรางวัล/ค่าตีพิมพ์</div>
+                  <div class="text-[11px] text-emerald-700">จัดทำเรื่องเสนอเพื่อขออนุมัติงบ</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100 flex items-center">
+              <div class="w-full flex items-center text-slate-300">
+                <div class="h-0.5 bg-gradient-to-r from-emerald-300 to-amber-400 w-full"></div>
+                <svg class="w-4 h-4 text-amber-500 -ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 9 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="policy-plan">
+            <div class="p-3 border-r border-slate-200"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-amber-50 border border-amber-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">9</span>
+                <div>
+                  <div class="text-xs font-bold text-amber-950">บันทึกข้อมูลงบประมาณ</div>
+                  <div class="text-[11px] text-amber-700">ลงข้อมูลการตั้งเบิกในระบบแผนและงบ</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100 flex items-center">
+              <div class="w-full flex items-center text-slate-300">
+                <div class="h-0.5 bg-gradient-to-r from-amber-300 to-purple-400 w-full"></div>
+                <svg class="w-4 h-4 text-purple-500 -ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 10 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="finance">
+            <div class="p-3 border-r border-slate-200"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-purple-50 border border-purple-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">10</span>
+                <div>
+                  <div class="text-xs font-bold text-purple-950">ตรวจเช็คงบประมาณ</div>
+                  <div class="text-[11px] text-purple-700">ตรวจสอบความถูกต้องของวงเงินและแหล่งงบ</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 flex items-center">
+              <div class="w-full flex items-center text-slate-300">
+                <div class="h-0.5 bg-gradient-to-r from-purple-300 to-rose-400 w-full"></div>
+                <svg class="w-4 h-4 text-rose-500 -ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 11 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="executives">
+            <div class="p-3 border-r border-slate-200"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3">
+              <div class="flex items-start gap-2 bg-rose-50 border border-rose-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">11</span>
+                <div>
+                  <div class="text-xs font-bold text-rose-950">ผู้บริหารลงนามและอนุมัติตามลำดับ</div>
+                  <div class="text-[11px] text-rose-700">หัวหน้าภาควิชา / คณบดีลงนามอนุมัติ</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 12 -->
+          <div class="grid grid-cols-5 border-b border-slate-200 hover:bg-slate-50/80 transition-colors step-row" data-step-role="research-office">
+            <div class="p-3 border-r border-slate-200 flex items-center">
+              <div class="w-full flex items-center justify-end text-slate-300">
+                <svg class="w-4 h-4 text-emerald-500 transform rotate-180 -mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                <div class="h-0.5 bg-gradient-to-l from-emerald-300 to-blue-300 w-full"></div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-emerald-50 border border-emerald-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">12</span>
+                <div>
+                  <div class="text-xs font-bold text-emerald-950">แจ้งผลการอนุมัติ</div>
+                  <div class="text-[11px] text-emerald-700">แจ้งผลผ่านระบบให้นักวิจัยทราบ</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Phase 3 Banner -->
+          <div class="bg-violet-50/80 px-4 py-2 border-b border-violet-200 flex items-center justify-between text-xs font-semibold text-violet-900">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-violet-200 text-violet-900 text-[11px]">ระยะที่ 3</span>
+              <span>การขออนุมัติเบิกจ่ายและโอนเงินเข้าบัญชี (ขั้นตอนที่ 13 - 19)</span>
+            </div>
+            <span class="text-violet-700 font-normal">ขั้นตอนทางการเงินจนถึงการรับเงิน</span>
+          </div>
+
+          <!-- Step 13 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="researcher">
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-blue-50 border border-blue-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">13</span>
+                <div>
+                  <div class="text-xs font-bold text-blue-950">นักวิจัยดาวน์โหลดเอกสารขออนุมัติเบิกเงินรางวัล</div>
+                  <div class="text-[11px] text-blue-700">พิมพ์เอกสารชุดขอเบิกจ่ายเงินรางวัล</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100 flex items-center">
+              <div class="w-full flex items-center text-slate-300">
+                <div class="h-0.5 bg-gradient-to-r from-blue-300 to-emerald-400 w-full"></div>
+                <svg class="w-4 h-4 text-emerald-500 -ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 14 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="research-office">
+            <div class="p-3 border-r border-slate-200"></div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-emerald-50 border border-emerald-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">14</span>
+                <div>
+                  <div class="text-xs font-bold text-emerald-950">งานวิจัยตรวจความครบถ้วน</div>
+                  <div class="text-[11px] text-emerald-700">ตรวจเอกสารหลักฐานขอเบิกเงิน</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 15 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="research-office">
+            <div class="p-3 border-r border-slate-200"></div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-emerald-50 border border-emerald-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">15</span>
+                <div>
+                  <div class="text-xs font-bold text-emerald-950">งานวิจัยเสนอผู้บริหารอนุมัติเบิกเงินรางวัล/ค่าตีพิมพ์</div>
+                  <div class="text-[11px] text-emerald-700">เสนอแฟ้มขออนุมัติเบิกจ่ายต่อผู้บริหาร</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100 col-span-2 flex items-center">
+              <div class="w-full flex items-center text-slate-300">
+                <div class="h-0.5 bg-gradient-to-r from-emerald-300 via-amber-300 to-rose-400 w-full"></div>
+                <svg class="w-4 h-4 text-rose-500 -ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 16 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="executives">
+            <div class="p-3 border-r border-slate-200"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100 flex items-center justify-end">
+              <div class="w-full flex items-center justify-end text-slate-300">
+                <svg class="w-4 h-4 text-purple-500 transform rotate-180 -mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                <div class="h-0.5 bg-gradient-to-l from-rose-300 to-purple-400 w-full"></div>
+              </div>
+            </div>
+            <div class="p-3">
+              <div class="flex items-start gap-2 bg-rose-50 border border-rose-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">16</span>
+                <div>
+                  <div class="text-xs font-bold text-rose-950">ผู้บริหารลงนามและอนุมัติตามลำดับ</div>
+                  <div class="text-[11px] text-rose-700">ลงนามอนุมัติการเบิกจ่ายเงิน</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 17 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="finance">
+            <div class="p-3 border-r border-slate-200"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-purple-50 border border-purple-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">17</span>
+                <div>
+                  <div class="text-xs font-bold text-purple-950">จัดทำฎีกาส่งเบิกเงิน</div>
+                  <div class="text-[11px] text-purple-700">ออกฎีกาเบิกเงินจากคลังมหาวิทยาลัย</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 18 -->
+          <div class="grid grid-cols-5 border-b border-slate-100 hover:bg-slate-50/80 transition-colors step-row" data-step-role="finance">
+            <div class="p-3 border-r border-slate-200 flex items-center">
+              <div class="w-full flex items-center justify-end text-slate-300">
+                <svg class="w-4 h-4 text-blue-500 transform rotate-180 -mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                <div class="h-0.5 bg-gradient-to-l from-purple-400 via-teal-300 to-blue-400 w-full"></div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-purple-50 border border-purple-200/80 rounded-xl p-2.5 shadow-sm">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">18</span>
+                <div>
+                  <div class="text-xs font-bold text-purple-950">โอนเงินเข้าบัญชีนักวิจัย</div>
+                  <div class="text-[11px] text-purple-700">ตัดจ่ายโอนเงินรางวัลเข้าบัญชีธนาคาร</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3"></div>
+          </div>
+
+          <!-- Step 19 -->
+          <div class="grid grid-cols-5 hover:bg-slate-50/80 transition-colors step-row bg-emerald-50/20" data-step-role="researcher">
+            <div class="p-3 border-r border-slate-200">
+              <div class="flex items-start gap-2 bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-400 rounded-xl p-2.5 shadow-md">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                </span>
+                <div>
+                  <div class="text-xs font-bold text-emerald-950">19. ตรวจสอบผลการโอนเงิน</div>
+                  <div class="text-[11px] text-emerald-700 font-medium">สิ้นสุดกระบวนการ (นักวิจัยได้รับเงินรางวัล)</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3 border-r border-slate-100"></div>
+            <div class="p-3"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: PHASE TIMELINE / CARDS VIEW (Clean Infographic Storyboard) -->
+    <div id="phasesView" class="hidden space-y-6">
+
+      <!-- Phase 1 Card -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 sm:p-5 bg-gradient-to-r from-sky-600 to-blue-700 text-white flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-lg">01</div>
+            <div>
+              <h3 class="font-bold text-lg">ระยะที่ 1: การยื่นคำขอและตรวจเช็คระบบออนไลน์</h3>
+              <p class="text-xs text-sky-100">ขั้นตอนที่ 1 - 4 (การเริ่มต้นและการกลั่นกรองคำขอในระบบสารสนเทศ)</p>
+            </div>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full bg-white/20 font-medium">4 ขั้นตอน</span>
+        </div>
+
+        <div class="p-6">
+          <div class="relative border-l-2 border-sky-200 ml-4 pl-6 space-y-6">
+
+            <!-- Item 1 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">1</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">นักวิจัยเข้าสู่ระบบ</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">นักวิจัย/เลขานุการ</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">ผู้ขอรับรางวัลเข้าสู่ระบบงานวิจัยด้วยบัญชีผู้ใช้มหาวิทยาลัย</p>
+              </div>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">2</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">ยื่นคำขอ / ร่างคำขอ</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">นักวิจัย/เลขานุการ</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">กรอกรายละเอียดผลงานวิจัย แนบเอกสารหลักฐาน และกดส่งยื่นคำขอในระบบ</p>
+              </div>
+            </div>
+
+            <!-- Item 3 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">3</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">เจ้าหน้าที่ตรวจสอบ</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">เจ้าหน้าที่งานวิจัย</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">ตรวจสอบความถูกต้อง คุณสมบัติผลงานวิจัย ฐานข้อมูล และหลักเกณฑ์ตามประกาศ</p>
+              </div>
+            </div>
+
+            <!-- Item 4 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">4</div>
+              <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-bold text-slate-800 text-sm">ส่งคืนแก้ไข / แจ้งผลการตรวจสอบ</h4>
+                    <span class="px-2 py-0.5 rounded text-[10px] bg-amber-200 text-amber-900 font-bold">Feedback Loop</span>
+                  </div>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">เจ้าหน้าที่งานวิจัย</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">หากไม่ครบถ้วนส่งคืนนักวิจัยแก้ไข หากถูกต้องผ่านเกณฑ์จะแจ้งผลให้นักวิจัยเข้าสู่ระยะที่ 2</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2 Card -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 sm:p-5 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-lg">02</div>
+            <div>
+              <h3 class="font-bold text-lg">ระยะที่ 2: การเสนอขออนุมัติหลักการและกรอบงบประมาณ</h3>
+              <p class="text-xs text-amber-100">ขั้นตอนที่ 5 - 12 (เอกสารบันทึกข้อความ ตรวจสอบงบประมาณ และเสนอผู้บริหารลงนาม)</p>
+            </div>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full bg-white/20 font-medium">8 ขั้นตอน</span>
+        </div>
+
+        <div class="p-6">
+          <div class="relative border-l-2 border-amber-200 ml-4 pl-6 space-y-6">
+
+            <!-- Item 5 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">5</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">นักวิจัยดาวน์โหลดเอกสารขออนุมัติเงินรางวัล</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">นักวิจัย/เลขานุการ</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">พิมพ์แบบฟอร์มเอกสารขออนุมัติเงินรางวัลที่ระบบออกให้</p>
+              </div>
+            </div>
+
+            <!-- Item 6 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">6</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">เสนอบันทึกข้อความพร้อมเอกสารแนบ</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">นักวิจัย/เลขานุการ</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">ลงนามในบันทึกข้อความและแนบหลักฐานนำส่งงานวิจัย คณะแพทยศาสตร์</p>
+              </div>
+            </div>
+
+            <!-- Item 7 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">7</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">งานวิจัยตรวจความครบถ้วน</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">เจ้าหน้าที่งานวิจัย</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">ตรวจสอบชุดเอกสารบันทึกข้อความและเอกสารประกอบ</p>
+              </div>
+            </div>
+
+            <!-- Item 8 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">8</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">งานวิจัยเสนอผู้บริหารอนุมัติรางวัล / ค่าตีพิมพ์</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">เจ้าหน้าที่งานวิจัย</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">จัดทำเรื่องเสนอเพื่อขอความเห็นชอบและส่งต่อไปยังฝ่ายแผนงานและการเงิน</p>
+              </div>
+            </div>
+
+            <!-- Item 9 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">9</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">บันทึกข้อมูลงบประมาณ</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">จนท.นโยบายและแผน</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">ตรวจสอบรหัสโครงการและบันทึกตัดยอดกรอบงบประมาณในระบบแผน</p>
+              </div>
+            </div>
+
+            <!-- Item 10 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">10</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">ตรวจเช็คงบประมาณ</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-semibold">เจ้าหน้าที่การเงิน</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">ตรวจสอบความพร้อมของเงินและตรวจเช็คความถูกต้องของระเบียบการเงิน</p>
+              </div>
+            </div>
+
+            <!-- Item 11 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">11</div>
+              <div class="bg-rose-50/60 border border-rose-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">ผู้บริหารลงนามและอนุมัติตามลำดับ</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-semibold">ผู้บริหาร</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">คณบดีหรือรองคณบดีผู้มีอำนาจลงนามอนุมัติในบันทึกข้อความ</p>
+              </div>
+            </div>
+
+            <!-- Item 12 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">12</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">แจ้งผลการอนุมัติ</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">เจ้าหน้าที่งานวิจัย</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">แจ้งผลการอนุมัติผ่านระบบ เพื่อให้นักวิจัยเริ่มกระบวนการขอเบิกจ่ายเงิน</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3 Card -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 sm:p-5 bg-gradient-to-r from-purple-700 to-indigo-800 text-white flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-lg">03</div>
+            <div>
+              <h3 class="font-bold text-lg">ระยะที่ 3: การขออนุมัติเบิกเงินและโอนเงินเข้าบัญชี</h3>
+              <p class="text-xs text-purple-200">ขั้นตอนที่ 13 - 19 (จัดทำเอกสารเบิกจ่าย ออกฎีกา และโอนเงิน)</p>
+            </div>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full bg-white/20 font-medium">7 ขั้นตอน</span>
+        </div>
+
+        <div class="p-6">
+          <div class="relative border-l-2 border-purple-200 ml-4 pl-6 space-y-6">
+
+            <!-- Item 13 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">13</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">นักวิจัยดาวน์โหลดเอกสารขออนุมัติเบิกเงินรางวัล</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">นักวิจัย/เลขานุการ</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">ดาวน์โหลดเอกสารชุดขอเบิกเงินรางวัลและลงนามนำส่ง</p>
+              </div>
+            </div>
+
+            <!-- Item 14 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">14</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">งานวิจัยตรวจความครบถ้วน</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">เจ้าหน้าที่งานวิจัย</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">ตรวจสอบชุดเอกสารขอเบิกเงินรางวัลให้ตรงตามยอดอนุมัติ</p>
+              </div>
+            </div>
+
+            <!-- Item 15 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">15</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">งานวิจัยเสนอผู้บริหารอนุมัติเบิกเงินรางวัล/ค่าตีพิมพ์</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">เจ้าหน้าที่งานวิจัย</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">เสนอแฟ้มขออนุมัติการเบิกจ่ายจริงต่อผู้บริหาร</p>
+              </div>
+            </div>
+
+            <!-- Item 16 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">16</div>
+              <div class="bg-rose-50/60 border border-rose-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">ผู้บริหารลงนามและอนุมัติตามลำดับ</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-semibold">ผู้บริหาร</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">ผู้บริหารลงนามอนุมัติคำสั่งเบิกจ่ายเงิน</p>
+              </div>
+            </div>
+
+            <!-- Item 17 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">17</div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">จัดทำฎีกาส่งเบิกเงิน</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-semibold">เจ้าหน้าที่การเงิน</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">งานการเงินจัดทำฎีกาเบิกเงิน และตั้งเรื่องส่งคลังเพื่อเตรียมสั่งจ่าย</p>
+              </div>
+            </div>
+
+            <!-- Item 18 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">18</div>
+              <div class="bg-purple-50/70 border border-purple-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-slate-800 text-sm">โอนเงินเข้าบัญชีนักวิจัย</h4>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-semibold">เจ้าหน้าที่การเงิน</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">ดำเนินการโอนเงินรางวัล / ค่าตีพิมพ์เข้าบัญชีธนาคารของนักวิจัย</p>
+              </div>
+            </div>
+
+            <!-- Item 19 -->
+            <div class="relative">
+              <div class="absolute -left-[35px] top-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm ring-4 ring-emerald-100">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <div class="bg-emerald-50 border-2 border-emerald-400 rounded-xl p-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-bold text-emerald-950 text-sm">19. ตรวจสอบผลการโอนเงิน (สิ้นสุดกระบวนการ)</h4>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800 text-[10px] font-bold">COMPLETED</span>
+                  </div>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">นักวิจัย/เลขานุการ</span>
+                </div>
+                <p class="text-xs text-emerald-800 mt-1 font-medium">นักวิจัยตรวจสอบยอดเงินเข้าบัญชี และระบบบันทึกสถานะการเบิกจ่ายเสร็จสมบูรณ์</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Summary & Tips Footer -->
+    <footer class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="text-sm font-bold text-slate-800">สรุปความรับผิดชอบในแต่ละฝ่าย</h3>
+          <p class="text-xs text-slate-500">สัดส่วนภาระงานตาม 19 ขั้นตอนในระบบเงินรางวัล</p>
+        </div>
+        <div class="text-xs text-slate-400">
+          คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3 pt-2 text-xs">
+        <div class="p-3 rounded-lg bg-blue-50 border border-blue-100">
+          <div class="font-bold text-blue-900 mb-1">นักวิจัย / เลขาฯ (6 ครั้ง)</div>
+          <div class="text-blue-700 text-[11px]">ยื่นคำขอ, ดาวน์โหลดเอกสาร 2 ครั้ง, เสนอบันทึก, ตรวจสอบยอดเงินโอน</div>
+        </div>
+        <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+          <div class="font-bold text-emerald-900 mb-1">งานวิจัย (7 ครั้ง)</div>
+          <div class="text-emerald-700 text-[11px]">กลั่นกรองคำขอ, ส่งคืนแก้ไข, ตรวจเอกสาร 2 รอบ, เสนอผู้บริหาร 2 รอบ, แจ้งผล</div>
+        </div>
+        <div class="p-3 rounded-lg bg-amber-50 border border-amber-100">
+          <div class="font-bold text-amber-900 mb-1">นโยบายและแผน (1 ครั้ง)</div>
+          <div class="text-amber-700 text-[11px]">บันทึกตัดยอดงบประมาณโครงการในระบบ</div>
+        </div>
+        <div class="p-3 rounded-lg bg-purple-50 border border-purple-100">
+          <div class="font-bold text-purple-900 mb-1">การเงิน (3 ครั้ง)</div>
+          <div class="text-purple-700 text-[11px]">ตรวจเช็คงบประมาณ, จัดทำฎีกาส่งเบิก, โอนเงินเข้าบัญชีนักวิจัย</div>
+        </div>
+        <div class="p-3 rounded-lg bg-rose-50 border border-rose-100">
+          <div class="font-bold text-rose-900 mb-1">ผู้บริหาร (2 ครั้ง)</div>
+          <div class="text-rose-700 text-[11px]">ลงนามอนุมัติหลักการ/กรอบวงเงินรางวัล และลงนามอนุมัติเบิกจ่ายเงิน</div>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // View Switcher logic
+    function switchView(view) {
+      const swimlaneView = document.getElementById('swimlaneView');
+      const phasesView = document.getElementById('phasesView');
+      const viewSwimlaneBtn = document.getElementById('viewSwimlaneBtn');
+      const viewPhasesBtn = document.getElementById('viewPhasesBtn');
+
+      if (view === 'swimlane') {
+        swimlaneView.classList.remove('hidden');
+        phasesView.classList.add('hidden');
+        viewSwimlaneBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-slate-900 text-white shadow-sm flex items-center gap-2";
+        viewPhasesBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-sm flex items-center gap-2";
+      } else {
+        swimlaneView.classList.add('hidden');
+        phasesView.classList.remove('hidden');
+        viewPhasesBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-slate-900 text-white shadow-sm flex items-center gap-2";
+        viewSwimlaneBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-sm flex items-center gap-2";
+      }
+    }
+
+    // Role filtering in Swimlane view
+    function filterRole(roleKey) {
+      // update active button state
+      const buttons = document.querySelectorAll('.role-btn');
+      buttons.forEach(btn => {
+        if (btn.getAttribute('data-role') === roleKey) {
+          btn.classList.add('ring-2', 'ring-slate-800', 'scale-[1.02]');
+        } else {
+          btn.classList.remove('ring-2', 'ring-slate-800', 'scale-[1.02]');
+        }
+      });
+
+      // filter rows
+      const rows = document.querySelectorAll('.step-row');
+      rows.forEach(row => {
+        const stepRole = row.getAttribute('data-step-role');
+        if (roleKey === 'all' || stepRole === roleKey) {
+          row.style.opacity = '1';
+          row.style.filter = 'none';
+        } else {
+          row.style.opacity = '0.25';
+          row.style.filter = 'grayscale(80%)';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

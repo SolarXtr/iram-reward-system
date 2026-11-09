@@ -67,7 +67,7 @@ const KANBAN_LANES: KanbanLane[] = [
     statuses: ['admin_review', 'budget_verified', 'dean_approved'],
     badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     headerBg: 'border-t-4 border-indigo-500',
-    stepRange: 'ขั้นตอนที่ 5 - 8',
+    stepRange: 'ขั้นตอนที่ 5 - 12',
     allowedRole: ['coordinator'],
   },
   {
@@ -77,7 +77,7 @@ const KANBAN_LANES: KanbanLane[] = [
     statuses: ['finance_processing'],
     badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
     headerBg: 'border-t-4 border-purple-500',
-    stepRange: 'ขั้นตอนที่ 9 - 10',
+    stepRange: 'ขั้นตอนที่ 13 - 17',
     allowedRole: ['finance'],
   },
   {
@@ -87,7 +87,7 @@ const KANBAN_LANES: KanbanLane[] = [
     statuses: ['paid', 'closed'],
     badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     headerBg: 'border-t-4 border-emerald-500',
-    stepRange: 'ขั้นตอนที่ 11 - 12',
+    stepRange: 'ขั้นตอนที่ 18 - 19',
     allowedRole: ['finance'],
   },
 ];
@@ -158,13 +158,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       nextStep = 3;
     } else if (targetLane.id === 'lane-approval') {
       nextStatus = 'dean_approved';
-      nextStep = 8;
+      nextStep = 11;
     } else if (targetLane.id === 'lane-finance') {
       nextStatus = 'finance_processing';
-      nextStep = 10;
+      nextStep = 17;
     } else if (targetLane.id === 'lane-transferred') {
       nextStatus = 'paid';
-      nextStep = 12;
+      nextStep = 18;
     }
 
     onUpdateStatus(id, nextStatus, nextStep);

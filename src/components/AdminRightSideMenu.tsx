@@ -99,10 +99,10 @@ export const AdminRightSideMenu: React.FC<AdminRightSideMenuProps> = ({
     },
     {
       id: 'user_guide',
-      label: 'กระบวนการ 12 ขั้นตอน & คู่มือ',
-      description: 'คู่มือระเบียบและกระบวนการ 12 ขั้นตอนอย่างเป็นทางการ',
+      label: 'แผนผัง 19 ขั้นตอน & คู่มือ',
+      description: 'คู่มือระเบียบและแผนผัง 19 ขั้นตอนตาม Infographic',
       icon: Layers,
-      badge: '12 ขั้นตอน',
+      badge: '19 ขั้นตอน',
       badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
     },
   ];

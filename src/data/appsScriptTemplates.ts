@@ -512,7 +512,7 @@ function renderDefaultWebPortal() {
     '<div class="p-6 space-y-6">' +
     '<div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900">' +
     '<div class="font-bold text-sm mb-1 text-blue-950">🔍 ค้นหาและติดตามสถานะคำขอ (Tracking Number)</div>' +
-    '<p class="mb-3 text-slate-600">กรอกรหัสคำขอ เช่น <code class="bg-white px-2 py-0.5 rounded font-mono font-bold text-blue-800 border">AWP70-001</code> เพื่อดูความคืบหน้า 12 ขั้นตอน</p>' +
+    '<p class="mb-3 text-slate-600">กรอกรหัสคำขอ เช่น <code class="bg-white px-2 py-0.5 rounded font-mono font-bold text-blue-800 border">AWP70-001</code> เพื่อดูความคืบหน้า 19 ขั้นตอน</p>' +
     '<div class="flex gap-2">' +
     '<input id="trackInput" type="text" placeholder="ระบุเลขที่คำขอ เช่น AWP70-001" class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none" />' +
     '<button onclick="trackApplication()" class="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg text-xs transition-colors">ตรวจสอบสถานะ</button>' +
@@ -1148,7 +1148,7 @@ export const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
           </span>
           <h2 class="text-lg sm:text-xl font-bold">ค้นหาและติดตามสถานะคำขอ (Tracking Status)</h2>
           <p class="text-xs text-blue-200 leading-relaxed">
-            กรอกรหัสติดตาม เช่น <code class="font-mono text-amber-300 font-bold">AWP70-001</code> เพื่อดูความคืบหน้า 12 ขั้นตอน หรือตรวจสอบวันโอนเงิน
+            กรอกรหัสติดตาม เช่น <code class="font-mono text-amber-300 font-bold">AWP70-001</code> เพื่อดูความคืบหน้า 19 ขั้นตอน หรือตรวจสอบวันโอนเงิน
           </p>
           <div class="flex gap-2 pt-2">
             <input 

@@ -331,7 +331,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               ไทม์ไลน์และระยะเวลา SLA
             </h3>
             <p className="text-xs text-slate-500">
-              ขั้นตอนมาตรฐาน 12 ขั้นตอนตามประกาศ
+              ขั้นตอนมาตรฐาน 19 ขั้นตอนตามประกาศและ Infographic
             </p>
           </div>
 
@@ -421,8 +421,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </h3>
               <p className="text-xs text-slate-500">
                 {isResearcher 
-                  ? 'คลิกเพื่อดูไทม์ไลน์ 12 ขั้นตอน และปริ้นแบบฟอร์มขอรับรางวัล AWP69 ของท่าน' 
-                  : 'คลิกเพื่อดูไทม์ไลน์ 12 ขั้นตอน, ปริ้นเอกสารราชการ, หรือตรวจสอบสถานะเงินโอน'}
+                  ? 'คลิกเพื่อดูไทม์ไลน์ 19 ขั้นตอน และพิมพ์แบบฟอร์มขอรับรางวัลของท่าน' 
+                  : 'คลิกเพื่อดูไทม์ไลน์ 19 ขั้นตอน, พิมพ์เอกสารราชการ, หรือตรวจสอบสถานะเงินโอน'}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -533,7 +533,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             <button
                               onClick={() => onViewApplication(app)}
                               className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="ดูไทม์ไลน์ 12 ขั้นตอน"
+                              title="ดูไทม์ไลน์ 19 ขั้นตอน"
                             >
                               <Eye className="w-4 h-4" />
                             </button>

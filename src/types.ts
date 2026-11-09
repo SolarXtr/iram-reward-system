@@ -38,18 +38,24 @@ export interface PublicRewardSummary {
   quartileCounts: Record<QuartileRank, number>;
 }
 
-export type WorkflowStepId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+export type WorkflowStepId = 
+  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 
+  | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19;
 
 export interface WorkflowStep {
   stepNumber: WorkflowStepId;
   title: string;
-  responsibleParty: 'นักวิจัย' | 'ผู้ประสานงานวิจัย' | 'ผู้บริหาร' | 'งานนโยบายและแผน' | 'งานการเงิน';
-  slaDays: number; // working days
+  responsibleParty: 'นักวิจัย' | 'ผู้ประสานงานวิจัย' | 'ผู้บริหาร' | 'งานนโยบายและแผน' | 'งานการเงิน' | 'นักวิจัย/เลขานุการ' | 'เจ้าหน้าที่งานวิจัย' | 'เจ้าหน้าที่นโยบายและแผน' | 'เจ้าหน้าที่การเงิน' | string;
+  slaDays?: number; // working days
   description: string;
   completedAt?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'returned';
   notes?: string;
   documentRef?: string;
+  phase?: 1 | 2 | 3;
+  phaseTitle?: string;
+  actionNote?: string;
+  isFeedbackLoop?: boolean;
 }
 
 export type ApplicationStatus = 
