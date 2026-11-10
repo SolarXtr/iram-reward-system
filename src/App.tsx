@@ -1064,13 +1064,21 @@ export default function App() {
 
   // 3. Save edited row in Table view
   const handleSaveTableRow = (updatedApp: ResearchApplication) => {
+    let cleanApp = { ...updatedApp };
+    if (cleanApp.quartile === 'TCI_2' && cleanApp.database !== 'TCI Tier 2') {
+      cleanApp.database = 'TCI Tier 2';
+      cleanApp.databaseName = 'TCI Tier 2';
+    } else if (cleanApp.quartile === 'TCI_1' && cleanApp.database !== 'TCI Tier 1') {
+      cleanApp.database = 'TCI Tier 1';
+      cleanApp.databaseName = 'TCI Tier 1';
+    }
     setApplications((prev) =>
-      prev.map((a) => (a.id === updatedApp.id ? updatedApp : a))
+      prev.map((a) => (a.id === cleanApp.id ? cleanApp : a))
     );
-    showToast(`บันทึกการแก้ไข ${updatedApp.trackingNo} สำเร็จ`);
+    showToast(`บันทึกการแก้ไข ${cleanApp.trackingNo} สำเร็จ`);
 
     // Cloudflare D1 sync
-    updateRewardApplicationInD1(updatedApp.id, updatedApp)
+    updateRewardApplicationInD1(cleanApp.id, cleanApp)
       .catch(e => console.warn('D1 update row error:', e));
   };
 

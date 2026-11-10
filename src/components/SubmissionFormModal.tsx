@@ -499,9 +499,16 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
         setRequestType(initialData.requestType || 'reward_only');
         setArticleTitle(initialData.articleTitle || '');
         setJournalName(initialData.journalName || '');
-        setJournalScope(initialData.journalScope || 'international');
-        setDatabase(((initialData.database || (initialData as any).databaseName) || 'Web of Science') as DatabaseName);
-        setQuartile(initialData.quartile || 'Q2');
+        const loadedScope = initialData.journalScope || 'international';
+        setJournalScope(loadedScope);
+        let loadedDb = ((initialData.database || (initialData as any).databaseName) || (loadedScope === 'national' ? 'TCI Tier 1' : 'Web of Science')) as DatabaseName;
+        const loadedQ = (initialData.quartile || (loadedScope === 'national' ? 'TCI_1' : 'Q2')) as QuartileRank;
+        if (loadedScope === 'national' || loadedQ === 'TCI_1' || loadedQ === 'TCI_2') {
+          if (loadedQ === 'TCI_2') loadedDb = 'TCI Tier 2';
+          else if (loadedQ === 'TCI_1') loadedDb = 'TCI Tier 1';
+        }
+        setDatabase(loadedDb);
+        setQuartile(loadedQ);
         setIsTier1Top10(Boolean(initialData.isTier1Top10));
         setAuthorRole(initialData.authorRole || 'first_author');
         setArticleType(initialData.articleType || 'research_article');
@@ -639,7 +646,7 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
       articleTitle: articleTitle.trim(),
       journalName: journalName.trim(),
       journalScope,
-      database,
+      database: journalScope === 'national' ? (quartile === 'TCI_2' ? 'TCI Tier 2' : 'TCI Tier 1') : database,
       databaseYear: databaseYear.trim() || '2025',
       quartile,
       isTier1Top10,
@@ -1393,8 +1400,9 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
                     const scope = e.target.value as JournalScope;
                     setJournalScope(scope);
                     if (scope === 'national') {
-                      setDatabase('TCI Tier 1');
-                      setQuartile('TCI_1');
+                      const nextQ = (quartile === 'TCI_2' || quartile === 'TCI_1') ? quartile : 'TCI_1';
+                      setDatabase(nextQ === 'TCI_2' ? 'TCI Tier 2' : 'TCI Tier 1');
+                      setQuartile(nextQ);
                     } else {
                       setDatabase('Web of Science');
                       setQuartile('Q1');
@@ -1418,9 +1426,14 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
                   )}
                 </label>
                 {journalScope === 'national' ? (
-                  <div className="w-full px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg text-xs font-medium text-amber-900 flex items-center gap-2">
-                    <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                    <span>TCI (Thai Citation Index) — กำหนดอัตโนมัติสำหรับวารสารระดับชาติ</span>
+                  <div className="w-full px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg text-xs font-medium text-amber-900 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>{quartile === 'TCI_2' || database === 'TCI Tier 2' ? 'TCI (Thai Citation Index) — Tier 2 (กลุ่ม 2)' : 'TCI (Thai Citation Index) — Tier 1 (กลุ่ม 1)'}</span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+                      ซิงค์ตามกลุ่ม TCI อัตโนมัติ
+                    </span>
                   </div>
                 ) : (
                   <select
@@ -1440,7 +1453,13 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
                 <label className="block font-medium text-slate-700 mb-1">Quartile / ระดับกลุ่ม*</label>
                 <select
                   value={quartile}
-                  onChange={(e) => setQuartile(e.target.value as QuartileRank)}
+                  onChange={(e) => {
+                    const q = e.target.value as QuartileRank;
+                    setQuartile(q);
+                    if (journalScope === 'national') {
+                      setDatabase(q === 'TCI_2' ? 'TCI Tier 2' : 'TCI Tier 1');
+                    }
+                  }}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold text-blue-900"
                 >
                   {journalScope === 'international' ? (

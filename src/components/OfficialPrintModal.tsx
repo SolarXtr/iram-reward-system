@@ -240,8 +240,16 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
     ? formatThaiDateOfficial(disbursementOfficialDocDate) 
     : '...................................................';
 
+  let normalizedDb = application.database;
+  if (application.quartile === 'TCI_2' && normalizedDb !== 'TCI Tier 2') {
+    normalizedDb = 'TCI Tier 2';
+  } else if (application.quartile === 'TCI_1' && normalizedDb !== 'TCI Tier 1') {
+    normalizedDb = 'TCI Tier 1';
+  }
+
   const appWithDocDetails: ResearchApplication = {
     ...application,
+    database: normalizedDb,
     deptCode,
     docRunningNo: isDocReady ? docRunningNo.trim() : undefined,
     officialDocDate: isDocReady ? officialDocDate.trim() : undefined,

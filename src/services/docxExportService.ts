@@ -111,7 +111,17 @@ export function formatQuartileDisplay(q?: string, isTier1?: boolean): string {
 
 export function formatJournalDatabaseQuartile(app: Partial<ResearchApplication>): string {
   const journal = app.journalName || '-';
-  const db = app.database || 'Scopus';
+  let db = app.database || 'Scopus';
+  const q = (app.quartile || '').toUpperCase();
+  if (q.includes('TCI 2') || q.includes('TCI_2')) {
+    if (db !== 'TCI Tier 2') {
+      db = 'TCI Tier 2';
+    }
+  } else if (q.includes('TCI 1') || q.includes('TCI_1')) {
+    if (db !== 'TCI Tier 1') {
+      db = 'TCI Tier 1';
+    }
+  }
   const dbYear = app.databaseYear?.trim() ? ` ${app.databaseYear.trim()}` : '';
   const qStr = formatQuartileDisplay(app.quartile, app.isTier1Top10);
   return `${journal} จากฐานข้อมูล ${db}${dbYear} จัดอยู่ใน ${qStr}`;
@@ -512,7 +522,16 @@ export async function generateChecklistDocx(app: ResearchApplication, isDraftPre
 
   // 6. ประเภทฐานข้อมูล & Quartile
   const isNational = app.journalScope === 'national';
-  const dbName = app.database || (isNational ? 'TCI' : 'Scopus');
+  let dbName = app.database || (isNational ? 'TCI' : 'Scopus');
+  if (isNational && (app.quartile === 'TCI_2' || (app.quartile || '').includes('2'))) {
+    if (dbName === 'TCI Tier 1' || dbName === 'TCI 1') {
+      dbName = 'TCI Tier 2';
+    }
+  } else if (isNational && (app.quartile === 'TCI_1' || (app.quartile || '').includes('1'))) {
+    if (dbName === 'TCI Tier 2' || dbName === 'TCI 2') {
+      dbName = 'TCI Tier 1';
+    }
+  }
   const qStr = app.quartile || 'Q1';
 
   const dbScopeRuns: TextRun[] = isNational

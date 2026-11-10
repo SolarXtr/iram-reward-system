@@ -90,7 +90,7 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
 
   const calcResult = calculateFacultyReward({
     journalScope: calcScope,
-    database: calcScope === 'international' ? 'Scopus' : 'TCI Tier 1',
+    database: calcScope === 'international' ? 'Scopus' : (calcQuartile === 'TCI_2' ? 'TCI Tier 2' : 'TCI Tier 1'),
     quartile: calcQuartile,
     isTier1Top10: calcIsTier1Top10,
     authorRole: calcRole,

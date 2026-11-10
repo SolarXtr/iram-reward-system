@@ -495,7 +495,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
                             {app.quartile === 'Q1_Tier1' ? 'Q1 Tier 1' : app.quartile}
                           </span>
-                          <span className="block text-[10px] text-slate-500 mt-0.5">{app.database}</span>
+                          <span className="block text-[10px] text-slate-500 mt-0.5">
+                            {app.quartile === 'TCI_2' && app.database !== 'TCI Tier 2'
+                              ? 'TCI Tier 2'
+                              : app.quartile === 'TCI_1' && app.database !== 'TCI Tier 1'
+                              ? 'TCI Tier 1'
+                              : app.database}
+                          </span>
                         </td>
 
                         <td className="px-4 py-3 whitespace-nowrap text-right">

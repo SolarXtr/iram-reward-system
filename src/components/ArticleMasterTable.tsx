@@ -247,7 +247,11 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
         fiscalYear: nuRec.fiscalYear || matchedApp?.fiscalYear || 2569,
         journalName: matchedApp?.journalName,
         quartile: matchedApp?.quartile,
-        database: matchedApp?.database,
+        database: (matchedApp?.quartile === 'TCI_2' && matchedApp?.database !== 'TCI Tier 2')
+          ? 'TCI Tier 2'
+          : (matchedApp?.quartile === 'TCI_1' && matchedApp?.database !== 'TCI Tier 1')
+          ? 'TCI Tier 1'
+          : matchedApp?.database,
         doi: matchedApp?.doi,
         category,
         categoryLabel,
@@ -321,7 +325,11 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
         fiscalYear: app.fiscalYear || 2570,
         journalName: app.journalName,
         quartile: app.quartile,
-        database: app.database,
+        database: (app.quartile === 'TCI_2' && app.database !== 'TCI Tier 2')
+          ? 'TCI Tier 2'
+          : (app.quartile === 'TCI_1' && app.database !== 'TCI Tier 1')
+          ? 'TCI Tier 1'
+          : app.database,
         doi: app.doi,
         category,
         categoryLabel,

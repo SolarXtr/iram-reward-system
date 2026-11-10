@@ -135,16 +135,25 @@ export async function fetchRewardApplicationsFromD1(fiscalYear?: number): Promis
       throw new Error(`Failed to fetch applications: ${response.status}`);
     }
     const data = await response.json();
-    const mapped = (data as any[]).map((row) => ({
-      ...row,
-      database: (row.database || row.databaseName || 'Scopus') as any,
-      databaseName: (row.databaseName || row.database || 'Scopus') as any,
-      pdpaConsentAccepted: Boolean(row.pdpaConsentAccepted),
-      isTier1Top10: Boolean(row.isTier1Top10),
-      within24Months: row.within24Months !== undefined ? Boolean(row.within24Months) : true,
-      notForGraduation: row.notForGraduation !== undefined ? Boolean(row.notForGraduation) : true,
-      medNuAffiliationDeclared: row.medNuAffiliationDeclared !== undefined ? Boolean(row.medNuAffiliationDeclared) : true,
-    }));
+    const mapped = (data as any[]).map((row) => {
+      let db = row.database || row.databaseName || 'Scopus';
+      const q = row.quartile;
+      if (q === 'TCI_2' && db !== 'TCI Tier 2') {
+        db = 'TCI Tier 2';
+      } else if (q === 'TCI_1' && db !== 'TCI Tier 1') {
+        db = 'TCI Tier 1';
+      }
+      return {
+        ...row,
+        database: db as any,
+        databaseName: db as any,
+        pdpaConsentAccepted: Boolean(row.pdpaConsentAccepted),
+        isTier1Top10: Boolean(row.isTier1Top10),
+        within24Months: row.within24Months !== undefined ? Boolean(row.within24Months) : true,
+        notForGraduation: row.notForGraduation !== undefined ? Boolean(row.notForGraduation) : true,
+        medNuAffiliationDeclared: row.medNuAffiliationDeclared !== undefined ? Boolean(row.medNuAffiliationDeclared) : true,
+      };
+    });
     return mapped as ResearchApplication[];
   } catch (error) {
     console.error('Failed to fetch applications from D1:', error);
@@ -159,9 +168,16 @@ export async function fetchRewardApplicationsFromD1(fiscalYear?: number): Promis
  */
 export async function createRewardApplicationInD1(application: Partial<ResearchApplication>): Promise<{ status: string; id: string; trackingNo: string }> {
   try {
+    let db = application.database || application.databaseName || 'Scopus';
+    if (application.quartile === 'TCI_2' && db !== 'TCI Tier 2') {
+      db = 'TCI Tier 2';
+    } else if (application.quartile === 'TCI_1' && db !== 'TCI Tier 1') {
+      db = 'TCI Tier 1';
+    }
     const payload = {
       ...application,
-      databaseName: application.databaseName || application.database || 'Scopus',
+      database: db,
+      databaseName: db,
     };
     const response = await fetch(API_BASE_URL, {
       method: 'POST',
@@ -190,9 +206,15 @@ export async function createRewardApplicationInD1(application: Partial<ResearchA
  */
 export async function updateRewardApplicationInD1(id: string, updates: Partial<ResearchApplication>): Promise<{ status: string; id: string }> {
   try {
+    let db = updates.database || updates.databaseName;
+    if (updates.quartile === 'TCI_2' && db !== 'TCI Tier 2') {
+      db = 'TCI Tier 2';
+    } else if (updates.quartile === 'TCI_1' && db !== 'TCI Tier 1') {
+      db = 'TCI Tier 1';
+    }
     const payload = {
       ...updates,
-      ...(updates.database ? { databaseName: updates.databaseName || updates.database } : {}),
+      ...(db ? { database: db, databaseName: db } : {}),
     };
     const response = await fetch(`${API_BASE_URL}/${id}`, {
       method: 'PUT',

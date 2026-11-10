@@ -79,8 +79,14 @@ export const TableView: React.FC<TableViewProps> = ({
   const [editForm, setEditForm] = useState<Partial<ResearchApplication>>({});
 
   const startEdit = (app: ResearchApplication) => {
+    let db = app.database;
+    if (app.quartile === 'TCI_2' && db !== 'TCI Tier 2') {
+      db = 'TCI Tier 2';
+    } else if (app.quartile === 'TCI_1' && db !== 'TCI Tier 1') {
+      db = 'TCI Tier 1';
+    }
     setEditingId(app.id);
-    setEditForm({ ...app });
+    setEditForm({ ...app, database: db, databaseName: db });
   };
 
   const cancelEdit = () => {
@@ -93,7 +99,21 @@ export const TableView: React.FC<TableViewProps> = ({
     const original = applications.find((a) => a.id === editingId);
     if (!original) return;
 
-    const updated = { ...original, ...editForm, updatedAt: new Date().toISOString().split('T')[0] };
+    let db = editForm.database || original.database;
+    const q = editForm.quartile || original.quartile;
+    if (q === 'TCI_2' && db !== 'TCI Tier 2') {
+      db = 'TCI Tier 2';
+    } else if (q === 'TCI_1' && db !== 'TCI Tier 1') {
+      db = 'TCI Tier 1';
+    }
+
+    const updated = {
+      ...original,
+      ...editForm,
+      database: db,
+      databaseName: db,
+      updatedAt: new Date().toISOString().split('T')[0],
+    };
     onSaveRow(updated);
     setEditingId(null);
   };
@@ -487,7 +507,20 @@ export const TableView: React.FC<TableViewProps> = ({
                           <div className="space-y-1">
                             <select
                               value={editForm.quartile || app.quartile}
-                              onChange={(e) => setEditForm({ ...editForm, quartile: e.target.value as any })}
+                              onChange={(e) => {
+                                const newQ = e.target.value as any;
+                                const updates: Partial<ResearchApplication> = { quartile: newQ };
+                                if (newQ === 'TCI_1') {
+                                  updates.database = 'TCI Tier 1';
+                                  updates.databaseName = 'TCI Tier 1';
+                                  updates.journalScope = 'national';
+                                } else if (newQ === 'TCI_2') {
+                                  updates.database = 'TCI Tier 2';
+                                  updates.databaseName = 'TCI Tier 2';
+                                  updates.journalScope = 'national';
+                                }
+                                setEditForm({ ...editForm, ...updates });
+                              }}
                               className="px-1.5 py-0.5 border border-blue-400 rounded text-xs font-semibold"
                             >
                               <option value="Q1_Tier1">Q1 Tier 1</option>
@@ -511,7 +544,13 @@ export const TableView: React.FC<TableViewProps> = ({
                             <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
                               {app.quartile === 'Q1_Tier1' ? 'Q1 Tier 1' : app.quartile}
                             </span>
-                            <div className="text-[10px] text-slate-500 mt-0.5">{app.database}</div>
+                            <div className="text-[10px] text-slate-500 mt-0.5">
+                              {app.quartile === 'TCI_2' && app.database !== 'TCI Tier 2'
+                                ? 'TCI Tier 2'
+                                : app.quartile === 'TCI_1' && app.database !== 'TCI Tier 1'
+                                ? 'TCI Tier 1'
+                                : app.database}
+                            </div>
                           </>
                         )}
                       </td>
