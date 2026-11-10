@@ -1587,7 +1587,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">งานวิจัย คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</span>
             <span>•</span>
-            <span>หน่วยบริหารและจัดการงานวิจัย (โทร. 0-5596-5761)</span>
+            <span>หน่วยถ่ายทอดเทคโนโลยี (โทร. 0-5596-5761)</span>
           </div>
         </div>
       </footer>
