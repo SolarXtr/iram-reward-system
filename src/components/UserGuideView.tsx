@@ -50,7 +50,7 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
   isAdmin = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeSection, setActiveSection] = useState<'all' | 'official_workflow' | 'rules' | 'steps' | 'calculator' | 'faq' | 'contact'>('all');
+  const [activeSection, setActiveSection] = useState<'all' | 'steps' | 'rules' | 'calculator' | 'faq' | 'official_workflow' | 'contact'>('all');
   const [infographicViewMode, setInfographicViewMode] = useState<'swimlane' | 'phases'>('swimlane');
   const [selectedInfographicRole, setSelectedInfographicRole] = useState<string>('all');
 
@@ -184,12 +184,12 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
           <div className="flex flex-wrap items-center gap-1.5 text-sm min-w-0">
             {[
               { id: 'all', label: 'ทั้งหมด' },
-              { id: 'official_workflow', label: 'แผนผังกระบวนการ 19 ขั้นตอน (Infographic)' },
-              { id: 'rules', label: 'เกณฑ์และวงเงิน' },
               { id: 'steps', label: '6 ขั้นตอนใช้งาน' },
+              { id: 'rules', label: 'เกณฑ์และวงเงิน' },
               { id: 'calculator', label: 'จำลองการคำนวณ' },
               { id: 'faq', label: 'คำถามที่พบบ่อย' },
-              { id: 'contact', label: 'ติดต่อหน่วยวิจัย' },
+              { id: 'official_workflow', label: 'Reward Cycle' },
+              { id: 'contact', label: 'ติดต่อหน่วยถ่ายทอดเทคโนโลยี' },
             ].map((sec) => (
               <button
                 key={sec.id}
@@ -226,135 +226,14 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
         </p>
       </div>
 
-      {/* SECTION 1: RULES & REWARD RATES */}
-      {renderSection('rules') && (
-        <section data-guide-section="rules" className={`space-y-4${hiddenCls('rules')}`}>
-          <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-            <Award className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-              1. อัตราเงินรางวัลและเงินสนับสนุนค่าตีพิมพ์ (Publication Rewards & APC)
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Table 1: Publication Rewards */}
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-emerald-500" />
-                <span>อัตราเงินรางวัลการตีพิมพ์บทความ (บาท)</span>
-              </h3>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead>
-                    <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
-                      <th className="p-2">ระดับวารสาร / Quartile</th>
-                      <th className="p-2 text-right">บทความวิจัย / Review</th>
-                      <th className="p-2 text-right">Case Report / Note</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                      <td className="p-2 font-medium text-purple-700 dark:text-purple-300">นานาชาติ Q1 Tier 1 (Top 10%)</td>
-                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">35,000</td>
-                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">17,500</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                      <td className="p-2 font-medium text-amber-700 dark:text-amber-300">นานาชาติ Quartile 1 (Q1)</td>
-                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">25,000</td>
-                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">12,500</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                      <td className="p-2 font-medium text-blue-700 dark:text-blue-300">นานาชาติ Quartile 2 (Q2)</td>
-                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">15,000</td>
-                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">7,500</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                      <td className="p-2 font-medium text-slate-700 dark:text-slate-300">นานาชาติ Q3 และ Q4</td>
-                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">5,000</td>
-                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">2,500</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                      <td className="p-2 font-medium text-teal-700 dark:text-teal-300">ระดับชาติ TCI กลุ่ม 1</td>
-                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">2,000</td>
-                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">1,000</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                      <td className="p-2 font-medium text-teal-700 dark:text-teal-300">ระดับชาติ TCI กลุ่ม 2</td>
-                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">1,000</td>
-                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">500</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                <div><strong>First / Corresponding Author:</strong> ได้รับเงินรางวัล 100%</div>
-                <div><strong>Co-author (ผู้ร่วมเขียน):</strong> ได้รับ 50% ของอัตราปกติ <em>(มีสิทธิ์เฉพาะ Q1 และ Q2 เท่านั้น)</em></div>
-              </div>
-            </div>
-
-            {/* Table 2: Page Charge Support */}
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-500" />
-                <span>เงินสนับสนุนค่าตีพิมพ์ (Page Charge / APC)</span>
-              </h3>
-
-              <div className="space-y-2.5 text-sm">
-                <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/50 dark:bg-amber-950/20">
-                  <div className="font-bold text-amber-900 dark:text-amber-200 flex items-center justify-between">
-                    <span>วารสารนานาชาติ Q1 (Tier 1) และ Q2</span>
-                    <span className="text-amber-700 dark:text-amber-300 font-bold">สูงสุด 40,000 บาท</span>
-                  </div>
-                  <p className="text-sm text-amber-800 dark:text-amber-300 mt-1 leading-relaxed">
-                    * เงื่อนไข: <strong>ต้องหักสิทธิ์เบิกกับมหาวิทยาลัยนเรศวร (มน.) ก่อน 30,000 บาทแรก</strong> ส่วนที่เกิน 30,000 บาท จึงนำมาเบิกกับคณะแพทยศาสตร์ได้ตามจ่ายจริงแต่ไม่เกิน 40,000 บาท
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
-                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                    <span>วารสารนานาชาติ Q3</span>
-                    <span className="text-slate-900 dark:text-white font-bold">สูงสุด 40,000 บาท</span>
-                  </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    * คณะสนับสนุนตามจ่ายจริง ไม่ต้องหักส่วนของ มน.
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
-                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                    <span>วารสารนานาชาติ Q4</span>
-                    <span className="text-slate-900 dark:text-white font-bold">สูงสุด 10,000 บาท</span>
-                  </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    * คณะสนับสนุนตามจ่ายจริง ไม่ต้องหักส่วนของ มน.
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
-                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                    <span>วารสารระดับชาติ TCI กลุ่ม 1 และ 2</span>
-                    <span className="text-slate-900 dark:text-white font-bold">สูงสุด 5,000 บาท</span>
-                  </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    * คณะสนับสนุนตามจ่ายจริง ไม่ต้องหักส่วนของ มน.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* SECTION 2: 6 STEP GUIDE */}
+      {/* SECTION 1: 6 STEP GUIDE (6 ขั้นตอนใช้งาน) */}
       {renderSection('steps') && (
         <section data-guide-section="steps" className={`space-y-4${hiddenCls('steps')}`}>
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
             <div className="flex items-center gap-2">
               <Layers className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                2. ขั้นตอนการใช้งานระบบแบบ Step-by-Step (6 ขั้นตอน)
+                1. ขั้นตอนการใช้งานระบบแบบ Step-by-Step (6 ขั้นตอน)
               </h2>
             </div>
             {onOpenNewSubmission && (
@@ -482,7 +361,128 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
         </section>
       )}
 
-      {/* SECTION 3: INTERACTIVE REWARD CALCULATOR WIDGET */}
+      {/* SECTION 2: RULES & REWARD RATES (เกณฑ์และวงเงิน) */}
+      {renderSection('rules') && (
+        <section data-guide-section="rules" className={`space-y-4${hiddenCls('rules')}`}>
+          <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+            <Award className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+              2. อัตราเงินรางวัลและเงินสนับสนุนค่าตีพิมพ์ (เกณฑ์และวงเงิน)
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Table 1: Publication Rewards */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-emerald-500" />
+                <span>อัตราเงินรางวัลการตีพิมพ์บทความ (บาท)</span>
+              </h3>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead>
+                    <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+                      <th className="p-2">ระดับวารสาร / Quartile</th>
+                      <th className="p-2 text-right">บทความวิจัย / Review</th>
+                      <th className="p-2 text-right">Case Report / Note</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="p-2 font-medium text-purple-700 dark:text-purple-300">นานาชาติ Q1 Tier 1 (Top 10%)</td>
+                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">35,000</td>
+                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">17,500</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="p-2 font-medium text-amber-700 dark:text-amber-300">นานาชาติ Quartile 1 (Q1)</td>
+                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">25,000</td>
+                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">12,500</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="p-2 font-medium text-blue-700 dark:text-blue-300">นานาชาติ Quartile 2 (Q2)</td>
+                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">15,000</td>
+                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">7,500</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="p-2 font-medium text-slate-700 dark:text-slate-300">นานาชาติ Q3 และ Q4</td>
+                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">5,000</td>
+                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">2,500</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="p-2 font-medium text-teal-700 dark:text-teal-300">ระดับชาติ TCI กลุ่ม 1</td>
+                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">2,000</td>
+                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">1,000</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="p-2 font-medium text-teal-700 dark:text-teal-300">ระดับชาติ TCI กลุ่ม 2</td>
+                      <td className="p-2 text-right font-bold text-slate-900 dark:text-white">1,000</td>
+                      <td className="p-2 text-right text-slate-600 dark:text-slate-400">500</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 space-y-1">
+                <div><strong>First / Corresponding Author:</strong> ได้รับเงินรางวัล 100%</div>
+                <div><strong>Co-author (ผู้ร่วมเขียน):</strong> ได้รับ 50% ของอัตราปกติ <em>(มีสิทธิ์เฉพาะ Q1 และ Q2 เท่านั้น)</em></div>
+              </div>
+            </div>
+
+            {/* Table 2: Page Charge Support */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-500" />
+                <span>เงินสนับสนุนค่าตีพิมพ์ (Page Charge / APC)</span>
+              </h3>
+
+              <div className="space-y-2.5 text-sm">
+                <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/50 dark:bg-amber-950/20">
+                  <div className="font-bold text-amber-900 dark:text-amber-200 flex items-center justify-between">
+                    <span>วารสารนานาชาติ Q1 (Tier 1) และ Q2</span>
+                    <span className="text-amber-700 dark:text-amber-300 font-bold">สูงสุด 40,000 บาท</span>
+                  </div>
+                  <p className="text-sm text-amber-800 dark:text-amber-300 mt-1 leading-relaxed">
+                    * เงื่อนไข: <strong>ต้องหักสิทธิ์เบิกกับมหาวิทยาลัยนเรศวร (มน.) ก่อน 30,000 บาทแรก</strong> ส่วนที่เกิน 30,000 บาท จึงนำมาเบิกกับคณะแพทยศาสตร์ได้ตามจ่ายจริงแต่ไม่เกิน 40,000 บาท
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
+                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                    <span>วารสารนานาชาติ Q3</span>
+                    <span className="text-slate-900 dark:text-white font-bold">สูงสุด 40,000 บาท</span>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    * คณะสนับสนุนตามจ่ายจริง ไม่ต้องหักส่วนของ มน.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
+                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                    <span>วารสารนานาชาติ Q4</span>
+                    <span className="text-slate-900 dark:text-white font-bold">สูงสุด 10,000 บาท</span>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    * คณะสนับสนุนตามจ่ายจริง ไม่ต้องหักส่วนของ มน.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
+                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                    <span>วารสารระดับชาติ TCI กลุ่ม 1 และ 2</span>
+                    <span className="text-slate-900 dark:text-white font-bold">สูงสุด 5,000 บาท</span>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    * คณะสนับสนุนตามจ่ายจริง ไม่ต้องหักส่วนของ มน.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* SECTION 3: INTERACTIVE REWARD CALCULATOR WIDGET (จำลองการคำนวณ) */}
       {renderSection('calculator') && (
         <section data-guide-section="calculator" className={`space-y-4${hiddenCls('calculator')}`}>
           <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
@@ -612,7 +612,7 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
         </section>
       )}
 
-      {/* SECTION 4: FAQ */}
+      {/* SECTION 4: FAQ (คำถามที่พบบ่อย) */}
       {renderSection('faq') && (
         <section data-guide-section="faq" className={`space-y-4${hiddenCls('faq')}`}>
           <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
@@ -668,42 +668,7 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
         </section>
       )}
 
-      {/* SECTION 5: CONTACT INFORMATION */}
-      {renderSection('contact') && (
-        <section data-guide-section="contact" className={`bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-lg space-y-4${hiddenCls('contact')}`}>
-          <div className="flex items-center gap-2.5">
-            <Building2 className="w-6 h-6 text-amber-400" />
-            <div>
-              <h2 className="text-base sm:text-lg font-bold">หน่วยบริหารและจัดการงานวิจัย คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</h2>
-              <p className="text-sm text-slate-400">ยินดีให้คำปรึกษาและประสานงานเกี่ยวกับการขอรับเงินรางวัลและค่าตีพิมพ์บทความวิจัย</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm pt-2 border-t border-slate-800">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400">
-                <Phone className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="font-semibold text-slate-200">โทรศัพท์ภายใน</div>
-                <div className="text-amber-400 font-mono font-bold text-sm">5761</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-              <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="font-semibold text-slate-200">สถานที่ติดต่อ</div>
-                <div className="text-slate-300">ห้องงานวิจัย ชั้น 5 อาคาร CC2 คณะแพทยศาสตร์</div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* SECTION: แผนผังกระบวนการดำเนินการระบบเงินรางวัล 19 ขั้นตอน (Infographic Workflow) */}
+      {/* SECTION 5: REWARD CYCLE (แผนผังกระบวนการดำเนินการระบบเงินรางวัล 19 ขั้นตอน) */}
       {renderSection('official_workflow') && (
         <section data-guide-section="official_workflow" className={`space-y-6${hiddenCls('official_workflow')}`}>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
@@ -713,7 +678,7 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
               </div>
               <div>
                 <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>แผนผังกระบวนการดำเนินการระบบเงินรางวัล (Infographic)</span>
+                  <span>Reward Cycle (แผนผังกระบวนการดำเนินงาน 19 ขั้นตอน)</span>
                   <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-semibold">19 ขั้นตอน</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
@@ -1269,6 +1234,41 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
               </div>
               <div className="bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-medium">
                 ✓ รองรับการส่งออก Word (.docx) และ PDF
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* SECTION 6: CONTACT INFORMATION (ติดต่อหน่วยถ่ายทอดเทคโนโลยี) */}
+      {renderSection('contact') && (
+        <section data-guide-section="contact" className={`bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-lg space-y-4${hiddenCls('contact')}`}>
+          <div className="flex items-center gap-2.5">
+            <Building2 className="w-6 h-6 text-amber-400" />
+            <div>
+              <h2 className="text-base sm:text-lg font-bold">หน่วยถ่ายทอดเทคโนโลยี งานวิจัย คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</h2>
+              <p className="text-sm text-slate-400">ยินดีให้คำปรึกษาและประสานงานเกี่ยวกับการขอรับเงินรางวัลและค่าตีพิมพ์บทความวิจัย</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm pt-2 border-t border-slate-800">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
+              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400">
+                <Phone className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-semibold text-slate-200">โทรศัพท์ภายใน</div>
+                <div className="text-amber-400 font-mono font-bold text-sm">5761</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
+              <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-semibold text-slate-200">สถานที่ติดต่อ</div>
+                <div className="text-slate-300">ห้องงานวิจัย ชั้น 5 อาคาร CC2 คณะแพทยศาสตร์</div>
               </div>
             </div>
           </div>
