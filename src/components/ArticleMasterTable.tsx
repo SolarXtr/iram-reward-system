@@ -43,7 +43,7 @@ export interface UnifiedArticleRow {
   database?: string;
 
   // Category
-  category: 'submitted' | 'preparing' | 'historical';
+  category: 'submitted' | 'preparing' | 'historical' | 'unclaimed';
   categoryLabel: string;
 
   // Funding Source
@@ -200,19 +200,49 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
       const facPage = nuRec.facultyPageChargeAmount || matchedApp?.approvedPageChargeAmount || 0;
       const facTotal = nuRec.facultyTotalAmount || matchedApp?.totalClaimedAmount || (facReward + facPage);
 
+      // Check if both NU and Faculty are completely unsubmitted / not claimed yet
+      const isNuUnclaimed = (
+        !isNuPaid && (
+          rawNuStatus.includes('ยังไม่ได้ยื่น') || 
+          rawNuStatus.includes('ยังไม่ได้เบิก') || 
+          rawNuStatus === 'unsubmitted' || 
+          !rawNuStatus
+        )
+      );
+
+      const isFacultyUnclaimed = (
+        !isFacultyPaid && (
+          !matchedApp || 
+          matchedApp.status === 'draft' || 
+          matchedApp.status === 'trash'
+        ) && (
+          !nuRec.facultyStatus || 
+          nuRec.facultyStatus === 'unsubmitted' || 
+          nuRec.facultyStatus === 'ยังไม่ได้เบิกคณะ'
+        )
+      );
+
       // Determine Category
-      let category: 'submitted' | 'preparing' | 'historical' = 'historical';
+      let category: 'submitted' | 'preparing' | 'historical' | 'unclaimed' = 'historical';
       let categoryLabel = 'เคยส่งเบิกแล้ว';
 
       if (matchedApp?.status === 'draft') {
         category = 'preparing';
         categoryLabel = 'เตรียมเบิก';
+      } else if (matchedApp?.status === 'trash') {
+        // Ignored in active counting if in trash
+      } else if (isNuUnclaimed && isFacultyUnclaimed) {
+        category = 'unclaimed';
+        categoryLabel = 'ยังไม่ได้เบิก';
       } else if (isNuPaid || isFacultyPaid || (nuRec.fiscalYear && nuRec.fiscalYear < 2570)) {
         category = 'historical';
         categoryLabel = 'เคยส่งเบิกแล้ว';
       } else if (rawNuStatus.includes('อนุมัติแล้ว') || rawNuStatus.includes('ส่งการเงิน') || rawNuStatus.includes('จัดส่งเอกสาร') || (matchedApp && matchedApp.status !== 'draft')) {
         category = 'submitted';
         categoryLabel = 'รายการที่ส่งเบิก';
+      } else {
+        category = 'unclaimed';
+        categoryLabel = 'ยังไม่ได้เบิก';
       }
 
       // Status text: User rule "ใช้สถานะ จ่ายเงินแล้ว เหมือนกันทั้ง มน. และคณะ"
@@ -282,12 +312,12 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
 
     // Step B: Process remaining ResearchApplications that were not matched to any nuDisbursements
     applications.forEach((app, idx) => {
-      if (matchedAppIds.has(app.id)) return; // Already merged into a row
+      if (matchedAppIds.has(app.id) || app.status === 'trash') return; // Skip matched or trash items
 
       const isDraft = app.status === 'draft';
       const isPaid = app.status === 'paid';
 
-      let category: 'submitted' | 'preparing' | 'historical' = isDraft 
+      let category: 'submitted' | 'preparing' | 'historical' | 'unclaimed' = isDraft 
         ? 'preparing' 
         : isPaid 
         ? 'historical' 
@@ -463,12 +493,13 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
     const historicalCount = scopedArticles.filter(a => a.category === 'historical').length;
     const submittedCount = scopedArticles.filter(a => a.category === 'submitted').length;
     const preparingCount = scopedArticles.filter(a => a.category === 'preparing').length;
+    const unclaimedCount = scopedArticles.filter(a => a.category === 'unclaimed').length;
 
     const sumNu = scopedArticles.reduce((s, a) => s + a.nuTotalAmount, 0);
     const sumFac = scopedArticles.reduce((s, a) => s + a.facultyTotalAmount, 0);
     const sumGrand = scopedArticles.reduce((s, a) => s + a.grandTotalAmount, 0);
 
-    return { total, historicalCount, submittedCount, preparingCount, sumNu, sumFac, sumGrand };
+    return { total, historicalCount, submittedCount, preparingCount, unclaimedCount, sumNu, sumFac, sumGrand };
   }, [scopedArticles]);
 
   // Export CSV
@@ -532,7 +563,7 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
               Article Master Table
             </span>
             <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-slate-100 text-slate-700 border border-slate-200">
-              รวม 3 หมวดบทความ (1 แถวต่อผลงาน)
+              รวม 4 หมวดบทความ (1 แถวต่อผลงาน)
             </span>
           </div>
           <h2 className="text-lg sm:text-xl font-bold text-slate-900 font-prompt mt-1.5 flex items-center gap-2">
@@ -568,7 +599,7 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
       </div>
 
       {/* 2. Top Summary Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         {/* Card 1: Total Articles */}
         <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
@@ -583,21 +614,35 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
           </div>
         </div>
 
-        {/* Card 2: Historical / Completed Disbursed */}
-        <div className="bg-white p-4 rounded-xl border border-emerald-200/80 bg-emerald-50/20 shadow-xs">
-          <div className="flex items-center justify-between text-emerald-700 mb-1">
-            <span className="text-xs font-medium font-prompt">เคยส่งเบิกแล้ว</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+        {/* Card 2: Unclaimed Articles */}
+        <div className="bg-white p-4 rounded-xl border border-amber-300/80 bg-amber-50/20 shadow-xs">
+          <div className="flex items-center justify-between text-amber-800 mb-1">
+            <span className="text-xs font-medium font-prompt">ยังไม่ได้เบิก</span>
+            <AlertCircle className="w-4 h-4 text-amber-600" />
           </div>
-          <div className="text-2xl font-bold text-emerald-900 font-prompt">
-            {metrics.historicalCount.toLocaleString()} <span className="text-xs font-normal text-emerald-700">เรื่อง</span>
+          <div className="text-2xl font-bold text-amber-900 font-prompt">
+            {metrics.unclaimedCount.toLocaleString()} <span className="text-xs font-normal text-amber-800">เรื่อง</span>
           </div>
-          <div className="text-[11px] text-emerald-700 mt-1">
-            เบิกจ่ายเสร็จสิ้น (ปี 68, 69)
+          <div className="text-[11px] text-amber-700 mt-1">
+            ยังไม่ยื่น มน. และยังไม่เบิกคณะ
           </div>
         </div>
 
-        {/* Card 3: Active Submissions Pipeline */}
+        {/* Card 3: Draft Preparation */}
+        <div className="bg-white p-4 rounded-xl border border-slate-200 bg-slate-50/50 shadow-xs">
+          <div className="flex items-center justify-between text-slate-700 mb-1">
+            <span className="text-xs font-medium font-prompt">รายการเตรียมเบิก</span>
+            <Sparkles className="w-4 h-4 text-slate-600" />
+          </div>
+          <div className="text-2xl font-bold text-slate-900 font-prompt">
+            {metrics.preparingCount.toLocaleString()} <span className="text-xs font-normal text-slate-700">เรื่อง</span>
+          </div>
+          <div className="text-[11px] text-slate-500 mt-1">
+            ฉบับร่างในระบบวางแผน
+          </div>
+        </div>
+
+        {/* Card 4: Active Submissions Pipeline */}
         <div className="bg-white p-4 rounded-xl border border-blue-200/80 bg-blue-50/20 shadow-xs">
           <div className="flex items-center justify-between text-blue-700 mb-1">
             <span className="text-xs font-medium font-prompt">รายการที่ส่งเบิก</span>
@@ -611,17 +656,17 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
           </div>
         </div>
 
-        {/* Card 4: Draft Preparation */}
-        <div className="bg-white p-4 rounded-xl border border-amber-200/80 bg-amber-50/20 shadow-xs">
-          <div className="flex items-center justify-between text-amber-800 mb-1">
-            <span className="text-xs font-medium font-prompt">รายการที่เตรียมเบิก</span>
-            <Sparkles className="w-4 h-4 text-amber-600" />
+        {/* Card 5: Historical / Completed Disbursed */}
+        <div className="bg-white p-4 rounded-xl border border-emerald-200/80 bg-emerald-50/20 shadow-xs">
+          <div className="flex items-center justify-between text-emerald-700 mb-1">
+            <span className="text-xs font-medium font-prompt">เคยส่งเบิกแล้ว</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-bold text-amber-900 font-prompt">
-            {metrics.preparingCount.toLocaleString()} <span className="text-xs font-normal text-amber-800">เรื่อง</span>
+          <div className="text-2xl font-bold text-emerald-900 font-prompt">
+            {metrics.historicalCount.toLocaleString()} <span className="text-xs font-normal text-emerald-700">เรื่อง</span>
           </div>
-          <div className="text-[11px] text-amber-800 mt-1">
-            ฉบับร่างในระบบวางแผน
+          <div className="text-[11px] text-emerald-700 mt-1">
+            เบิกจ่ายเสร็จสิ้น (ปี 68, 69)
           </div>
         </div>
       </div>
@@ -668,9 +713,10 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
             <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200 text-xs">
               {[
                 { id: 'all', label: 'ทุกหมวด' },
-                { id: 'historical', label: 'เคยส่งเบิกแล้ว' },
-                { id: 'submitted', label: 'กำลังส่งเบิก' },
+                { id: 'unclaimed', label: 'ยังไม่ได้เบิก' },
                 { id: 'preparing', label: 'เตรียมเบิก' },
+                { id: 'submitted', label: 'กำลังส่งเบิก' },
+                { id: 'historical', label: 'เคยส่งเบิกแล้ว' },
               ].map(cat => (
                 <button
                   key={cat.id}
@@ -893,7 +939,12 @@ export const ArticleMasterTable: React.FC<ArticleMasterTableProps> = ({
                       <td className="py-2.5 px-3">
                         <div className="flex flex-col gap-1">
                           {/* Category Badge */}
-                          {art.category === 'preparing' ? (
+                          {art.category === 'unclaimed' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-300 w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                              <span>ยังไม่ได้เบิก</span>
+                            </span>
+                          ) : art.category === 'preparing' ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-300 w-fit">
                               <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                               <span>เตรียมเบิก</span>

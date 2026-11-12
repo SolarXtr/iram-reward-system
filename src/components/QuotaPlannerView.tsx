@@ -43,6 +43,8 @@ interface QuotaPlannerViewProps {
   onSubmitDraft: (draftApp: ResearchApplication) => void;
   onSubmitSelectedDrafts: (draftApps: ResearchApplication[]) => void;
   onDeleteDraft: (id: string) => void;
+  onRestoreDraft?: (id: string) => void;
+  onPermanentDeleteDraft?: (id: string) => void;
   onCarryOverDraft: (id: string, targetFiscalYear: number) => void;
   onUndoCarryOver: (id: string, currentFiscalYear: number) => void;
 }
@@ -57,6 +59,8 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
   onSubmitDraft,
   onSubmitSelectedDrafts,
   onDeleteDraft,
+  onRestoreDraft,
+  onPermanentDeleteDraft,
   onCarryOverDraft,
   onUndoCarryOver,
 }) => {
@@ -64,6 +68,9 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
   const [selectedFiscalYear, setSelectedFiscalYear] = useState<number>(2570);
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set());
   const [draftYearFilter, setDraftYearFilter] = useState<'year_only' | 'all_years'>('year_only');
+  const [plannerTab, setPlannerTab] = useState<'drafts' | 'trash'>('drafts');
+  const [draftToDelete, setDraftToDelete] = useState<ResearchApplication | null>(null);
+  const [draftToPermanentDelete, setDraftToPermanentDelete] = useState<ResearchApplication | null>(null);
 
   // Discover available fiscal years across applications and DRI NU records
   const availableFiscalYears = useMemo(() => {
@@ -243,6 +250,33 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
       return dateA - dateB;
     });
   }, [applications, userEmail, userLastName, currentUser?.name, currentUser?.id, currentUser?.department, currentRole, draftScopeFilter, isStaffOrAdmin, isDeptSecretary, userDeptNorm, selectedFiscalYear, draftYearFilter]);
+
+  // Trash Bin drafts (status === 'trash')
+  const trashDraftApps = useMemo(() => {
+    const trashed = applications.filter((a) => {
+      if (a.status !== 'trash') return false;
+      if (currentRole === 'researcher') {
+        return isMyApplication(a);
+      }
+      if (isDeptSecretary) {
+        if (draftScopeFilter === 'all') {
+          const appDeptNorm = (a.department || '').trim().toLowerCase();
+          return Boolean(userDeptNorm && (appDeptNorm === userDeptNorm || appDeptNorm.includes(userDeptNorm) || userDeptNorm.includes(appDeptNorm)));
+        }
+        return isMyApplication(a);
+      }
+      if (isStaffOrAdmin && draftScopeFilter === 'all') {
+        return true;
+      }
+      return isMyApplication(a);
+    });
+
+    return trashed.sort((a, b) => {
+      const dateA = a.deletedAt ? new Date(a.deletedAt).getTime() : 0;
+      const dateB = b.deletedAt ? new Date(b.deletedAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [applications, userEmail, userLastName, currentUser?.name, currentUser?.id, currentUser?.department, currentRole, draftScopeFilter, isStaffOrAdmin, isDeptSecretary, userDeptNorm]);
 
   // Selected drafts for simulation
   const selectedDraftsList = useMemo(() => {
@@ -552,6 +586,51 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
 
       {/* Drafts & Prepared Articles Section */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        {/* Planner Navigation Tabs */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 pt-3 bg-white">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPlannerTab('drafts')}
+              className={`pb-3 px-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+                plannerTab === 'drafts'
+                  ? 'border-indigo-600 text-indigo-700'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>รายการเตรียมเบิก</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                plannerTab === 'drafts' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {myDraftApps.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPlannerTab('trash')}
+              className={`pb-3 px-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+                plannerTab === 'trash'
+                  ? 'border-rose-600 text-rose-700'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>ถังขยะ</span>
+              {trashDraftApps.length > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  plannerTab === 'trash' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {trashDraftApps.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {plannerTab === 'drafts' ? (
+          <>
         {/* Section Header & Strategy Bar */}
         <div className="p-5 border-b border-slate-200 bg-slate-50/70 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-1">
@@ -954,11 +1033,11 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
                                 </button>
                               )}
 
-                              {/* Delete Draft */}
+                              {/* Delete Draft (Level 1 Confirm) */}
                               <button
-                                onClick={() => canEditThisDraft && onDeleteDraft(draft.id)}
+                                onClick={() => canEditThisDraft && setDraftToDelete(draft)}
                                 disabled={!canEditThisDraft}
-                                title={canEditThisDraft ? "ลบร่างบทความนี้" : "นักวิจัยสามารถจัดการได้เฉพาะคำขอของตนเอง"}
+                                title={canEditThisDraft ? "ลบร่างบทความนี้ (ย้ายไปถังขยะ)" : "นักวิจัยสามารถจัดการได้เฉพาะคำขอของตนเอง"}
                                 className={`p-1.5 rounded-lg transition-colors ${
                                   canEditThisDraft
                                     ? 'hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer'
@@ -978,7 +1057,220 @@ export const QuotaPlannerView: React.FC<QuotaPlannerViewProps> = ({
             </table>
           </div>
         )}
+          </>
+        ) : (
+          /* =========================================================================
+           * Trash Bin View (Soft-deleted drafts)
+           * ========================================================================= */
+          <div className="p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-slate-100">
+              <div>
+                <h4 className="font-bold text-slate-900 font-prompt flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-rose-600" />
+                  <span>ถังขยะร่างคำขอ (Trash Bin)</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 font-prompt">
+                    {trashDraftApps.length} รายการ
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  ร่างคำขอที่ถูกลบจะถูกเก็บไว้ที่นี่ สามารถกดกู้คืนกลับสู่รายการเตรียมเบิกได้ตลอดเวลา หรือเลือกลบถาวร
+                </p>
+              </div>
+            </div>
+
+            {trashDraftApps.length === 0 ? (
+              <div className="py-12 text-center text-slate-400">
+                <Trash2 className="w-10 h-10 mx-auto mb-2 text-slate-300 stroke-[1.5]" />
+                <span className="font-medium text-sm text-slate-600">ไม่มีรายการในถังขยะ</span>
+                <p className="text-xs text-slate-400 mt-1">รายการร่างคำขอที่ถูกลบจะปรากฏที่นี่และสามารถกู้คืนได้</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold font-prompt">
+                      <th className="py-3 px-3 text-center w-12">ลำดับ</th>
+                      <th className="py-3 px-4 min-w-[280px]">ชื่อบทความวิจัย</th>
+                      <th className="py-3 px-3 w-40">ผู้ขอรับทุน</th>
+                      <th className="py-3 px-3 text-right w-28">ยอดเงินรวม</th>
+                      <th className="py-3 px-3 w-40">วันที่ลบ / ผู้ลบ</th>
+                      <th className="py-3 px-3 text-center w-36">จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {trashDraftApps.map((item, idx) => {
+                      const canManage = isStaffOrAdmin || isMyApplication(item) || (isDeptSecretary && draftScopeFilter === 'all');
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-3 text-center text-slate-400 font-mono">
+                            {idx + 1}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-semibold text-slate-800 line-clamp-2">
+                              {item.articleTitle}
+                            </div>
+                            <div className="text-[11px] text-slate-400 italic mt-0.5">
+                              {item.journalName || 'ไม่ระบุชื่อวารสาร'}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-medium text-slate-800">
+                              {item.applicantName || 'ไม่ระบุชื่อ'}
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              {item.department || 'คณะแพทยศาสตร์'}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-right font-bold text-slate-900 font-prompt">
+                            {formatBaht(item.totalClaimedAmount || 0)}
+                          </td>
+                          <td className="py-3 px-3 text-[11px] text-slate-500">
+                            <div>{item.deletedAt ? item.deletedAt.split('T')[0] : '-'}</div>
+                            <div className="text-[10px] text-slate-400">โดย {item.deletedBy || 'ผู้ใช้งาน'}</div>
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {/* Restore Button */}
+                              <button
+                                type="button"
+                                onClick={() => canManage && onRestoreDraft && onRestoreDraft(item.id)}
+                                disabled={!canManage}
+                                title={canManage ? "กู้คืนรายการนี้กลับสู่รายการเตรียมเบิก" : "ไม่มีสิทธิ์จัดการรายการนี้"}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors ${
+                                  canManage
+                                    ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-pointer'
+                                    : 'opacity-40 cursor-not-allowed bg-slate-50 text-slate-400'
+                                }`}
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>กู้คืน</span>
+                              </button>
+
+                              {/* Permanent Delete Button */}
+                              <button
+                                type="button"
+                                onClick={() => canManage && setDraftToPermanentDelete(item)}
+                                disabled={!canManage}
+                                title={canManage ? "ลบออกจากระบบอย่างถาวร" : "ไม่มีสิทธิ์จัดการรายการนี้"}
+                                className={`p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors ${
+                                  canManage ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
+                                }`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Level 1 Confirm Modal: Soft Delete to Trash */}
+      {draftToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 font-prompt text-base">ยืนยันการย้ายไปถังขยะ?</h3>
+                <p className="text-xs text-slate-500">ท่านสามารถกู้คืนรายการนี้กลับมาได้ตลอดเวลาในแท็บ "ถังขยะ"</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5">
+              <div className="font-semibold text-slate-800 line-clamp-2">
+                {draftToDelete.articleTitle}
+              </div>
+              <div className="flex items-center justify-between text-slate-500 text-[11px] pt-1 border-t border-slate-200/80">
+                <span>ผู้ขอรับทุน: <strong className="text-slate-700">{draftToDelete.applicantName}</strong></span>
+                <span className="font-bold text-slate-900 font-prompt">
+                  {formatBaht(draftToDelete.totalClaimedAmount || 0)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDraftToDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (draftToDelete) {
+                    onDeleteDraft(draftToDelete.id);
+                    setDraftToDelete(null);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>ย้ายไปถังขยะ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Permanent Delete Modal */}
+      {draftToPermanentDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-rose-200 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-700 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-rose-900 font-prompt text-base">ยืนยันการลบถาวร?</h3>
+                <p className="text-xs text-rose-600 font-medium">การกระทำนี้ไม่สามารถย้อนกลับหรือกู้คืนได้อีก</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-rose-50/50 rounded-xl border border-rose-200 text-xs space-y-1.5">
+              <div className="font-semibold text-slate-800 line-clamp-2">
+                {draftToPermanentDelete.articleTitle}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                ผู้ขอรับทุน: <strong className="text-slate-700">{draftToPermanentDelete.applicantName}</strong>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDraftToPermanentDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (draftToPermanentDelete && onPermanentDeleteDraft) {
+                    onPermanentDeleteDraft(draftToPermanentDelete.id);
+                    setDraftToPermanentDelete(null);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-700 hover:bg-rose-800 text-white transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>ลบออกจากระบบถาวร</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Regulation Guidance Box */}
       <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-950 space-y-2">

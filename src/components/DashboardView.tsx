@@ -69,7 +69,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const authorizedApplications = isGuest ? [] : statisticsApplications ?? applications;
   const submittedAppsOnly = React.useMemo(() => {
     return authorizedApplications.filter((application) => {
-      if (application.status === 'draft') return false;
+      if (application.status === 'draft' || application.status === 'trash') return false;
       if (isDeptSecretary) {
         return isSameDepartment(currentUser?.department, application.department) || isMyApplication(application);
       }
@@ -122,7 +122,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const displayedApplications = React.useMemo(() => {
     if (isGuest) return [];
     return applications.filter((application) => {
-      if (application.status === 'draft') return false;
+      if (application.status === 'draft' || application.status === 'trash') return false;
       if (isResearcher) return isMyApplication(application);
       if (isDeptSecretary) {
         return isSameDepartment(currentUser?.department, application.department) || isMyApplication(application);

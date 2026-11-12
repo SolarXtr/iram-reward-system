@@ -69,7 +69,8 @@ export type ApplicationStatus =
   | 'finance_processing'  // งานการเงินจัดทำฎีกาเบิกจ่าย
   | 'paid'                // โอนเงินเข้าบัญชีเรียบร้อยแล้ว
   | 'rejected'            // ส่งกลับแก้ไข / ไม่อนุมัติ
-  | 'closed';             // ปิดงานสมบูรณ์
+  | 'closed'              // ปิดงานสมบูรณ์
+  | 'trash';              // ถังขยะ (Soft Delete - กู้คืนได้)
 
 export interface DocumentAttachment {
   id: string;
@@ -176,6 +177,8 @@ export interface ResearchApplication {
   attachments: DocumentAttachment[];
   coordinatorNotes?: string;
   staffNotes?: string; // Alias for coordinatorNotes
+  deletedAt?: string; // วันที่ย้ายไปถังขยะ
+  deletedBy?: string; // ผู้ที่ย้ายไปถังขยะ
 
   // Line Notification Status
   lineNotified: boolean;

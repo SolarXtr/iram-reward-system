@@ -975,10 +975,60 @@ export default function App() {
     showToast(`🚀 ส่งเบิกคำขอที่เลือกเรียบร้อยแล้วทั้งหมด ${draftApps.length} รายการ!`);
   };
 
-  const handleDeleteDraft = (id: string) => {
+  // Soft Delete: ย้ายร่างคำขอไปไว้ในถังขยะ (สามารถกู้คืนได้)
+  const handleSoftDeleteDraft = (id: string) => {
+    const today = new Date().toISOString();
+    const deletedBy = currentUser?.name || 'ผู้ใช้งาน';
+    setApplications((prev) =>
+      prev.map((a) => {
+        if (a.id !== id) return a;
+        return {
+          ...a,
+          status: 'trash',
+          deletedAt: today,
+          deletedBy,
+          coordinatorNotes: `ย้ายไปถังขยะเมื่อ ${today.split('T')[0]} โดย ${deletedBy}`,
+          updatedAt: today.split('T')[0],
+        };
+      })
+    );
+    updateRewardApplicationInD1(id, {
+      status: 'trash',
+      coordinatorNotes: `ย้ายไปถังขยะเมื่อ ${today.split('T')[0]} โดย ${deletedBy}`,
+    }).catch((e) => console.warn('D1 soft delete error:', e));
+
+    showToast('🗑️ ย้ายร่างคำขอไปไว้ในถังขยะเรียบร้อยแล้ว (สามารถกู้คืนได้)');
+  };
+
+  // Restore: กู้คืนร่างคำขอกลับสู่รายการเตรียมเบิก
+  const handleRestoreDraft = (id: string) => {
+    const today = new Date().toISOString();
+    setApplications((prev) =>
+      prev.map((a) => {
+        if (a.id !== id) return a;
+        return {
+          ...a,
+          status: 'draft',
+          deletedAt: undefined,
+          deletedBy: undefined,
+          coordinatorNotes: undefined,
+          updatedAt: today.split('T')[0],
+        };
+      })
+    );
+    updateRewardApplicationInD1(id, {
+      status: 'draft',
+      coordinatorNotes: '',
+    }).catch((e) => console.warn('D1 restore draft error:', e));
+
+    showToast('✨ กู้คืนรายการร่างสำเร็จ กลับสู่รายการเตรียมเบิกแล้ว');
+  };
+
+  // Permanent Delete: ลบถาวรออกจากระบบและฐานข้อมูล Cloudflare D1
+  const handlePermanentDeleteDraft = (id: string) => {
     setApplications((prev) => prev.filter((a) => a.id !== id));
-    deleteRewardApplicationInD1(id).catch((e) => console.warn('D1 delete draft error:', e));
-    showToast('🗑️ ลบรายการร่างเตรียมเบิกเรียบร้อยแล้ว');
+    deleteRewardApplicationInD1(id).catch((e) => console.warn('D1 permanent delete error:', e));
+    showToast('🗑️ ลบรายการร่างออกจากระบบถาวรเรียบร้อยแล้ว');
   };
 
   const handleCarryOverDraft = (id: string, targetFiscalYear: number) => {
@@ -1421,7 +1471,9 @@ export default function App() {
             onEditDraft={handleEditDraft}
             onSubmitDraft={handleSubmitDraft}
             onSubmitSelectedDrafts={handleSubmitSelectedDrafts}
-            onDeleteDraft={handleDeleteDraft}
+            onDeleteDraft={handleSoftDeleteDraft}
+            onRestoreDraft={handleRestoreDraft}
+            onPermanentDeleteDraft={handlePermanentDeleteDraft}
             onCarryOverDraft={handleCarryOverDraft}
             onUndoCarryOver={handleUndoCarryOver}
           />
