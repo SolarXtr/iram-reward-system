@@ -532,7 +532,24 @@ export async function generateChecklistDocx(app: ResearchApplication, isDraftPre
       dbName = 'TCI Tier 1';
     }
   }
-  const qStr = app.quartile || 'Q1';
+  const qUpper = (app.quartile || '').toUpperCase();
+  const isQ1Tier1 = qUpper.includes('TIER 1') || qUpper.includes('TIER1') || qUpper.includes('TIER_1') || qUpper.includes('TOP 10%') || Boolean(app.isTier1Top10);
+  let qStr: string = app.quartile || 'Q1';
+  if (isQ1Tier1) {
+    qStr = 'Q1 (Tier 1)';
+  } else if (qUpper === 'Q1') {
+    qStr = 'Q1';
+  } else if (qUpper === 'Q2') {
+    qStr = 'Q2';
+  } else if (qUpper === 'Q3') {
+    qStr = 'Q3';
+  } else if (qUpper === 'Q4') {
+    qStr = 'Q4';
+  } else if (qUpper.includes('TCI 1') || qUpper === 'TCI_1') {
+    qStr = 'TCI 1';
+  } else if (qUpper.includes('TCI 2') || qUpper === 'TCI_2') {
+    qStr = 'TCI 2';
+  }
 
   const dbScopeRuns: TextRun[] = isNational
     ? [

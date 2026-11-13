@@ -1383,8 +1383,8 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
               const isScopus = dbLower.includes('scopus') || (!isSJR && !isJCR && application.journalScope === 'international');
 
               const q = (application.quartile || '').toUpperCase();
-              const isQ1Tier1 = q.includes('TIER 1') || q.includes('TOP 10%');
-              const isQ1 = q.includes('Q1') && !isQ1Tier1;
+              const isQ1Tier1 = q.includes('TIER 1') || q.includes('TIER1') || q.includes('TIER_1') || q.includes('TOP 10%') || Boolean(application.isTier1Top10);
+              const isQ1 = (q === 'Q1' || (q.includes('Q1') && !isQ1Tier1)) && !isQ1Tier1;
               const isQ2 = q.includes('Q2');
               const isQ3 = q.includes('Q3');
               const isQ4 = q.includes('Q4');
