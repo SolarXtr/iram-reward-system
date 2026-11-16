@@ -338,7 +338,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     }
 
     // Department filter
-    if (departmentFilter !== 'all' && user.department !== departmentFilter) {
+    if (departmentFilter !== 'all' && !isSameDepartment(user.department, departmentFilter)) {
       return false;
     }
 
@@ -351,9 +351,17 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      const matchesName = user.name?.toLowerCase().includes(q);
+      const thaiFullName = `${user.titleTh || ''}${user.firstNameTh || ''} ${user.lastNameTh || ''}`.toLowerCase();
+      const matchesName =
+        user.name?.toLowerCase().includes(q) ||
+        (user.firstNameTh && user.firstNameTh.toLowerCase().includes(q)) ||
+        (user.lastNameTh && user.lastNameTh.toLowerCase().includes(q)) ||
+        (thaiFullName && thaiFullName.includes(q)) ||
+        (user.firstNameEn && user.firstNameEn.toLowerCase().includes(q)) ||
+        (user.lastNameEn && user.lastNameEn.toLowerCase().includes(q)) ||
+        (user.shortNameEn && user.shortNameEn.toLowerCase().includes(q));
       const matchesEmail = user.email?.toLowerCase().includes(q);
-      const matchesDept = user.department?.toLowerCase().includes(q);
+      const matchesDept = user.department?.toLowerCase().includes(q) || isSameDepartment(user.department, q);
       const matchesAca = user.academicPosition?.toLowerCase().includes(q);
       const matchesAdmin = user.administrativePosition?.toLowerCase().includes(q);
       const matchesBank = user.bankAccountNo?.replace(/-/g, '').includes(q.replace(/-/g, ''));
@@ -1045,10 +1053,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                           }`}>
                             {user.name ? user.name.charAt(user.name.indexOf(' ') > 0 ? user.name.indexOf(' ') + 1 : 0) : 'U'}
                           </div>
-                          <div>
+                          <div className="flex flex-col">
                             <div className="flex items-center gap-1.5">
                               <span className="font-bold text-slate-900 text-sm hover:text-purple-700 transition-colors">
-                                {user.name}
+                                {user.firstNameTh && user.lastNameTh
+                                  ? `${user.titleTh ? user.titleTh : ''}${user.firstNameTh} ${user.lastNameTh}`
+                                  : user.name}
                               </span>
                               {isCurrent && (
                                 <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700 border border-purple-200">
@@ -1056,6 +1066,11 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                                 </span>
                               )}
                             </div>
+                            {user.firstNameTh && user.lastNameTh && user.name && user.name !== `${user.firstNameTh} ${user.lastNameTh}` && user.name !== `${user.titleTh || ''}${user.firstNameTh} ${user.lastNameTh}` && (
+                              <div className="text-[11px] text-slate-400 font-mono">
+                                {user.name}
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 mt-0.5 text-slate-500">
                               <span className="font-mono text-[11px] text-slate-600 flex items-center gap-1">
                                 <Mail className="w-3 h-3 text-slate-400" />
