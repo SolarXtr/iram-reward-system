@@ -308,3 +308,28 @@ export interface NuDisbursementRecord {
   updatedAt: string;
 }
 
+// ==========================================
+// AUDIT LOG & RETENTION TYPES
+// ==========================================
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName?: string;
+  userRole?: string;
+  action: string;
+  targetType?: string;
+  targetId?: string;
+  details?: string;
+  ipAddress?: string;
+}
+
+export interface AuditRetentionSummary {
+  expiredCount: number;
+  oldestTimestamp: string | null;
+  totalCount: number;
+  cutoffDate: string;
+  retentionDays: number;
+}
+
+

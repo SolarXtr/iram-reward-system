@@ -27,13 +27,14 @@ import {
   LayoutGrid,
   ChevronRight,
   PanelRightClose,
-  PanelRightOpen
+  PanelRightOpen,
+  History
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 import { LINE_NOTIFICATION_SYSTEM_ENABLED } from '../data/lineNotificationService';
 
 export type { UserRole };
-export type ActiveTab = 'dashboard' | 'quota_planner' | 'article_table' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management' | 'user_guide' | 'about';
+export type ActiveTab = 'dashboard' | 'quota_planner' | 'article_table' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management' | 'audit_logs' | 'user_guide' | 'about';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -196,6 +197,16 @@ export const Header: React.FC<HeaderProps> = ({
       badge: 'Admin',
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
       roles: ['admin', 'dept_secretary'],
+    },
+    {
+      id: 'audit_logs',
+      label: 'ประวัติการใช้งาน (Audit Logs)',
+      shortLabel: 'ประวัติการใช้งาน',
+      description: 'ระบบตรวจสอบประวัติการใช้งานและการสำรองข้อมูล (Audit Logs & Retention)',
+      icon: History,
+      badge: 'Admin',
+      badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+      roles: ['admin'],
     },
   ];
 

@@ -14,6 +14,7 @@ import { OfficialPrintModal } from './components/OfficialPrintModal';
 import { PaymentVerificationModal } from './components/PaymentVerificationModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { UserManagementView } from './components/UserManagementView';
+import { AuditLogView } from './components/AuditLogView';
 import { UserGuideView } from './components/UserGuideView';
 import { AboutView } from './components/AboutView';
 import { LoginModal } from './components/LoginModal';
@@ -63,6 +64,7 @@ import {
 } from './services/userService';
 import { isSameDepartment, isResearcherOnlyUser } from './utils/permissionUtils';
 import { trackPageView } from './services/analyticsService';
+import { recordAuditLog } from './services/auditLogService';
 import { Bell, CheckCircle2, RotateCcw, LogOut, ShieldAlert } from 'lucide-react';
 
 export default function App() {
@@ -464,6 +466,15 @@ export default function App() {
       const nextUsers = upsertRegisteredUser(savedUser);
       setRegisteredUsers(nextUsers);
       showToast(`เพิ่มผู้ใช้งาน ${savedUser.name} ลง D1 เรียบร้อยแล้ว`);
+      recordAuditLog({
+        userId: currentUser?.id || 'admin',
+        userName: currentUser?.name || 'ผู้ดูแลระบบ',
+        userRole: currentRole,
+        action: 'CREATE_USER',
+        targetType: 'USER',
+        targetId: savedUser.id,
+        details: `เพิ่มบัญชีผู้ใช้ใหม่: ${savedUser.name} (${savedUser.email}), สิทธิ์: ${savedUser.role}, ภาควิชา: ${savedUser.department}`
+      }).catch(() => {});
       return true;
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
@@ -485,6 +496,15 @@ export default function App() {
       const nextUsers = deleteRegisteredUser(userId);
       setRegisteredUsers(nextUsers);
       showToast(`ลบผู้ใช้งาน ${userToDelete?.name || userId} จาก D1 เรียบร้อยแล้ว`);
+      recordAuditLog({
+        userId: currentUser?.id || 'admin',
+        userName: currentUser?.name || 'ผู้ดูแลระบบ',
+        userRole: currentRole,
+        action: 'DELETE_USER',
+        targetType: 'USER',
+        targetId: userId,
+        details: `ลบบัญชีผู้ใช้: ${userToDelete?.name || userId} (${userToDelete?.email || '-'})`
+      }).catch(() => {});
       return true;
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
@@ -545,6 +565,15 @@ export default function App() {
       : user.role;
     setCurrentRole(targetRole);
     setActiveTab('dashboard');
+    recordAuditLog({
+      userId: user.id || user.email,
+      userName: user.name,
+      userRole: targetRole,
+      action: 'LOGIN',
+      targetType: 'USER',
+      targetId: user.id,
+      details: `เข้าสู่ระบบสำเร็จในสิทธิ์ ${targetRole}`
+    }).catch(() => {});
     if (user.isPendingProfile) {
       setIsActivationModalOpen(true);
       showToast(`ยินดีต้อนรับ ${user.name} กรุณากรอกข้อมูลส่วนบุคคลเพื่อเปิดสิทธิ์นักวิจัย`);
@@ -626,7 +655,7 @@ export default function App() {
       finance: ['dashboard', 'article_table', 'table', 'calendar', 'user_guide', 'about'],
       executive: ['dashboard', 'article_table', 'table', 'calendar', 'user_guide', 'about'],
       coordinator: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', 'user_guide', 'about', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : [])],
-      admin: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', 'user_guide', 'about', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management'],
+      admin: ['dashboard', 'quota_planner', 'article_table', 'kanban', 'table', 'calendar', 'user_guide', 'about', ...(LINE_NOTIFICATION_SYSTEM_ENABLED ? ['line_oa' as ActiveTab] : []), 'user_management', 'audit_logs'],
     };
     const allowed = roleAllowedTabs[newRole] || ['dashboard'];
     if (!allowed.includes(activeTab)) {
@@ -1026,9 +1055,19 @@ export default function App() {
 
   // Permanent Delete: ลบถาวรออกจากระบบและฐานข้อมูล Cloudflare D1
   const handlePermanentDeleteDraft = (id: string) => {
+    const targetApp = applications.find((a) => a.id === id);
     setApplications((prev) => prev.filter((a) => a.id !== id));
     deleteRewardApplicationInD1(id).catch((e) => console.warn('D1 permanent delete error:', e));
     showToast('🗑️ ลบรายการร่างออกจากระบบถาวรเรียบร้อยแล้ว');
+    recordAuditLog({
+      userId: currentUser?.id || 'admin',
+      userName: currentUser?.name || 'ผู้ดูแลระบบ',
+      userRole: currentRole,
+      action: 'DELETE_APPLICATION',
+      targetType: 'REWARD_APPLICATION',
+      targetId: targetApp?.trackingNo || id,
+      details: `ลบคำขอถาวร: ${targetApp?.trackingNo || id} บทความ: "${targetApp?.articleTitle || '-'}" ของ ${targetApp?.applicantName || '-'}`
+    }).catch(() => {});
   };
 
   const handleCarryOverDraft = (id: string, targetFiscalYear: number) => {
@@ -1585,6 +1624,32 @@ export default function App() {
             <button
               onClick={() => setActiveTab('dashboard')}
               className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors"
+            >
+              กลับสู่หน้าหลัก (Dashboard)
+            </button>
+          </div>
+        ) : null}
+
+        {/* Tab 7: Admin Audit Log Console */}
+        {activeTab === 'audit_logs' && currentRole === 'admin' && !isGuest ? (
+          <AuditLogView
+            currentUser={currentUser || DEFAULT_LOGGED_IN_USER}
+            onShowAlert={showToast}
+          />
+        ) : activeTab === 'audit_logs' ? (
+          <div className="bg-white rounded-2xl p-8 border border-rose-200 text-center max-w-lg mx-auto my-12 shadow-lg animate-in fade-in duration-150">
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 font-prompt">
+              สิทธิ์การเข้าถึงไม่เพียงพอ (Access Denied)
+            </h3>
+            <p className="text-xs text-slate-600 mt-2 leading-relaxed font-prompt">
+              หน้าจอนี้สงวนไว้สำหรับผู้ดูแลระบบ (Admin Console) เท่านั้น
+            </p>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors font-prompt"
             >
               กลับสู่หน้าหลัก (Dashboard)
             </button>

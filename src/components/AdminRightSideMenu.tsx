@@ -12,7 +12,8 @@ import {
   PanelRightClose,
   ShieldCheck,
   Crown,
-  Layers
+  Layers,
+  History
 } from 'lucide-react';
 import { ActiveTab } from './Header';
 import { UserProfile } from '../types';
@@ -96,6 +97,14 @@ export const AdminRightSideMenu: React.FC<AdminRightSideMenuProps> = ({
       icon: Users,
       badge: 'Admin',
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+    },
+    {
+      id: 'audit_logs',
+      label: 'ประวัติการใช้งาน (Audit Logs)',
+      description: 'ตรวจสอบประวัติกิจกรรมผู้ใช้และการสำรองข้อมูล (Audit Logs & Retention)',
+      icon: History,
+      badge: 'Admin',
+      badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
     },
     {
       id: 'user_guide',
