@@ -512,10 +512,10 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                       <td className="py-3 px-4">
                         <div className="flex flex-col">
                           <span className="font-semibold text-slate-200 font-prompt">
-                            {log.userName || log.userId || '-'}
+                            {log.userName || log.performedBy || log.userId || 'ผู้ดำเนินการ'}
                           </span>
                           <span className="text-[10px] text-slate-400 font-mono">
-                            บทบาท: {log.userRole || 'user'}
+                            บทบาท: {log.userRole || (log.performedBy ? 'admin' : 'user')}
                           </span>
                         </div>
                       </td>
@@ -525,18 +525,18 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                       <td className="py-3 px-4">
                         <div className="flex flex-col">
                           <span className="font-mono text-slate-300 font-semibold">
-                            {log.targetId || '-'}
+                            {log.targetId || log.recordId || '-'}
                           </span>
-                          {log.targetType && (
+                          {(log.targetType || log.tableName) && (
                             <span className="text-[10px] text-slate-500 font-mono">
-                              {log.targetType}
+                              {log.targetType || log.tableName}
                             </span>
                           )}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-slate-300 max-w-md">
                         <div className="break-words font-prompt leading-relaxed text-[11px] bg-slate-950/40 p-2 rounded-lg border border-slate-800/80">
-                          {log.details || '-'}
+                          {log.details || log.newData || log.oldData || '-'}
                         </div>
                       </td>
                       <td className="py-3 px-4 font-mono text-slate-400 text-[11px] whitespace-nowrap">

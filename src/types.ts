@@ -314,7 +314,7 @@ export interface NuDisbursementRecord {
 export interface AuditLogEntry {
   id: string;
   timestamp: string;
-  userId: string;
+  userId?: string;
   userName?: string;
   userRole?: string;
   action: string;
@@ -322,6 +322,11 @@ export interface AuditLogEntry {
   targetId?: string;
   details?: string;
   ipAddress?: string;
+  tableName?: string;
+  recordId?: string;
+  performedBy?: string;
+  oldData?: string;
+  newData?: string;
 }
 
 export interface AuditRetentionSummary {
