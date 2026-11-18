@@ -7,18 +7,9 @@ import {
   RefreshCw,
   AlertTriangle,
   CheckCircle2,
-  ShieldAlert,
   ShieldCheck,
-  Filter,
   FileSpreadsheet,
-  Calendar,
-  User,
-  ArrowRight,
-  Database,
-  ExternalLink,
-  Info,
   Clock,
-  Layers,
   ChevronLeft,
   ChevronRight,
   AlertCircle
@@ -165,80 +156,90 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 
   const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
-  // Format Action Badge
+  // Format Action Badge with High-Contrast Colors
   const renderActionBadge = (action: string) => {
-    const act = action.toUpperCase();
+    const act = (action || '').toUpperCase();
     if (act.includes('DELETE') || act.includes('PURGE')) {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
           {action}
         </span>
       );
     }
     if (act.includes('CREATE') || act.includes('INSERT') || act.includes('SUBMIT')) {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
           {action}
         </span>
       );
     }
     if (act.includes('UPDATE') || act.includes('EDIT') || act.includes('CHANGE')) {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
           {action}
         </span>
       );
     }
     if (act.includes('LOGIN') || act.includes('AUTH')) {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
           {action}
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
         {action}
       </span>
     );
   };
 
+  // Convert SQLite UTC timestamp to Thailand time (GMT+7, Asia/Bangkok)
   const formatTimestamp = (ts: string) => {
     if (!ts) return '-';
     try {
-      const d = new Date(ts);
+      let iso = String(ts).trim();
+      // If timestamp is in "YYYY-MM-DD HH:mm:ss" without timezone indicator, treat as UTC
+      if (!iso.endsWith('Z') && !iso.includes('+')) {
+        iso = iso.replace(' ', 'T') + 'Z';
+      }
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return ts;
+
       return d.toLocaleString('th-TH', {
+        timeZone: 'Asia/Bangkok',
         year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit'
-      });
+        second: '2-digit',
+        hour12: false
+      }) + ' น.';
     } catch {
       return ts;
     }
   };
 
   return (
-    <div className="space-y-6 pb-12 font-sans text-slate-100 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 border-b border-slate-800 pb-5">
+    <div className="space-y-6 pb-12 font-sans text-slate-800 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Page Header - High Contrast Light Theme */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-b border-slate-200 pb-5">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-900/30">
+            <div className="p-2.5 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/20">
               <History className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-bold font-prompt text-white">
+                <h1 className="text-xl sm:text-2xl font-bold font-prompt text-slate-900 tracking-tight">
                   ประวัติการใช้งาน (Audit Logs)
                 </h1>
-                <span className="px-2.5 py-0.5 text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full font-prompt">
+                <span className="px-2.5 py-0.5 text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200 rounded-full font-prompt shadow-xs">
                   Admin Console
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-400 mt-0.5 font-prompt">
+              <p className="text-xs sm:text-sm text-slate-600 mt-0.5 font-prompt font-medium">
                 บันทึกการกระทำของผู้ใช้ ตรวจสอบย้อนหลัง และระบบจัดการข้อมูลเก่าตามเกณฑ์ 24 เดือน
               </p>
             </div>
@@ -253,49 +254,49 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
               loadLogs();
             }}
             disabled={loading || checkingRetention}
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-300 shadow-xs transition cursor-pointer disabled:opacity-50"
             title="รีเฟรชข้อมูล"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>รีเฟรช</span>
+            <span className="font-prompt">รีเฟรช</span>
           </button>
 
           <button
             onClick={handleExportAll}
             disabled={isExportingAll || totalCount === 0}
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 rounded-lg text-xs font-semibold border border-amber-500/30 transition cursor-pointer disabled:opacity-50"
-            title="ส่งออกบันทึก Log ทั้งหมดเป็นไฟล์ CSV (UTF-8 BOM)"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold border border-amber-400 shadow-sm transition cursor-pointer disabled:opacity-50"
+            title="ส่งออกบันทึก Log ทั้งหมดเป็นไฟล์ CSV (UTF-8 BOM สำหรับเปิดใน Excel)"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-amber-400" />
-            <span>{isExportingAll ? 'กำลังส่งออก...' : 'ส่งออก Log ทั้งหมด (CSV)'}</span>
+            <FileSpreadsheet className="w-3.5 h-3.5 text-slate-950" />
+            <span className="font-prompt">{isExportingAll ? 'กำลังส่งออก...' : 'ส่งออก Log ทั้งหมด (CSV)'}</span>
           </button>
         </div>
       </div>
 
       {/* 24-MONTH RETENTION & BACKUP WARNING BANNER */}
       {retention && retention.expiredCount > 0 ? (
-        <div className="bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-slate-900 border-2 border-amber-500/40 rounded-2xl p-5 shadow-xl">
+        <div className="bg-gradient-to-r from-amber-50 via-amber-100/40 to-slate-50 border-2 border-amber-400 rounded-2xl p-5 shadow-sm text-slate-900">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-400 shrink-0 mt-0.5">
-                <AlertTriangle className="w-6 h-6 animate-pulse" />
+              <div className="p-3 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-700 shrink-0 mt-0.5">
+                <AlertTriangle className="w-6 h-6 animate-pulse text-amber-600" />
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base font-bold font-prompt text-amber-300">
+                  <h3 className="text-base font-bold font-prompt text-amber-950">
                     แจ้งเตือน: ตรวจพบข้อมูลบันทึกเกินเกณฑ์จัดเก็บ 24 เดือน (730 วัน)
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-200/80 text-amber-900 border border-amber-400">
                     {retention.expiredCount.toLocaleString()} รายการ
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-prompt">
+                <p className="text-xs sm:text-sm text-amber-900 leading-relaxed font-prompt">
                   มีประวัติการใช้งานที่บันทึกก่อนวันที่{' '}
-                  <span className="font-semibold text-white underline decoration-amber-400">
+                  <span className="font-bold text-amber-950 underline decoration-amber-500">
                     {retention.cutoffDate}
                   </span>{' '}
                   (ข้อมูลเก่าสุด:{' '}
-                  <span className="text-amber-200 font-mono">
+                  <span className="text-amber-950 font-mono font-semibold">
                     {formatTimestamp(retention.oldestTimestamp || '')}
                   </span>
                   ) ตามมาตรฐานความปลอดภัยต้องดำเนินการสำรองข้อมูลลงเครื่อง Local ก่อนจึงจะอนุญาตให้ล้างข้อมูลได้
@@ -303,12 +304,12 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 
                 {/* Safe Protocol Checkbox */}
                 <div className="pt-2 flex items-center gap-2 text-xs">
-                  <label className="flex items-center gap-2 cursor-pointer select-none text-slate-300 hover:text-white">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-slate-800 hover:text-slate-950 font-medium">
                     <input
                       type="checkbox"
                       checked={hasConfirmedBackupCheckbox}
                       onChange={(e) => setHasConfirmedBackupCheckbox(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500/40 cursor-pointer"
+                      className="w-4 h-4 rounded border-slate-300 bg-white text-amber-600 focus:ring-amber-500/40 cursor-pointer"
                     />
                     <span className="font-prompt">
                       ข้าพเจ้าได้ดาวน์โหลดไฟล์สำรองข้อมูล (CSV) และตรวจสอบความถูกต้องแล้ว
@@ -323,10 +324,10 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
               <button
                 onClick={handleDownloadBackup24m}
                 disabled={isDownloadingBackup}
-                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs font-prompt shadow-md transition cursor-pointer ${
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs font-prompt shadow-sm transition cursor-pointer ${
                   backupDownloaded
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400'
-                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-400 hover:shadow-amber-500/20'
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500'
+                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-400'
                 }`}
                 title="ดาวน์โหลดไฟล์สำรองข้อมูลเฉพาะส่วนที่เก่าเกิน 24 เดือน (CSV UTF-8 BOM สำหรับเปิดใน Excel)"
               >
@@ -339,7 +340,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                   {isDownloadingBackup
                     ? 'กำลังสำรองข้อมูล...'
                     : backupDownloaded
-                    ? 'ดาวน์โหลดสำรองแล้ว (คลิกอีกครั้งเพื่อโหลดซ้ำ)'
+                    ? 'ดาวน์โหลดสำรองแล้ว (คลิกโหลดซ้ำ)'
                     : '1. ดาวน์โหลดสำรองข้อมูล (CSV)'}
                 </span>
               </button>
@@ -349,8 +350,8 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                 disabled={(!backupDownloaded && !hasConfirmedBackupCheckbox) || isPurging}
                 className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs font-prompt transition ${
                   backupDownloaded || hasConfirmedBackupCheckbox
-                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40 cursor-pointer border border-rose-500'
-                    : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-sm cursor-pointer border border-rose-500'
+                    : 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-60'
                 }`}
                 title={
                   backupDownloaded || hasConfirmedBackupCheckbox
@@ -365,30 +366,30 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
           </div>
         </div>
       ) : (
-        <div className="bg-slate-900/60 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between gap-4">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
+              <ShieldCheck className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-emerald-300 font-prompt">
+              <h3 className="text-sm sm:text-base font-bold text-emerald-950 font-prompt">
                 สถานะการจัดเก็บข้อมูล Audit Logs เป็นปกติ
               </h3>
-              <p className="text-xs text-slate-400 font-prompt">
-                ข้อมูลทั้งหมด {retention?.totalCount.toLocaleString() || 0} รายการ อยู่ภายในกรอบระยะเวลาจัดเก็บ 24 เดือน (ไม่พบข้อมูลค้างเก่า)
+              <p className="text-xs sm:text-sm text-emerald-800 font-prompt mt-0.5">
+                ข้อมูลทั้งหมด <span className="font-bold text-emerald-950 font-mono">{retention?.totalCount.toLocaleString() || 0}</span> รายการ อยู่ภายในกรอบระยะเวลาจัดเก็บ 24 เดือน (ไม่พบข้อมูลค้างเก่า)
               </p>
             </div>
           </div>
-          <div className="text-right hidden sm:block">
-            <span className="text-xs text-slate-500 font-mono">
+          <div className="text-right shrink-0">
+            <span className="text-xs font-semibold text-emerald-800 bg-emerald-100/90 px-3 py-1 rounded-full border border-emerald-200 font-prompt inline-block">
               เกณฑ์จัดเก็บ: 730 วัน (2 ปี)
             </span>
           </div>
         </div>
       )}
 
-      {/* Filter and Search Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
+      {/* Filter and Search Bar - Clean White Theme */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search Input */}
           <div className="relative sm:col-span-2">
@@ -401,7 +402,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-prompt transition"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-1 focus:ring-purple-600 font-prompt transition"
             />
           </div>
 
@@ -413,7 +414,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                 setSelectedAction(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-prompt cursor-pointer transition appearance-none"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-1 focus:ring-purple-600 font-prompt cursor-pointer transition"
             >
               <option value="all">ทุกกิจกรรม (All Actions)</option>
               <option value="LOGIN">LOGIN (เข้าสู่ระบบ)</option>
@@ -434,7 +435,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                 setSelectedTargetType(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-prompt cursor-pointer transition appearance-none"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-1 focus:ring-purple-600 font-prompt cursor-pointer transition"
             >
               <option value="all">ทุกประเภทข้อมูล (All Target Types)</option>
               <option value="REWARD_APPLICATION">REWARD_APPLICATION (คำขอรับทุน)</option>
@@ -446,10 +447,10 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
         </div>
 
         {/* Status / Count indicator */}
-        <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-800">
+        <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
           <div>
             พบข้อมูล{' '}
-            <span className="font-semibold text-white font-mono">
+            <span className="font-semibold text-slate-800 font-mono">
               {totalCount.toLocaleString()}
             </span>{' '}
             รายการ {searchQuery ? `(คำค้น: "${searchQuery}")` : ''}
@@ -460,14 +461,14 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
         </div>
       </div>
 
-      {/* Logs Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+      {/* Logs Table - High Contrast Light Theme */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-950/70 border-b border-slate-800 text-slate-400 font-prompt">
+              <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-700 font-prompt">
                 <th className="py-3 px-4 font-semibold w-12 text-center">#</th>
-                <th className="py-3 px-4 font-semibold w-40 whitespace-nowrap">วัน-เวลา</th>
+                <th className="py-3 px-4 font-semibold w-48 whitespace-nowrap">วัน-เวลา (เวลาประเทศไทย)</th>
                 <th className="py-3 px-4 font-semibold w-48 whitespace-nowrap">ผู้ดำเนินการ</th>
                 <th className="py-3 px-4 font-semibold w-36 whitespace-nowrap">กิจกรรม</th>
                 <th className="py-3 px-4 font-semibold w-36 whitespace-nowrap">ประเภท / เป้าหมาย</th>
@@ -475,19 +476,19 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                 <th className="py-3 px-4 font-semibold w-32 whitespace-nowrap">IP Address</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-sans">
+            <tbody className="divide-y divide-slate-100 font-sans">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-purple-400" />
+                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-purple-600" />
                     <span className="font-prompt text-xs">กำลังโหลดบันทึกการใช้งาน...</span>
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <History className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-                    <span className="font-prompt text-sm text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                    <History className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                    <span className="font-prompt text-sm text-slate-600">
                       ไม่พบบันทึกการใช้งานที่ตรงตามเงื่อนไข
                     </span>
                   </td>
@@ -498,23 +499,23 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                   return (
                     <tr
                       key={log.id || idx}
-                      className="hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-slate-50/80 transition-colors"
                     >
-                      <td className="py-3 px-4 text-center text-slate-500 font-mono">
+                      <td className="py-3 px-4 text-center text-slate-400 font-mono">
                         {rowNum}
                       </td>
-                      <td className="py-3 px-4 text-slate-300 font-mono whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <td className="py-3 px-4 text-slate-700 font-mono whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 font-medium">
+                          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <span>{formatTimestamp(log.timestamp)}</span>
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-slate-200 font-prompt">
+                          <span className="font-semibold text-slate-900 font-prompt">
                             {log.userName || log.performedBy || log.userId || 'ผู้ดำเนินการ'}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-mono">
+                          <span className="text-[10px] text-slate-500 font-mono">
                             บทบาท: {log.userRole || (log.performedBy ? 'admin' : 'user')}
                           </span>
                         </div>
@@ -524,7 +525,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex flex-col">
-                          <span className="font-mono text-slate-300 font-semibold">
+                          <span className="font-mono text-slate-800 font-semibold">
                             {log.targetId || log.recordId || '-'}
                           </span>
                           {(log.targetType || log.tableName) && (
@@ -534,12 +535,12 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-slate-300 max-w-md">
-                        <div className="break-words font-prompt leading-relaxed text-[11px] bg-slate-950/40 p-2 rounded-lg border border-slate-800/80">
+                      <td className="py-3 px-4 text-slate-700 max-w-md">
+                        <div className="break-words font-prompt leading-relaxed text-[11px] bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                           {log.details || log.newData || log.oldData || '-'}
                         </div>
                       </td>
-                      <td className="py-3 px-4 font-mono text-slate-400 text-[11px] whitespace-nowrap">
+                      <td className="py-3 px-4 font-mono text-slate-500 text-[11px] whitespace-nowrap">
                         {log.ipAddress || '-'}
                       </td>
                     </tr>
@@ -552,27 +553,27 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 
         {/* Pagination Footer */}
         {totalPages > 1 && (
-          <div className="p-4 bg-slate-950/70 border-t border-slate-800 flex items-center justify-between">
+          <div className="p-4 bg-slate-50/90 border-t border-slate-200 flex items-center justify-between text-slate-700">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1 || loading}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shadow-xs"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>ก่อนหน้า</span>
+              <span className="font-prompt">ก่อนหน้า</span>
             </button>
 
-            <span className="text-xs text-slate-400 font-prompt">
-              หน้า <span className="font-bold text-white">{currentPage}</span> จาก{' '}
-              <span className="font-bold text-white">{totalPages}</span>
+            <span className="text-xs text-slate-600 font-prompt">
+              หน้า <span className="font-bold text-slate-900">{currentPage}</span> จาก{' '}
+              <span className="font-bold text-slate-900">{totalPages}</span>
             </span>
 
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || loading}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shadow-xs"
             >
-              <span>ถัดไป</span>
+              <span className="font-prompt">ถัดไป</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -581,44 +582,44 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 
       {/* CONFIRM PURGE MODAL */}
       {showPurgeModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-rose-500/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-rose-400">
-              <div className="p-2.5 bg-rose-500/20 border border-rose-500/40 rounded-xl">
-                <AlertCircle className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-rose-300 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-2.5 bg-rose-100 border border-rose-200 rounded-xl">
+                <AlertCircle className="w-6 h-6 text-rose-600" />
               </div>
-              <h3 className="text-lg font-bold font-prompt text-white">
+              <h3 className="text-lg font-bold font-prompt text-slate-900">
                 ยืนยันการล้างข้อมูลบันทึกเก่าเกิน 24 เดือน
               </h3>
             </div>
 
-            <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-2 font-prompt">
+            <div className="bg-rose-50/60 p-4 rounded-xl border border-rose-200 text-xs text-slate-700 space-y-2 font-prompt">
               <p>
                 ⚠️ การล้างข้อมูลนี้จะลบ Log ทั้งหมดที่ถูกบันทึกก่อนวันที่{' '}
-                <span className="font-semibold text-white underline">
+                <span className="font-bold text-slate-950 underline">
                   {retention?.cutoffDate}
                 </span>{' '}
                 จำนวน{' '}
-                <span className="font-bold text-rose-400">
+                <span className="font-bold text-rose-700">
                   {retention?.expiredCount.toLocaleString()}
                 </span>{' '}
                 รายการ ออกจากฐานข้อมูล Cloudflare D1 อย่างถาวร
               </p>
-              <p className="text-slate-400">
+              <p className="text-slate-600">
                 ระบบจะบันทึก Audit Log การล้างข้อมูลในครั้งนี้ไว้เป็นหลักฐานโดยอัตโนมัติ
               </p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-300 font-prompt block">
-                พิมพ์คำว่า <span className="font-mono text-rose-400 font-bold">PURGE</span> ในช่องด้านล่างเพื่อยืนยัน:
+              <label className="text-xs font-semibold text-slate-800 font-prompt block">
+                พิมพ์คำว่า <span className="font-mono text-rose-600 font-bold">PURGE</span> ในช่องด้านล่างเพื่อยืนยัน:
               </label>
               <input
                 type="text"
                 placeholder="PURGE"
                 value={purgeInputConfirm}
                 onChange={(e) => setPurgeInputConfirm(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono uppercase tracking-widest focus:outline-none focus:border-rose-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 font-mono uppercase tracking-widest focus:outline-none focus:bg-white focus:border-rose-500"
               />
             </div>
 
@@ -629,7 +630,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                   setShowPurgeModal(false);
                   setPurgeInputConfirm('');
                 }}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer font-prompt"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer font-prompt"
               >
                 ยกเลิก
               </button>
@@ -637,7 +638,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                 type="button"
                 onClick={handleExecutePurge}
                 disabled={purgeInputConfirm !== 'PURGE' || isPurging}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition cursor-pointer font-prompt flex items-center gap-1.5"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition cursor-pointer font-prompt flex items-center gap-1.5 shadow-sm"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>{isPurging ? 'กำลังล้างข้อมูล...' : 'ยืนยันล้างข้อมูลเก่า'}</span>
