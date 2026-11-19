@@ -139,6 +139,7 @@ export default function App() {
       calendar: '/calendar',
       line_oa: '/line-oa',
       user_management: '/admin',
+      audit_logs: '/audit-logs',
       user_guide: '/guide',
       about: '/about',
     };
@@ -380,6 +381,27 @@ export default function App() {
     showToast(`นำเข้าข้อมูลจากระบบ มน. สำเร็จ (${newRecords.length} รายการ)`);
   };
 
+  // Audit Log Helper
+  const logActivity = (
+    action: string,
+    targetType: string,
+    targetId: string,
+    details: string
+  ) => {
+    const actor = impersonatorAdmin || currentUser;
+    recordAuditLog({
+      userId: actor?.id || 'system',
+      userName: impersonatorAdmin
+        ? `${impersonatorAdmin.name} (ในนาม ${currentUser?.name || '-'})`
+        : (currentUser?.name || 'ผู้ใช้งาน'),
+      userRole: impersonatorAdmin ? impersonatorAdmin.role : currentRole,
+      action,
+      targetType,
+      targetId,
+      details,
+    }).catch(() => {});
+  };
+
   // User Management Handlers
 
   const handleSaveProfile = async (updated: UserProfile): Promise<boolean> => {
@@ -397,6 +419,12 @@ export default function App() {
       const nextUsers = upsertRegisteredUser(updated);
       setRegisteredUsers(nextUsers);
       showToast('บันทึกข้อมูลโปรไฟล์ลง Cloudflare D1 เรียบร้อยแล้ว');
+      logActivity(
+        'UPDATE_PROFILE',
+        'USER',
+        updated.id,
+        `อัปเดตข้อมูลโปรไฟล์ส่วนตัว: ${updated.name} (${updated.email})`
+      );
       return true;
     } catch (error) {
       console.error('Failed to save profile to D1:', error);
@@ -442,6 +470,12 @@ export default function App() {
         saveStoredUserProfile(updatedUser);
       }
       showToast(`อัปเดตข้อมูล ${updatedUser.name} ใน D1 เรียบร้อยแล้ว`);
+      logActivity(
+        'UPDATE_USER',
+        'USER',
+        updatedUser.id,
+        `แก้ไขข้อมูลผู้ใช้: ${updatedUser.name} (${updatedUser.email}), สิทธิ์: ${updatedUser.role}, สถานะ: ${updatedUser.status || 'active'}, ภาควิชา: ${updatedUser.department}`
+      );
       return true;
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
@@ -536,12 +570,19 @@ export default function App() {
     setCurrentRole(targetUser.role || 'researcher');
     setActiveTab('dashboard');
     showToast(`🎭 สลับเข้าสู่โหมดตัวแทนของ "${targetUser.name}" (${targetUser.email}) ด้วยสิทธิ์: ${targetUser.role} สำเร็จ`);
+    logActivity(
+      'IMPERSONATE_USER',
+      'USER',
+      targetUser.id,
+      `สลับตัวตนเข้าปฏิบัติหน้าที่แทน: ${targetUser.name} (${targetUser.email}) สิทธิ์: ${targetUser.role}`
+    );
   };
 
   // Exit Impersonation: สลับกลับสู่ตัวตนผู้ดูแลระบบหรือเลขาภาควิชาเดิม
   const handleExitImpersonation = () => {
     if (!impersonatorAdmin) return;
     const origUser = impersonatorAdmin;
+    const impersonatedName = currentUser?.name || '-';
     setCurrentUser(origUser);
     setCurrentAuthUser(origUser);
     saveStoredUserProfile(origUser);
@@ -551,6 +592,15 @@ export default function App() {
       sessionStorage.removeItem('med_nu_impersonator_admin_v1');
     } catch (e) {}
     showToast(`🛡️ สลับกลับสู่บัญชีเดิม (${origUser.name}) เรียบร้อยแล้ว`);
+    recordAuditLog({
+      userId: origUser.id,
+      userName: origUser.name,
+      userRole: origUser.role,
+      action: 'EXIT_IMPERSONATION',
+      targetType: 'USER',
+      targetId: origUser.id,
+      details: `ออกจากโหมดปฏิบัติหน้าที่แทน "${impersonatedName}" กลับสู่บัญชี ${origUser.name}`
+    }).catch(() => {});
   };
 
   const handleSwitchUserFromConsole = (user: UserProfile) => {
@@ -583,6 +633,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    logActivity('LOGOUT', 'USER', currentUser?.id || 'guest', `ออกจากระบบ (${currentUser?.name || '-'})`);
     await logoutNuUser();
     setCurrentUser(null);
     setImpersonatorAdmin(null);
@@ -609,6 +660,12 @@ export default function App() {
     try {
       await createUserInD1(updatedProfile);
       showToast(`✅ ยืนยันข้อมูลสังกัดและเปิดสิทธิ์นักวิจัยให้ ${updatedProfile.name} เรียบร้อยแล้ว!`);
+      logActivity(
+        'ACTIVATE_USER',
+        'USER',
+        updatedProfile.id,
+        `ยืนยันข้อมูลสังกัดและเปิดสิทธิ์นักวิจัย: ${updatedProfile.name} (${updatedProfile.department})`
+      );
     } catch (err: any) {
       console.warn('D1 user creation warning:', err);
       // Attempt profile update fallback if user already existed in D1
@@ -798,6 +855,12 @@ export default function App() {
     }
 
     if (isActuallyDraft) {
+      logActivity(
+        isExistingApp ? 'UPDATE_APPLICATION' : 'CREATE_APPLICATION',
+        'REWARD_APPLICATION',
+        finalApp.trackingNo,
+        `${isExistingApp ? 'แก้ไขร่างคำขอ' : 'สร้างร่างคำขอใหม่'}: "${finalApp.articleTitle || 'ฉบับร่าง'}" ของ ${finalApp.applicantName} ยอดรวม ${finalApp.totalClaimedAmount.toLocaleString()} บาท`
+      );
       const d1DraftPromise = isExistingApp
         ? updateRewardApplicationInD1(finalId, finalApp)
         : createRewardApplicationInD1(finalApp);
@@ -812,6 +875,12 @@ export default function App() {
       return;
     }
 
+    logActivity(
+      isExistingApp ? 'UPDATE_APPLICATION' : 'CREATE_APPLICATION',
+      'REWARD_APPLICATION',
+      finalApp.trackingNo,
+      `${isExistingApp ? 'แก้ไขและยื่นคำขอ' : 'ยื่นคำขอรับทุนใหม่'}: "${finalApp.articleTitle}" ของ ${finalApp.applicantName} ยอดรวม ${finalApp.totalClaimedAmount.toLocaleString()} บาท`
+    );
     triggerLineMilestoneNotification(finalApp, 'application_submitted');
 
     // Cloudflare D1 Database Sync
@@ -910,6 +979,13 @@ export default function App() {
 
     setApplications((prev) => prev.map((a) => (a.id === app.id ? returnedApp : a)));
 
+    logActivity(
+      'RETURN_TO_DRAFT',
+      'REWARD_APPLICATION',
+      app.trackingNo,
+      `ส่งคืนคำขอ "${app.articleTitle}" กลับไปแก้ไขในรายการเตรียมเบิก`
+    );
+
     // Sync status change to D1
     updateRewardApplicationInD1(app.id, {
       status: 'draft',
@@ -951,6 +1027,13 @@ export default function App() {
 
     setApplications((prev) =>
       prev.map((a) => (a.id === draftApp.id ? submittedApp : a))
+    );
+
+    logActivity(
+      'SUBMIT_APPLICATION',
+      'REWARD_APPLICATION',
+      submittedApp.trackingNo,
+      `ส่งเบิกคำขอจากร่าง: "${submittedApp.articleTitle}" ของ ${submittedApp.applicantName} ยอดรวม ${submittedApp.totalClaimedAmount.toLocaleString()} บาท`
     );
 
     triggerLineMilestoneNotification(submittedApp, 'application_submitted');
@@ -1001,11 +1084,19 @@ export default function App() {
     const updatedMap = new Map(updatedDrafts.map((d) => [d.id, d]));
     setApplications((prev) => prev.map((a) => updatedMap.get(a.id) || a));
 
+    logActivity(
+      'SUBMIT_APPLICATION',
+      'REWARD_APPLICATION',
+      updatedDrafts.map((d) => d.trackingNo).join(', '),
+      `ส่งเบิกคำขอแบบกลุ่ม จำนวน ${draftApps.length} รายการ`
+    );
+
     showToast(`🚀 ส่งเบิกคำขอที่เลือกเรียบร้อยแล้วทั้งหมด ${draftApps.length} รายการ!`);
   };
 
   // Soft Delete: ย้ายร่างคำขอไปไว้ในถังขยะ (สามารถกู้คืนได้)
   const handleSoftDeleteDraft = (id: string) => {
+    const targetApp = applications.find((a) => a.id === id);
     const today = new Date().toISOString();
     const deletedBy = currentUser?.name || 'ผู้ใช้งาน';
     setApplications((prev) =>
@@ -1026,11 +1117,19 @@ export default function App() {
       coordinatorNotes: `ย้ายไปถังขยะเมื่อ ${today.split('T')[0]} โดย ${deletedBy}`,
     }).catch((e) => console.warn('D1 soft delete error:', e));
 
+    logActivity(
+      'TRASH_APPLICATION',
+      'REWARD_APPLICATION',
+      targetApp?.trackingNo || id,
+      `ย้ายร่างคำขอไปถังขยะ: "${targetApp?.articleTitle || '-'}" ของ ${targetApp?.applicantName || '-'}`
+    );
+
     showToast('🗑️ ย้ายร่างคำขอไปไว้ในถังขยะเรียบร้อยแล้ว (สามารถกู้คืนได้)');
   };
 
   // Restore: กู้คืนร่างคำขอกลับสู่รายการเตรียมเบิก
   const handleRestoreDraft = (id: string) => {
+    const targetApp = applications.find((a) => a.id === id);
     const today = new Date().toISOString();
     setApplications((prev) =>
       prev.map((a) => {
@@ -1049,6 +1148,13 @@ export default function App() {
       status: 'draft',
       coordinatorNotes: '',
     }).catch((e) => console.warn('D1 restore draft error:', e));
+
+    logActivity(
+      'RESTORE_APPLICATION',
+      'REWARD_APPLICATION',
+      targetApp?.trackingNo || id,
+      `กู้คืนร่างคำขอจากถังขยะ: "${targetApp?.articleTitle || '-'}"`
+    );
 
     showToast('✨ กู้คืนรายการร่างสำเร็จ กลับสู่รายการเตรียมเบิกแล้ว');
   };
@@ -1124,6 +1230,12 @@ export default function App() {
       })
     );
     showToast(`อัปเดตสถานะโครงการเป็น "${newStatus}" (ขั้นตอนที่ ${nextStep}) เรียบร้อย`);
+    logActivity(
+      'UPDATE_STATUS',
+      'REWARD_APPLICATION',
+      target?.trackingNo || id,
+      `เปลี่ยนสถานะเป็น "${newStatus}" (ขั้นตอนที่ ${nextStep}) บทความ: "${target?.articleTitle || '-'}"`
+    );
 
     // Cloudflare D1 sync for status update
     updateRewardApplicationInD1(id, {
@@ -1165,6 +1277,12 @@ export default function App() {
       prev.map((a) => (a.id === cleanApp.id ? cleanApp : a))
     );
     showToast(`บันทึกการแก้ไข ${cleanApp.trackingNo} สำเร็จ`);
+    logActivity(
+      'UPDATE_APPLICATION',
+      'REWARD_APPLICATION',
+      cleanApp.trackingNo,
+      `แก้ไขข้อมูลคำขอในตาราง: "${cleanApp.articleTitle}" ของ ${cleanApp.applicantName} ยอดรวม ${cleanApp.totalClaimedAmount.toLocaleString()} บาท`
+    );
 
     // Cloudflare D1 sync
     updateRewardApplicationInD1(cleanApp.id, cleanApp)
@@ -1198,6 +1316,13 @@ export default function App() {
     );
 
     updateRewardApplicationInD1(appId, updates).catch(e => console.warn('D1 update doc details error:', e));
+    const docTarget = applications.find(a => a.id === appId);
+    logActivity(
+      'UPDATE_DOC_DETAILS',
+      'REWARD_APPLICATION',
+      docTarget?.trackingNo || appId,
+      `บันทึกข้อมูลเลขที่หนังสือราชการ/ตรวจออนไลน์: ${JSON.stringify(updates).slice(0, 200)}`
+    );
     showToast('บันทึกข้อมูลเลขที่หนังสือราชการและวันที่เรียบร้อย');
   };
 
@@ -1251,6 +1376,13 @@ export default function App() {
         status: calcStatus,
         coordinatorNotes: note
       }).catch(e => console.warn('D1 advance step error:', e));
+
+      logActivity(
+        'ADVANCE_STEP',
+        'REWARD_APPLICATION',
+        target.trackingNo || id,
+        `เลื่อนขั้นตอนเป็น ขั้นตอนที่ ${nextStep} (สถานะ: ${calcStatus})${note ? ` หมายเหตุ: ${note}` : ''}`
+      );
     }
 
     // Automatic LINE Notification Triggers for Milestones 2, 3, 4

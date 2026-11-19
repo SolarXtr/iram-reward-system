@@ -418,11 +418,24 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
             >
               <option value="all">ทุกกิจกรรม (All Actions)</option>
               <option value="LOGIN">LOGIN (เข้าสู่ระบบ)</option>
-              <option value="CREATE_APPLICATION">CREATE_APPLICATION (ยื่นคำขอ)</option>
-              <option value="UPDATE_APPLICATION">UPDATE_APPLICATION (ปรับปรุงคำขอ/สถานะ)</option>
-              <option value="DELETE_APPLICATION">DELETE_APPLICATION (ลบคำขอ)</option>
+              <option value="LOGOUT">LOGOUT (ออกจากระบบ)</option>
+              <option value="CREATE_APPLICATION">CREATE_APPLICATION (สร้าง/ยื่นคำขอ)</option>
+              <option value="SUBMIT_APPLICATION">SUBMIT_APPLICATION (ส่งเบิกคำขอจากร่าง)</option>
+              <option value="UPDATE_APPLICATION">UPDATE_APPLICATION (แก้ไขข้อมูลคำขอ)</option>
+              <option value="UPDATE_STATUS">UPDATE_STATUS (เปลี่ยนสถานะโครงการ)</option>
+              <option value="ADVANCE_STEP">ADVANCE_STEP (เลื่อนขั้นตอน SLA)</option>
+              <option value="UPDATE_DOC_DETAILS">UPDATE_DOC_DETAILS (บันทึกเลขที่หนังสือ)</option>
+              <option value="RETURN_TO_DRAFT">RETURN_TO_DRAFT (ส่งคืนแก้ไข)</option>
+              <option value="TRASH_APPLICATION">TRASH_APPLICATION (ย้ายลงถังขยะ)</option>
+              <option value="RESTORE_APPLICATION">RESTORE_APPLICATION (กู้คืนจากถังขยะ)</option>
+              <option value="DELETE_APPLICATION">DELETE_APPLICATION (ลบคำขอถาวร)</option>
+              <option value="CREATE_USER">CREATE_USER (เพิ่มผู้ใช้)</option>
               <option value="UPDATE_USER">UPDATE_USER (แก้ไขผู้ใช้)</option>
+              <option value="UPDATE_PROFILE">UPDATE_PROFILE (แก้ไขโปรไฟล์)</option>
+              <option value="ACTIVATE_USER">ACTIVATE_USER (เปิดสิทธิ์นักวิจัย)</option>
               <option value="DELETE_USER">DELETE_USER (ลบผู้ใช้)</option>
+              <option value="IMPERSONATE_USER">IMPERSONATE_USER (ปฏิบัติหน้าที่แทน)</option>
+              <option value="EXIT_IMPERSONATION">EXIT_IMPERSONATION (กลับบัญชีเดิม)</option>
               <option value="PURGE_EXPIRED_LOGS">PURGE_EXPIRED_LOGS (ล้าง Log เก่า)</option>
             </select>
           </div>
