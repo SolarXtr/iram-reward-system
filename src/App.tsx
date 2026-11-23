@@ -20,7 +20,7 @@ import { AboutView } from './components/AboutView';
 import { LoginModal } from './components/LoginModal';
 import { ResearcherActivationModal } from './components/ResearcherActivationModal';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
-import { generateTimelineFor19Steps } from './data/workflow19Steps';
+import { generateTimelineFor19Steps, getStatusFor19Step } from './data/workflow19Steps';
 import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, PublicRewardSummary, ResearchApplication, UserProfile, WorkflowStepId, NuDisbursementRecord } from './types';
 import { generateNextTrackingNo } from './data/regulations';
 import { 
@@ -1332,11 +1332,7 @@ export default function App() {
     setApplications((prev) =>
       prev.map((app) => {
         if (app.id !== id) return app;
-        let newStatus = app.status;
-        if (nextStep >= 3 && nextStep <= 4) newStatus = 'staff_verified';
-        else if (nextStep >= 5 && nextStep <= 8) newStatus = 'dean_approved';
-        else if (nextStep >= 9 && nextStep <= 10) newStatus = 'finance_processing';
-        else if (nextStep >= 11) newStatus = 'paid';
+        const newStatus = getStatusFor19Step(nextStep, app.status);
 
         const updatedTimeline = app.timeline.map((step) => {
           if (step.stepNumber < nextStep) {
@@ -1348,7 +1344,7 @@ export default function App() {
           return { ...step, status: 'pending' as const };
         });
 
-        const isNowPaid = nextStep >= 11;
+        const isNowPaid = nextStep >= 18;
 
         return {
           ...app,
@@ -1365,15 +1361,15 @@ export default function App() {
 
     // Cloudflare D1 sync
     if (target) {
-      let calcStatus = target.status;
-      if (nextStep >= 3 && nextStep <= 4) calcStatus = 'staff_verified';
-      else if (nextStep >= 5 && nextStep <= 8) calcStatus = 'dean_approved';
-      else if (nextStep >= 9 && nextStep <= 10) calcStatus = 'finance_processing';
-      else if (nextStep >= 11) calcStatus = 'paid';
+      const calcStatus = getStatusFor19Step(nextStep, target.status);
+      const isNowPaid = nextStep >= 18;
 
       updateRewardApplicationInD1(id, {
         currentStep: nextStep,
         status: calcStatus,
+        paymentStatus: isNowPaid ? 'transferred' : undefined,
+        paymentDate: isNowPaid && !target.paymentDate ? new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : undefined,
+        disbursementVoucherNo: isNowPaid && !target.disbursementVoucherNo ? `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70` : undefined,
         coordinatorNotes: note
       }).catch(e => console.warn('D1 advance step error:', e));
 
@@ -1381,7 +1377,7 @@ export default function App() {
         'ADVANCE_STEP',
         'REWARD_APPLICATION',
         target.trackingNo || id,
-        `เลื่อนขั้นตอนเป็น ขั้นตอนที่ ${nextStep} (สถานะ: ${calcStatus})${note ? ` หมายเหตุ: ${note}` : ''}`
+        `เลื่อนขั้นตอนเป็น ขั้นตอนที่ ${nextStep}/19 (สถานะ: ${calcStatus})${note ? ` หมายเหตุ: ${note}` : ''}`
       );
     }
 
@@ -1390,10 +1386,10 @@ export default function App() {
       if (nextStep === 4) {
         // Milestone 2: Document Verified
         triggerLineMilestoneNotification({ ...target, currentStep: nextStep }, 'document_verified');
-      } else if (nextStep === 7 || nextStep === 8) {
+      } else if (nextStep === 11 || nextStep === 12) {
         // Milestone 3: Dean Approved
         triggerLineMilestoneNotification({ ...target, currentStep: nextStep }, 'dean_approved');
-      } else if (nextStep >= 11) {
+      } else if (nextStep >= 18) {
         // Milestone 4: Payment Transferred (Real-time)
         triggerLineMilestoneNotification({ 
           ...target, 
@@ -1405,7 +1401,7 @@ export default function App() {
       }
     }
 
-    showToast(`เลื่อนขั้นตอนสำเร็จ → ขั้นตอนที่ ${nextStep}/12`);
+    showToast(`เลื่อนขั้นตอนสำเร็จ → ขั้นตอนที่ ${nextStep}/19`);
   };
 
   // 5. Send LINE Notification Trigger

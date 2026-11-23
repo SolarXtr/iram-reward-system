@@ -23,6 +23,7 @@ import { PublicRewardSummary, ResearchApplication, UserProfile, NuDisbursementRe
 import { formatBaht } from '../data/regulations';
 import { NuDisbursementTable } from './NuDisbursementTable';
 import { isSameDepartment } from '../utils/permissionUtils';
+import { get19StepDisplayInfo } from '../data/workflow19Steps';
 
 interface DashboardViewProps {
   applications: ResearchApplication[];
@@ -337,32 +338,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <div className="space-y-3 text-xs">
             <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-8 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
                 1-4
               </div>
               <div>
-                <span className="font-semibold text-blue-900 block">ตรวจสอบเอกสารและจัดทำบันทึก</span>
-                <span className="text-slate-600 text-[11px]">SLA 1-4 วันทำการ (จนท. และนักวิจัยลงนาม)</span>
+                <span className="font-semibold text-blue-900 block">ยื่นคำขอและตรวจสอบออนไลน์</span>
+                <span className="text-slate-600 text-[11px]">นักวิจัยยื่นคำขอ &rarr; จนท. ตรวจสอบคุณสมบัติ &amp; แจ้งผล</span>
               </div>
             </div>
 
             <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100 flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                5-8
+              <div className="w-8 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                5-12
               </div>
               <div>
-                <span className="font-semibold text-indigo-900 block">เสนอผู้บริหารและคณบดีอนุมัติ</span>
-                <span className="text-slate-600 text-[11px]">หน.ภาคฯ &rarr; รองคณบดี &rarr; แผน &rarr; คณบดี</span>
+                <span className="font-semibold text-indigo-900 block">ขออนุมัติหลักการและกรอบวงเงิน</span>
+                <span className="text-slate-600 text-[11px]">แผน &rarr; การเงินตรวจงบ &rarr; ผู้บริหารลงนามอนุมัติ &rarr; แจ้งผล</span>
               </div>
             </div>
 
             <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                9-12
+              <div className="w-8 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                13-19
               </div>
               <div>
-                <span className="font-semibold text-emerald-900 block">งานการเงินจัดทำฎีกา & โอนเงิน</span>
-                <span className="text-slate-600 text-[11px]">โอนเข้าบัญชีธนาคารภายใน 4 สัปดาห์</span>
+                <span className="font-semibold text-emerald-900 block">เบิกจ่าย จัดทำฎีกา &amp; โอนเงิน</span>
+                <span className="text-slate-600 text-[11px]">ขอเบิกจ่าย &rarr; ออกฎีกา &rarr; โอนเงินเข้าบัญชีนักวิจัย</span>
               </div>
             </div>
           </div>
@@ -463,7 +464,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
                   {displayedApplications.map((app, idx) => {
-                    const isPaid = app.status === 'paid';
+                    const stepInfo = get19StepDisplayInfo(app);
+                    const isPaid = stepInfo.isActuallyPaid;
                     const rowKey = app.id || `dash-app-${app.trackingNo || 'row'}-${idx}`;
                     return (
                       <tr key={rowKey} className="hover:bg-slate-50/80 transition-colors">
@@ -514,24 +516,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </td>
 
                         <td className="px-4 py-3 whitespace-nowrap text-center">
-                          {isPaid ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>โอนเงินแล้ว</span>
-                            </span>
-                          ) : app.status === 'dean_approved' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-                              <span>คณบดีอนุมัติแล้ว</span>
-                            </span>
-                          ) : app.status === 'staff_verified' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                              <span>จนท. ตรวจสอบแล้ว</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                              <span>ขั้นตอนที่ {app.currentStep}/12</span>
-                            </span>
-                          )}
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${stepInfo.badgeClass}`}
+                            title={`ขั้นตอนที่ ${stepInfo.step}/19: ${stepInfo.stepTitle}`}
+                          >
+                            {isPaid && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                            <span>{stepInfo.label}</span>
+                          </span>
                         </td>
 
                         <td className="px-4 py-3 whitespace-nowrap text-center">

@@ -1,4 +1,4 @@
-import { WorkflowStep, WorkflowStepId } from '../types';
+import { ApplicationStatus, ResearchApplication, WorkflowStep, WorkflowStepId } from '../types';
 export interface WorkflowStep19 {
   stepNumber: number;
   title: string;
@@ -318,4 +318,93 @@ export function generateTimelineFor19Steps(currentStep: number): WorkflowStep[] 
       isFeedbackLoop: step.isFeedbackLoop,
     };
   });
+}
+
+/**
+ * Map a 19-step workflow number to its corresponding ApplicationStatus.
+ * Matches the 5 Kanban lanes: 1-2 (submitted), 3-4 (staff_verified),
+ * 5-12 (dean_approved), 13-17 (finance_processing), 18-19 (paid).
+ */
+export function getStatusFor19Step(
+  step: number,
+  currentStatus: ApplicationStatus
+): ApplicationStatus {
+  const s = normalizeWorkflowStep(step);
+  if (s <= 2) return currentStatus === 'draft' ? 'draft' : 'submitted';
+  if (s >= 3 && s <= 4) return 'staff_verified';
+  if (s >= 5 && s <= 12) return 'dean_approved';
+  if (s >= 13 && s <= 17) return 'finance_processing';
+  return 'paid';
+}
+
+export interface Step19DisplayInfo {
+  step: number;
+  stepTitle: string;
+  label: string;
+  badgeClass: string;
+  isActuallyPaid: boolean;
+}
+
+/**
+ * Compute consistent status badge label and styling from 19-step progress.
+ * Prevents prematurely showing "โอนเงินแล้ว" when currentStep < 18 and paymentStatus !== 'transferred'.
+ */
+export function get19StepDisplayInfo(
+  app: Pick<ResearchApplication, 'status' | 'currentStep' | 'paymentStatus'>
+): Step19DisplayInfo {
+  const step = normalizeWorkflowStep(app.currentStep || 1);
+  const def = getWorkflow19StepDef(step);
+  const stepTitle = def?.title || `ขั้นตอนที่ ${step}`;
+
+  const isActuallyPaid =
+    app.paymentStatus === 'transferred' ||
+    (app.status === 'paid' && step >= 18);
+
+  if (isActuallyPaid) {
+    return {
+      step,
+      stepTitle,
+      label: `โอนเงินแล้ว (${step}/19)`,
+      badgeClass: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+      isActuallyPaid: true,
+    };
+  }
+
+  if (step >= 13 || app.status === 'finance_processing') {
+    return {
+      step,
+      stepTitle,
+      label: `งานคลังทำฎีกา (${step}/19)`,
+      badgeClass: 'bg-purple-100 text-purple-800 border border-purple-200',
+      isActuallyPaid: false,
+    };
+  }
+
+  if (app.status === 'dean_approved' || (step >= 5 && step <= 12)) {
+    return {
+      step,
+      stepTitle,
+      label: `คณบดีอนุมัติแล้ว (${step}/19)`,
+      badgeClass: 'bg-blue-100 text-blue-800 border border-blue-200',
+      isActuallyPaid: false,
+    };
+  }
+
+  if (app.status === 'staff_verified' || (step >= 3 && step <= 4)) {
+    return {
+      step,
+      stepTitle,
+      label: `จนท. ตรวจสอบแล้ว (${step}/19)`,
+      badgeClass: 'bg-amber-100 text-amber-800 border border-amber-200',
+      isActuallyPaid: false,
+    };
+  }
+
+  return {
+    step,
+    stepTitle,
+    label: `ขั้นตอนที่ ${step}/19`,
+    badgeClass: 'bg-slate-100 text-slate-700 border border-slate-200',
+    isActuallyPaid: false,
+  };
 }

@@ -154,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
       id: 'kanban',
       label: 'ติดตามแบบลากวาง (Kanban)',
       shortLabel: 'ติดตามแบบ Kanban',
-      description: 'กระดานติดตามงานและขั้นตอน 12 ระดับ',
+      description: 'กระดานติดตามงานและขั้นตอน 19 ระดับ',
       icon: KanbanSquare,
       roles: ['coordinator', 'admin'],
     },
