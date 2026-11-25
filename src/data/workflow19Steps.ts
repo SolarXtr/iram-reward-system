@@ -331,14 +331,205 @@ export function getStatusFor19Step(
 ): ApplicationStatus {
   const s = normalizeWorkflowStep(step);
   if (s <= 2) return currentStatus === 'draft' ? 'draft' : 'submitted';
-  if (s >= 3 && s <= 4) return 'staff_verified';
-  if (s >= 5 && s <= 12) return 'dean_approved';
+  if (s >= 3 && s <= 6) return 'staff_verified';
+  if (s >= 7 && s <= 12) return 'dean_approved';
   if (s >= 13 && s <= 17) return 'finance_processing';
   return 'paid';
 }
 
+export interface WorkflowActionStep12 {
+  stepNumber: number; // 1..12
+  refSteps: string; // อ้างอิง 1-19 เดิม เช่น '1–2'
+  canonical19Step: WorkflowStepId;
+  title: string;
+  responsibleParty: 'นักวิจัย/เลขานุการ' | 'เจ้าหน้าที่งานวิจัย' | 'จนท. นโยบายและแผน' | 'เจ้าหน้าที่การเงิน' | 'ผู้บริหาร';
+  roleKey: 'researcher' | 'research-office' | 'policy-plan' | 'finance' | 'executives';
+  phase: 1 | 2 | 3;
+  phaseTitle: string;
+  slaDays: string;
+  description: string;
+  isFeedbackLoop?: boolean;
+}
+
+export const WORKFLOW_12_ACTION_STEPS_DEF: WorkflowActionStep12[] = [
+  {
+    stepNumber: 1,
+    refSteps: '1–2',
+    canonical19Step: 2,
+    title: 'ยื่นคำขอรับเงินรางวัล / ค่าตีพิมพ์',
+    responsibleParty: 'นักวิจัย/เลขานุการ',
+    roleKey: 'researcher',
+    phase: 1,
+    phaseTitle: 'ระยะที่ 1: การยื่นคำขอและตรวจเช็คระบบออนไลน์',
+    slaDays: '1 วันทำการ',
+    description: 'เข้าสู่ระบบ กรอกข้อมูลบทความวิจัย ระบุ DOI แนบหลักฐาน และส่งคำขอเข้าคิวตรวจสอบ',
+  },
+  {
+    stepNumber: 2,
+    refSteps: '3–4',
+    canonical19Step: 3,
+    title: 'งานวิจัยตรวจสอบคุณสมบัติและหลักฐาน',
+    responsibleParty: 'เจ้าหน้าที่งานวิจัย',
+    roleKey: 'research-office',
+    phase: 1,
+    phaseTitle: 'ระยะที่ 1: การยื่นคำขอและตรวจเช็คระบบออนไลน์',
+    slaDays: '2–4 วันทำการ',
+    description: 'ตรวจสอบคุณสมบัติบทความ ฐานข้อมูล Scopus/TCI และเอกสารแนบ (หากไม่ครบส่งคืนแก้ไข / ผ่านแจ้งผลอัตโนมัติ)',
+    isFeedbackLoop: true,
+  },
+  {
+    stepNumber: 3,
+    refSteps: '5–6',
+    canonical19Step: 5,
+    title: 'นักวิจัยพิมพ์ ลงนาม และนำส่งเอกสารขออนุมัติเงินฯ',
+    responsibleParty: 'นักวิจัย/เลขานุการ',
+    roleKey: 'researcher',
+    phase: 2,
+    phaseTitle: 'ระยะที่ 2: การเสนอขออนุมัติหลักการและกรอบงบประมาณ',
+    slaDays: '2–3 วันทำการ',
+    description: 'ดาวน์โหลดและพิมพ์บันทึกข้อความขออนุมัติเงินฯ ลงนามพร้อมเอกสารแนบนำส่งงานวิจัย คณะแพทยศาสตร์',
+  },
+  {
+    stepNumber: 4,
+    refSteps: '7–8',
+    canonical19Step: 7,
+    title: 'งานวิจัยตรวจรับแฟ้มขออนุมัติหลักการและส่งต่อแผน',
+    responsibleParty: 'เจ้าหน้าที่งานวิจัย',
+    roleKey: 'research-office',
+    phase: 2,
+    phaseTitle: 'ระยะที่ 2: การเสนอขออนุมัติหลักการและกรอบงบประมาณ',
+    slaDays: '1–2 วันทำการ',
+    description: 'ตรวจความครบถ้วนของแฟ้มบันทึกข้อความและลายมือชื่อ แล้วส่งต่อเรื่องไปยังงานนโยบายและแผน',
+  },
+  {
+    stepNumber: 5,
+    refSteps: '9',
+    canonical19Step: 9,
+    title: 'บันทึกข้อมูลงบประมาณและรหัสโครงการ',
+    responsibleParty: 'จนท. นโยบายและแผน',
+    roleKey: 'policy-plan',
+    phase: 2,
+    phaseTitle: 'ระยะที่ 2: การเสนอขออนุมัติหลักการและกรอบงบประมาณ',
+    slaDays: '1–2 วันทำการ',
+    description: 'ตรวจสอบรหัสโครงการและบันทึกตัดยอดกรอบวงเงินในระบบแผนและงบประมาณ',
+  },
+  {
+    stepNumber: 6,
+    refSteps: '10',
+    canonical19Step: 10,
+    title: 'การเงินตรวจเช็คงบประมาณและความถูกต้องตามระเบียบ',
+    responsibleParty: 'เจ้าหน้าที่การเงิน',
+    roleKey: 'finance',
+    phase: 2,
+    phaseTitle: 'ระยะที่ 2: การเสนอขออนุมัติหลักการและกรอบงบประมาณ',
+    slaDays: '1–2 วันทำการ',
+    description: 'ตรวจสอบความถูกต้องของวงเงิน แหล่งงบประมาณรายได้ และความสอดคล้องตามระเบียบการเงิน',
+  },
+  {
+    stepNumber: 7,
+    refSteps: '11–12',
+    canonical19Step: 11,
+    title: 'ผู้บริหารลงนามอนุมัติหลักการ / กรอบวงเงิน',
+    responsibleParty: 'ผู้บริหาร',
+    roleKey: 'executives',
+    phase: 2,
+    phaseTitle: 'ระยะที่ 2: การเสนอขออนุมัติหลักการและกรอบงบประมาณ',
+    slaDays: '3 วันทำการ',
+    description: 'หัวหน้าภาควิชา / รองคณบดีฝ่ายวิจัย / คณบดี ลงนามอนุมัติกรอบวงเงิน และแจ้งผลให้นักวิจัยอัตโนมัติ',
+  },
+  {
+    stepNumber: 8,
+    refSteps: '13',
+    canonical19Step: 13,
+    title: 'นักวิจัยจัดทำและนำส่งชุดเอกสารขออนุมัติเบิกเงินฯ',
+    responsibleParty: 'นักวิจัย/เลขานุการ',
+    roleKey: 'researcher',
+    phase: 3,
+    phaseTitle: 'ระยะที่ 3: การขออนุมัติเบิกเงินและโอนเงินเข้าบัญชี',
+    slaDays: '1–2 วันทำการ',
+    description: 'ดาวน์โหลดแบบฟอร์มบันทึกขออนุมัติเบิกเงินฯ พร้อมใบสำคัญรับเงินและเอกสารแนบนำส่งงานวิจัย',
+  },
+  {
+    stepNumber: 9,
+    refSteps: '14–15',
+    canonical19Step: 14,
+    title: 'งานวิจัยตรวจรับเอกสารเบิกจ่ายและเสนอผู้บริหารอนุมัติเบิก',
+    responsibleParty: 'เจ้าหน้าที่งานวิจัย',
+    roleKey: 'research-office',
+    phase: 3,
+    phaseTitle: 'ระยะที่ 3: การขออนุมัติเบิกเงินและโอนเงินเข้าบัญชี',
+    slaDays: '1–2 วันทำการ',
+    description: 'ตรวจสอบชุดเอกสารขอเบิกให้ตรงตามยอดและมติอนุมัติ แล้วเสนอแฟ้มต่อผู้บริหารเพื่อสั่งจ่าย',
+  },
+  {
+    stepNumber: 10,
+    refSteps: '16',
+    canonical19Step: 16,
+    title: 'ผู้บริหารลงนามอนุมัติเบิกจ่าย',
+    responsibleParty: 'ผู้บริหาร',
+    roleKey: 'executives',
+    phase: 3,
+    phaseTitle: 'ระยะที่ 3: การขออนุมัติเบิกเงินและโอนเงินเข้าบัญชี',
+    slaDays: '2–3 วันทำการ',
+    description: 'ผู้บริหารลงนามอนุมัติคำสั่งเบิกจ่ายเงินรางวัล / ค่าตีพิมพ์เข้าสู่กระบวนการคลัง',
+  },
+  {
+    stepNumber: 11,
+    refSteps: '17',
+    canonical19Step: 17,
+    title: 'การเงินจัดทำฎีกาส่งเบิกเงิน',
+    responsibleParty: 'เจ้าหน้าที่การเงิน',
+    roleKey: 'finance',
+    phase: 3,
+    phaseTitle: 'ระยะที่ 3: การขออนุมัติเบิกเงินและโอนเงินเข้าบัญชี',
+    slaDays: '3–5 วันทำการ',
+    description: 'เจ้าหน้าที่การเงินจัดทำฎีกาเบิกเงิน (Voucher No.) และส่งเบิกต่อกองคลังมหาวิทยาลัย',
+  },
+  {
+    stepNumber: 12,
+    refSteps: '18–19',
+    canonical19Step: 18,
+    title: 'โอนเงินเข้าบัญชีนักวิจัยและปิดงาน',
+    responsibleParty: 'เจ้าหน้าที่การเงิน',
+    roleKey: 'finance',
+    phase: 3,
+    phaseTitle: 'ระยะที่ 3: การขออนุมัติเบิกเงินและโอนเงินเข้าบัญชี',
+    slaDays: 'ภายใน 4 สัปดาห์ (~10–20 วันทำการ)',
+    description: 'โอนเงินเข้าบัญชีธนาคารของนักวิจัย แจ้งผลให้นักวิจัยตรวจสอบยอดเงินโอน และปิดงานสมบูรณ์',
+  },
+];
+
+export function getActionStepFrom19(step19: number | null | undefined): number {
+  const s = normalizeWorkflowStep(step19);
+  if (s <= 2) return 1;
+  if (s <= 4) return 2;
+  if (s <= 6) return 3;
+  if (s <= 8) return 4;
+  if (s === 9) return 5;
+  if (s === 10) return 6;
+  if (s <= 12) return 7;
+  if (s === 13) return 8;
+  if (s <= 15) return 9;
+  if (s === 16) return 10;
+  if (s === 17) return 11;
+  return 12;
+}
+
+export function getCanonical19StepForAction(actionStep: number): WorkflowStepId {
+  const clamped = Math.max(1, Math.min(12, Math.round(actionStep)));
+  const found = WORKFLOW_12_ACTION_STEPS_DEF.find((s) => s.stepNumber === clamped);
+  return found ? found.canonical19Step : 18;
+}
+
+export function getActionStepDef(actionStep: number): WorkflowActionStep12 {
+  const clamped = Math.max(1, Math.min(12, Math.round(actionStep)));
+  return WORKFLOW_12_ACTION_STEPS_DEF.find((s) => s.stepNumber === clamped) || WORKFLOW_12_ACTION_STEPS_DEF[0];
+}
+
 export interface Step19DisplayInfo {
-  step: number;
+  step: number; // 1..12 action step
+  ref19Step: number; // 1..19 underlying step
+  refSteps: string; // e.g. '1–2'
   stepTitle: string;
   label: string;
   badgeClass: string;
@@ -346,64 +537,73 @@ export interface Step19DisplayInfo {
 }
 
 /**
- * Compute consistent status badge label and styling from 19-step progress.
- * Prevents prematurely showing "โอนเงินแล้ว" when currentStep < 18 and paymentStatus !== 'transferred'.
+ * Compute consistent status badge label and styling from the 12-action-step workflow (backed by 1–19 reference).
  */
 export function get19StepDisplayInfo(
   app: Pick<ResearchApplication, 'status' | 'currentStep' | 'paymentStatus'>
 ): Step19DisplayInfo {
-  const step = normalizeWorkflowStep(app.currentStep || 1);
-  const def = getWorkflow19StepDef(step);
-  const stepTitle = def?.title || `ขั้นตอนที่ ${step}`;
+  const ref19Step = normalizeWorkflowStep(app.currentStep || 1);
+  const actionStep = getActionStepFrom19(ref19Step);
+  const def = getActionStepDef(actionStep);
 
   const isActuallyPaid =
     app.paymentStatus === 'transferred' ||
-    (app.status === 'paid' && step >= 18);
+    (app.status === 'paid' && ref19Step >= 18);
 
   if (isActuallyPaid) {
     return {
-      step,
-      stepTitle,
-      label: `โอนเงินแล้ว (${step}/19)`,
+      step: 12,
+      ref19Step,
+      refSteps: def.refSteps,
+      stepTitle: def.title,
+      label: `โอนเงินแล้ว (12/12)`,
       badgeClass: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
       isActuallyPaid: true,
     };
   }
 
-  if (step >= 13 || app.status === 'finance_processing') {
+  if (actionStep >= 8 || app.status === 'finance_processing') {
     return {
-      step,
-      stepTitle,
-      label: `งานคลังทำฎีกา (${step}/19)`,
+      step: actionStep,
+      ref19Step,
+      refSteps: def.refSteps,
+      stepTitle: def.title,
+      label: `งานคลัง/เบิกจ่าย (${actionStep}/12)`,
       badgeClass: 'bg-purple-100 text-purple-800 border border-purple-200',
       isActuallyPaid: false,
     };
   }
 
-  if (app.status === 'dean_approved' || (step >= 5 && step <= 12)) {
+  if (app.status === 'dean_approved' || (actionStep >= 4 && actionStep <= 7)) {
     return {
-      step,
-      stepTitle,
-      label: `คณบดีอนุมัติแล้ว (${step}/19)`,
+      step: actionStep,
+      ref19Step,
+      refSteps: def.refSteps,
+      stepTitle: def.title,
+      label: `อนุมัติหลักการ (${actionStep}/12)`,
       badgeClass: 'bg-blue-100 text-blue-800 border border-blue-200',
       isActuallyPaid: false,
     };
   }
 
-  if (app.status === 'staff_verified' || (step >= 3 && step <= 4)) {
+  if (app.status === 'staff_verified' || (actionStep >= 2 && actionStep <= 3)) {
     return {
-      step,
-      stepTitle,
-      label: `จนท. ตรวจสอบแล้ว (${step}/19)`,
+      step: actionStep,
+      ref19Step,
+      refSteps: def.refSteps,
+      stepTitle: def.title,
+      label: `จนท. ตรวจสอบแล้ว (${actionStep}/12)`,
       badgeClass: 'bg-amber-100 text-amber-800 border border-amber-200',
       isActuallyPaid: false,
     };
   }
 
   return {
-    step,
-    stepTitle,
-    label: `ขั้นตอนที่ ${step}/19`,
+    step: actionStep,
+    ref19Step,
+    refSteps: def.refSteps,
+    stepTitle: def.title,
+    label: `ขั้นตอนที่ ${actionStep}/12`,
     badgeClass: 'bg-slate-100 text-slate-700 border border-slate-200',
     isActuallyPaid: false,
   };

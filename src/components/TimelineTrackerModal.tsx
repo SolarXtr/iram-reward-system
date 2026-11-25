@@ -20,8 +20,10 @@ import { UserRole } from './Header';
 import { ResearchApplication, UserProfile, WorkflowStepId } from '../types';
 import { formatBaht } from '../data/regulations';
 import {
-  WORKFLOW_19_STEPS_DEF,
-  getWorkflow19StepDef,
+  WORKFLOW_12_ACTION_STEPS_DEF,
+  getActionStepFrom19,
+  getCanonical19StepForAction,
+  getActionStepDef,
   normalizeWorkflowStep
 } from '../data/workflow19Steps';
 import { isSameDepartment } from '../utils/permissionUtils';
@@ -59,11 +61,12 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
   });
   const activeStepRef = useRef<HTMLDivElement | null>(null);
 
-  const currentStepNumber = normalizeWorkflowStep(application?.currentStep ?? 1);
-  const currentStepDef = getWorkflow19StepDef(currentStepNumber);
-  const activePhase = currentStepDef?.phase || 1;
+  const ref19Step = normalizeWorkflowStep(application?.currentStep ?? 1);
+  const currentActionStep = getActionStepFrom19(ref19Step);
+  const currentStepDef = getActionStepDef(currentActionStep);
+  const activePhase = currentStepDef.phase;
 
-  // Auto-expand the phase containing the current step and scroll it into view when step changes
+  // Auto-expand the phase containing the current action step and scroll it into view when step changes
   useEffect(() => {
     if (!isOpen || !application) return;
     setExpandedPhases({
@@ -75,7 +78,7 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
       activeStepRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 60);
     return () => clearTimeout(timer);
-  }, [isOpen, application?.id, currentStepNumber, activePhase]);
+  }, [isOpen, application?.id, currentActionStep, activePhase]);
 
   if (!isOpen || !application) return null;
 
@@ -86,29 +89,42 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
 
   const isSameDept = isSameDepartment(currentUser?.department, application.department);
 
-  const isRoleAuthorizedForCurrentStep = (step: number, role: UserRole): boolean => {
+  // Role authorization mapped to the 12 Action Steps
+  const isRoleAuthorizedForActionStep = (actionStep: number, role: UserRole): boolean => {
     if (role === 'admin') return true;
-    if (role === 'finance') return step === 9 || step === 10 || step === 17 || step === 18;
-    if (role === 'executive') return step === 11 || step === 16;
-    if (role === 'coordinator') return (step >= 3 && step <= 12) || (step >= 14 && step <= 18);
+    // Action 1 (1-2): ยื่นคำขอ (researcher, dept_secretary)
+    // Action 2 (3-4): งานวิจัยตรวจสอบ (coordinator)
+    // Action 3 (5-6): นักวิจัยพิมพ์และนำส่งเอกสารขออนุมัติ (researcher, dept_secretary, coordinator)
+    // Action 4 (7-8): งานวิจัยตรวจรับแฟ้มและส่งต่อแผน (coordinator)
+    // Action 5 (9): จนท. นโยบายและแผนบันทึกงบ (coordinator, finance)
+    // Action 6 (10): การเงินตรวจเช็คงบประมาณ (finance, coordinator)
+    // Action 7 (11-12): ผู้บริหารอนุมัติหลักการ (executive, coordinator)
+    // Action 8 (13): นักวิจัยจัดทำชุดเอกสารขอเบิก (researcher, dept_secretary, coordinator)
+    // Action 9 (14-15): งานวิจัยตรวจเอกสารเบิกและเสนอผู้บริหาร (coordinator)
+    // Action 10 (16): ผู้บริหารลงนามอนุมัติเบิกจ่าย (executive, coordinator)
+    // Action 11 (17): การเงินจัดทำฎีกาส่งเบิกเงิน (finance, coordinator)
+    // Action 12 (18-19): โอนเงินเข้าบัญชีนักวิจัยและปิดงาน (finance)
+    if (role === 'finance') return actionStep === 5 || actionStep === 6 || actionStep === 11 || actionStep === 12;
+    if (role === 'executive') return actionStep === 7 || actionStep === 10;
+    if (role === 'coordinator') return actionStep >= 2 && actionStep <= 11;
     if (role === 'dept_secretary') {
-      return (isSameDept || isMyApp) && (step === 1 || step === 2 || step === 5 || step === 6 || step === 13);
+      return (isSameDept || isMyApp) && (actionStep === 1 || actionStep === 3 || actionStep === 8);
     }
     if (role === 'researcher') {
-      return isMyApp && (step === 1 || step === 2 || step === 5 || step === 6 || step === 13 || step === 19);
+      return isMyApp && (actionStep === 1 || actionStep === 3 || actionStep === 8 || actionStep === 12);
     }
     return false;
   };
 
-  const isAllowedToAdvance = canEdit && isRoleAuthorizedForCurrentStep(currentStepNumber, currentRole as UserRole);
+  const isAllowedToAdvance = canEdit && isRoleAuthorizedForActionStep(currentActionStep, currentRole as UserRole);
   const isActuallyPaid =
     application.paymentStatus === 'transferred' ||
-    (application.status === 'paid' && currentStepNumber >= 18);
+    (application.status === 'paid' && ref19Step >= 18);
 
   const handleNextStep = () => {
-    if (currentStepNumber < 19 && isAllowedToAdvance) {
-      const nextStep = (currentStepNumber + 1) as WorkflowStepId;
-      onAdvanceStep(application.id, nextStep, officerNote.trim() || undefined);
+    if (currentActionStep < 12 && isAllowedToAdvance) {
+      const nextCanonical19Step = getCanonical19StepForAction(currentActionStep + 1);
+      onAdvanceStep(application.id, nextCanonical19Step, officerNote.trim() || undefined);
       setOfficerNote('');
     }
   };
@@ -143,22 +159,22 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
     {
       phaseNumber: 1,
       title: 'ระยะที่ 1: การยื่นคำขอและตรวจเช็คระบบออนไลน์',
-      range: '1 - 4',
-      steps: WORKFLOW_19_STEPS_DEF.filter((s) => s.phase === 1),
+      range: 'ขั้นที่ 1–2/12 (อ้างอิง 1–4)',
+      steps: WORKFLOW_12_ACTION_STEPS_DEF.filter((s) => s.phase === 1),
       accentClass: 'bg-sky-50/80 dark:bg-sky-950/40 text-sky-900 dark:text-sky-200 border-sky-200 dark:border-sky-800',
     },
     {
       phaseNumber: 2,
       title: 'ระยะที่ 2: การเสนอขออนุมัติหลักการและกรอบงบประมาณ',
-      range: '5 - 12',
-      steps: WORKFLOW_19_STEPS_DEF.filter((s) => s.phase === 2),
+      range: 'ขั้นที่ 3–7/12 (อ้างอิง 5–12)',
+      steps: WORKFLOW_12_ACTION_STEPS_DEF.filter((s) => s.phase === 2),
       accentClass: 'bg-amber-50/80 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-800',
     },
     {
       phaseNumber: 3,
       title: 'ระยะที่ 3: การขออนุมัติเบิกเงินและโอนเงินเข้าบัญชี',
-      range: '13 - 19',
-      steps: WORKFLOW_19_STEPS_DEF.filter((s) => s.phase === 3),
+      range: 'ขั้นที่ 8–12/12 (อ้างอิง 13–19)',
+      steps: WORKFLOW_12_ACTION_STEPS_DEF.filter((s) => s.phase === 3),
       accentClass: 'bg-purple-50/80 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-800',
     },
   ];
@@ -167,7 +183,7 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
     setExpandedPhases((prev) => ({ ...prev, [phaseNumber]: !prev[phaseNumber] }));
   };
 
-  const progressPercent = Math.round((currentStepNumber / 19) * 100);
+  const progressPercent = Math.round((currentActionStep / 12) * 100);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
@@ -176,16 +192,18 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
         {/* Compact Header */}
         <div className="bg-slate-900 px-4 sm:px-5 py-3.5 flex items-center justify-between text-white border-b border-slate-800 shrink-0">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-xs font-bold px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded border border-amber-500/30">
                 {application.trackingNo}
               </span>
               <span className="text-[11px] text-slate-400">ปีงบประมาณ {application.fiscalYear}</span>
-              <span className="text-[11px] font-semibold text-amber-400">• ขั้นตอนที่ {currentStepNumber}/19</span>
+              <span className="text-[11px] font-semibold text-amber-400">
+                • ขั้นตอนที่ {currentActionStep}/12 (อ้างอิง 19 ขั้นตอน: {currentStepDef.refSteps})
+              </span>
             </div>
             <h2 className="text-sm sm:text-base font-bold text-white font-prompt flex items-center gap-2 mt-1 truncate">
               <Layers className="w-4 h-4 text-amber-400 shrink-0" />
-              <span className="truncate">ไทม์ไลน์ติดตามกระบวนการ 19 ขั้นตอน</span>
+              <span className="truncate">ไทม์ไลน์ติดตามกระบวนการ 12 ขั้นตอนปฏิบัติงาน (อ้างอิง 1–19)</span>
             </h2>
           </div>
 
@@ -245,7 +263,7 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
             </div>
           </div>
 
-          {/* Official Doc Badges (shown only if present) */}
+          {/* Official Doc Badges */}
           {(application.internalDocNo || application.researchDocRecNo || application.financeDocRecNo || application.disbursementVoucherNo) && (
             <div className="flex flex-wrap gap-1.5 text-[10px]">
               {application.internalDocNo && (
@@ -276,17 +294,20 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
             <div className="flex items-center justify-between text-[11px]">
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-bold text-[10px] shrink-0">
-                  {currentStepNumber}
+                  {currentActionStep}
                 </span>
                 <span className="font-bold text-slate-900 dark:text-white truncate font-prompt">
-                  {currentStepDef?.title}
+                  {currentStepDef.title}
                 </span>
-                <span className={`hidden sm:inline-flex text-[10px] px-1.5 py-0.2 rounded-full border font-medium shrink-0 ${getRoleBadgeStyle(currentStepDef?.roleKey || '')}`}>
-                  {currentStepDef?.responsibleParty}
+                <span className={`hidden sm:inline-flex text-[10px] px-1.5 py-0.2 rounded-full border font-medium shrink-0 ${getRoleBadgeStyle(currentStepDef.roleKey)}`}>
+                  {currentStepDef.responsibleParty}
+                </span>
+                <span className="hidden md:inline-flex text-[10px] px-1.5 py-0.2 rounded bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono shrink-0">
+                  SLA: {currentStepDef.slaDays}
                 </span>
               </div>
               <span className="font-mono font-bold text-amber-700 dark:text-amber-400 shrink-0 ml-2">
-                {progressPercent}% ({currentStepNumber}/19)
+                {progressPercent}% ({currentActionStep}/12)
               </span>
             </div>
             <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -298,11 +319,11 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
           </div>
         </div>
 
-        {/* Scrollable 3-Phase Compact Timeline */}
+        {/* Scrollable 3-Phase Compact 12-Step Timeline */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3.5 space-y-2.5 text-xs text-slate-800 dark:text-slate-100">
           {phases.map((phase) => {
             const isExpanded = Boolean(expandedPhases[phase.phaseNumber]);
-            const passedInPhase = phase.steps.filter((s) => s.stepNumber < currentStepNumber).length;
+            const passedInPhase = phase.steps.filter((s) => s.stepNumber < currentActionStep).length;
             const isPhaseDone = passedInPhase === phase.steps.length;
             const hasCurrent = phase.phaseNumber === activePhase;
 
@@ -338,7 +359,7 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
                     )}
                   </div>
                   <span className="text-[11px] font-mono opacity-80 shrink-0 ml-2">
-                    ขั้นตอน {phase.range}
+                    {phase.range}
                   </span>
                 </button>
 
@@ -346,9 +367,9 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
                 {isExpanded && (
                   <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
                     {phase.steps.map((step) => {
-                      const isPassed = step.stepNumber < currentStepNumber;
-                      const isCurrent = step.stepNumber === currentStepNumber;
-                      const stepRecord = application.timeline?.find((s) => s.stepNumber === step.stepNumber);
+                      const isPassed = step.stepNumber < currentActionStep;
+                      const isCurrent = step.stepNumber === currentActionStep;
+                      const stepRecord = application.timeline?.find((s) => s.stepNumber === step.canonical19Step);
 
                       return (
                         <div
@@ -363,7 +384,7 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
                               <div
                                 className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                                   isPassed
@@ -388,6 +409,10 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
                                 {step.title}
                               </span>
 
+                              <span className="hidden md:inline-flex text-[9.5px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono shrink-0">
+                                อ้างอิง {step.refSteps}
+                              </span>
+
                               {step.isFeedbackLoop && (
                                 <span className="hidden sm:inline-flex items-center gap-0.5 text-[9.5px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
                                   <Repeat className="w-2.5 h-2.5" /> Loop
@@ -395,7 +420,10 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
                               )}
                             </div>
 
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="hidden lg:inline-flex text-[10px] text-slate-500 font-mono">
+                                {step.slaDays}
+                              </span>
                               <span className={`text-[10px] px-1.5 py-0.2 rounded-full border font-medium ${getRoleBadgeStyle(step.roleKey)}`}>
                                 {step.responsibleParty}
                               </span>
@@ -413,10 +441,9 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
                             </div>
                           </div>
 
-                          {/* Show description ONLY for current step to keep modal compact */}
                           {isCurrent && (
                             <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 pl-7 leading-snug">
-                              {step.description}
+                              {step.description} <span className="text-slate-500 font-mono">(SLA: {step.slaDays})</span>
                             </p>
                           )}
 
@@ -436,9 +463,9 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
           })}
         </div>
 
-        {/* Sticky Footer: Officer Step-by-Step Advance Controls (Always visible, no scrolling needed) */}
+        {/* Sticky Footer: Officer Step-by-Step Advance Controls */}
         <div className="px-4 sm:px-5 py-3 bg-slate-100 dark:bg-slate-800/95 border-t border-slate-300 dark:border-slate-700 shrink-0 space-y-2">
-          {canEdit && currentStepNumber < 19 ? (
+          {canEdit && currentActionStep < 12 ? (
             <>
               <div className="flex items-center justify-between text-[11px]">
                 <span className="font-bold text-slate-800 dark:text-white font-prompt flex items-center gap-1.5">
@@ -454,14 +481,14 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
                 <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-300 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
-                    ขั้นตอนที่ {currentStepNumber} ({currentStepDef?.title}) อยู่ในความรับผิดชอบของ <strong>{currentStepDef?.responsibleParty}</strong> (สิทธิ์ปัจจุบัน <strong className="uppercase">{currentRole}</strong> ไม่สามารถกดยืนยันขั้นตอนนี้ได้)
+                    ขั้นตอนที่ {currentActionStep}/12 ({currentStepDef.title}) อยู่ในความรับผิดชอบของ <strong>{currentStepDef.responsibleParty}</strong> (สิทธิ์ปัจจุบัน <strong className="uppercase">{currentRole}</strong> ไม่สามารถกดยืนยันขั้นตอนนี้ได้)
                   </span>
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
-                    placeholder={`หมายเหตุสำหรับขั้นตอนที่ ${currentStepNumber} (ถ้ามี)...`}
+                    placeholder={`หมายเหตุสำหรับขั้นตอนที่ ${currentActionStep}/12 (ถ้ามี)...`}
                     value={officerNote}
                     onChange={(e) => setOfficerNote(e.target.value)}
                     onKeyDown={(e) => {
@@ -474,18 +501,18 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
                     onClick={handleNextStep}
                     className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors shrink-0 cursor-pointer"
                   >
-                    <span>ผ่านขั้นตอนที่ {currentStepNumber} &rarr; ไปขั้นตอนที่ {currentStepNumber + 1}</span>
+                    <span>ผ่านขั้นตอนที่ {currentActionStep} &rarr; ไปขั้นตอนที่ {currentActionStep + 1}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               )}
             </>
-          ) : currentStepNumber === 19 ? (
+          ) : currentActionStep === 12 ? (
             <div className="flex items-center justify-between gap-3 text-emerald-900 dark:text-emerald-200">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="font-bold text-xs sm:text-sm font-prompt">
-                  กระบวนการขอรับเงินรางวัลและค่าตีพิมพ์เสร็จสมบูรณ์แล้ว (19/19)
+                  กระบวนการขอรับเงินรางวัลและค่าตีพิมพ์เสร็จสมบูรณ์แล้ว (12/12 • อ้างอิง 18–19/19)
                 </span>
               </div>
               {isActuallyPaid && (

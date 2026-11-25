@@ -332,38 +332,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               ไทม์ไลน์และระยะเวลา SLA
             </h3>
             <p className="text-xs text-slate-500">
-              ขั้นตอนมาตรฐาน 19 ขั้นตอนตามประกาศและ Infographic
+              12 ขั้นตอนปฏิบัติงาน (อ้างอิงมาตรฐาน 19 ขั้นตอนตามประกาศฯ)
             </p>
           </div>
 
           <div className="space-y-3 text-xs">
             <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 flex items-start gap-3">
-              <div className="w-8 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
-                1-4
+              <div className="w-10 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                1–2/12
               </div>
               <div>
-                <span className="font-semibold text-blue-900 block">ยื่นคำขอและตรวจสอบออนไลน์</span>
-                <span className="text-slate-600 text-[11px]">นักวิจัยยื่นคำขอ &rarr; จนท. ตรวจสอบคุณสมบัติ &amp; แจ้งผล</span>
+                <span className="font-semibold text-blue-900 block">ยื่นคำขอและตรวจสอบออนไลน์ (อ้างอิง 1–4)</span>
+                <span className="text-slate-600 text-[11px]">SLA 1–4 วันทำการ • ยื่นคำขอ &rarr; จนท. ตรวจคุณสมบัติ</span>
               </div>
             </div>
 
             <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100 flex items-start gap-3">
-              <div className="w-8 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
-                5-12
+              <div className="w-10 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                3–7/12
               </div>
               <div>
-                <span className="font-semibold text-indigo-900 block">ขออนุมัติหลักการและกรอบวงเงิน</span>
-                <span className="text-slate-600 text-[11px]">แผน &rarr; การเงินตรวจงบ &rarr; ผู้บริหารลงนามอนุมัติ &rarr; แจ้งผล</span>
+                <span className="font-semibold text-indigo-900 block">ขออนุมัติหลักการและกรอบวงเงิน (อ้างอิง 5–12)</span>
+                <span className="text-slate-600 text-[11px]">SLA 6–10 วันทำการ • แผน &rarr; การเงิน &rarr; ผู้บริหารอนุมัติ</span>
               </div>
             </div>
 
             <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex items-start gap-3">
-              <div className="w-8 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
-                13-19
+              <div className="w-10 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                8–12/12
               </div>
               <div>
-                <span className="font-semibold text-emerald-900 block">เบิกจ่าย จัดทำฎีกา &amp; โอนเงิน</span>
-                <span className="text-slate-600 text-[11px]">ขอเบิกจ่าย &rarr; ออกฎีกา &rarr; โอนเงินเข้าบัญชีนักวิจัย</span>
+                <span className="font-semibold text-emerald-900 block">เบิกจ่าย จัดทำฎีกา &amp; โอนเงิน (อ้างอิง 13–19)</span>
+                <span className="text-slate-600 text-[11px]">โอนเงินเข้าบัญชีธนาคารภายใน 4 สัปดาห์</span>
               </div>
             </div>
           </div>
@@ -518,7 +518,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <td className="px-4 py-3 whitespace-nowrap text-center">
                           <span
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${stepInfo.badgeClass}`}
-                            title={`ขั้นตอนที่ ${stepInfo.step}/19: ${stepInfo.stepTitle}`}
+                            title={`ขั้นตอนที่ ${stepInfo.step}/12 (อ้างอิง 19 ขั้นตอน: ${stepInfo.refSteps}): ${stepInfo.stepTitle}`}
                           >
                             {isPaid && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
                             <span>{stepInfo.label}</span>

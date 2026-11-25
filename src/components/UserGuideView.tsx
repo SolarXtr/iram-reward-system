@@ -33,7 +33,7 @@ import {
   CheckSquare
 } from 'lucide-react';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from '../data/initialData';
-import { WORKFLOW_19_STEPS_DEF, WORKFLOW_ROLES_DEF } from '../data/workflow19Steps';
+import { WORKFLOW_19_STEPS_DEF, WORKFLOW_12_ACTION_STEPS_DEF, WORKFLOW_ROLES_DEF } from '../data/workflow19Steps';
 import { calculateFacultyReward } from '../data/regulations';
 import { AuthorRole, DatabaseName, JournalScope, QuartileRank } from '../types';
 
@@ -677,12 +677,12 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
                 <Layers className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>Reward Cycle (แผนผังกระบวนการดำเนินงาน 19 ขั้นตอน)</span>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-semibold">19 ขั้นตอน</span>
+                <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
+                  <span>Reward Cycle (12 ขั้นตอนปฏิบัติงาน • อ้างอิง 19 ขั้นตอน)</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-semibold">12 Action Points</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                  คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร • การขออนุมัติและเบิกจ่ายเงินรางวัล / ค่าตีพิมพ์ (5 ฝ่าย 3 ระยะ 19 ขั้นตอน)
+                  คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร • การขออนุมัติและเบิกจ่ายเงินรางวัล / ค่าตีพิมพ์ (5 ฝ่าย 3 ระยะ)
                 </p>
               </div>
             </div>
@@ -803,6 +803,44 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
                   <div className="text-[11px] opacity-75 mt-0.5">{role.count} ขั้นตอน ({role.steps})</div>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* 12 ACTION STEPS SUMMARY TABLE (MAPPED TO 1-19) */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="p-3.5 bg-slate-900 text-white flex items-center justify-between">
+              <div className="text-xs sm:text-sm font-semibold flex items-center gap-2">
+                <span>ตาราง 12 ขั้นตอนปฏิบัติงานจริงในระบบ (อ้างอิงคู่กับ 1–19 เดิม)</span>
+              </div>
+              <span className="text-[11px] text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30">
+                5 ฝ่าย • 3 ระยะ • SLA มาตรฐาน
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200">
+                    <th className="py-2.5 px-3 text-center w-14">ลำดับ</th>
+                    <th className="py-2.5 px-3 text-center w-24">อ้างอิง 1–19</th>
+                    <th className="py-2.5 px-3">รายการขั้นตอน</th>
+                    <th className="py-2.5 px-3 w-36">SLA (วันทำการ)</th>
+                    <th className="py-2.5 px-3 w-40">ผู้รับผิดชอบ</th>
+                    <th className="py-2.5 px-3 text-center w-16">ระยะ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {WORKFLOW_12_ACTION_STEPS_DEF.map((s) => (
+                    <tr key={s.stepNumber} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                      <td className="py-2 px-3 text-center font-bold text-slate-900 dark:text-white">{s.stepNumber}</td>
+                      <td className="py-2 px-3 text-center font-mono text-slate-500">{s.refSteps}</td>
+                      <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-200">{s.title}</td>
+                      <td className="py-2 px-3 text-slate-600 dark:text-slate-400 font-mono">{s.slaDays}</td>
+                      <td className="py-2 px-3 text-slate-700 dark:text-slate-300">{s.responsibleParty}</td>
+                      <td className="py-2 px-3 text-center font-semibold text-amber-700 dark:text-amber-400">{s.phase}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 

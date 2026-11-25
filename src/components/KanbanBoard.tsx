@@ -16,6 +16,7 @@ import {
 import { UserRole } from './Header';
 import { ApplicationStatus, ResearchApplication, WorkflowStepId } from '../types';
 import { formatBaht } from '../data/regulations';
+import { getActionStepFrom19 } from '../data/workflow19Steps';
 
 interface KanbanBoardProps {
   applications: ResearchApplication[];
@@ -47,7 +48,7 @@ const KANBAN_LANES: KanbanLane[] = [
     statuses: ['submitted', 'draft'],
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
     headerBg: 'border-t-4 border-blue-500',
-    stepRange: 'ขั้นตอนที่ 1 - 2',
+    stepRange: 'ขั้นที่ 1/12 (อ้างอิง 1–2)',
     allowedRole: ['researcher', 'coordinator'],
   },
   {
@@ -57,7 +58,7 @@ const KANBAN_LANES: KanbanLane[] = [
     statuses: ['staff_verified', 'researcher_signed'],
     badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
     headerBg: 'border-t-4 border-amber-500',
-    stepRange: 'ขั้นตอนที่ 3 - 4',
+    stepRange: 'ขั้นที่ 2–3/12 (อ้างอิง 3–6)',
     allowedRole: ['coordinator'],
   },
   {
@@ -67,7 +68,7 @@ const KANBAN_LANES: KanbanLane[] = [
     statuses: ['admin_review', 'budget_verified', 'dean_approved'],
     badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     headerBg: 'border-t-4 border-indigo-500',
-    stepRange: 'ขั้นตอนที่ 5 - 12',
+    stepRange: 'ขั้นที่ 4–7/12 (อ้างอิง 7–12)',
     allowedRole: ['coordinator'],
   },
   {
@@ -77,7 +78,7 @@ const KANBAN_LANES: KanbanLane[] = [
     statuses: ['finance_processing'],
     badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
     headerBg: 'border-t-4 border-purple-500',
-    stepRange: 'ขั้นตอนที่ 13 - 17',
+    stepRange: 'ขั้นที่ 8–11/12 (อ้างอิง 13–17)',
     allowedRole: ['finance'],
   },
   {
@@ -87,7 +88,7 @@ const KANBAN_LANES: KanbanLane[] = [
     statuses: ['paid', 'closed'],
     badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     headerBg: 'border-t-4 border-emerald-500',
-    stepRange: 'ขั้นตอนที่ 18 - 19',
+    stepRange: 'ขั้นที่ 12/12 (อ้างอิง 18–19)',
     allowedRole: ['finance'],
   },
 ];
@@ -277,7 +278,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                           className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
                         >
                           <Eye className="w-3 h-3" />
-                          <span>ไทม์ไลน์</span>
+                          <span>ไทม์ไลน์ ({getActionStepFrom19(app.currentStep)}/12)</span>
                         </button>
 
                         <div className="flex items-center gap-1">

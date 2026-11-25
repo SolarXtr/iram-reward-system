@@ -645,7 +645,7 @@ export const TableView: React.FC<TableViewProps> = ({
                           return (
                             <span
                               className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${stepInfo.badgeClass}`}
-                              title={`ขั้นตอนที่ ${stepInfo.step}/19: ${stepInfo.stepTitle}`}
+                              title={`ขั้นตอนที่ ${stepInfo.step}/12 (อ้างอิง 19 ขั้นตอน: ${stepInfo.refSteps}): ${stepInfo.stepTitle}`}
                             >
                               {stepInfo.isActuallyPaid && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
                               <span>{stepInfo.label}</span>

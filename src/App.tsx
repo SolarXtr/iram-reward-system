@@ -20,7 +20,7 @@ import { AboutView } from './components/AboutView';
 import { LoginModal } from './components/LoginModal';
 import { ResearcherActivationModal } from './components/ResearcherActivationModal';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
-import { generateTimelineFor19Steps, getStatusFor19Step } from './data/workflow19Steps';
+import { generateTimelineFor19Steps, getActionStepFrom19, getStatusFor19Step } from './data/workflow19Steps';
 import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, PublicRewardSummary, ResearchApplication, UserProfile, WorkflowStepId, NuDisbursementRecord } from './types';
 import { generateNextTrackingNo } from './data/regulations';
 import { 
@@ -1401,7 +1401,8 @@ export default function App() {
       }
     }
 
-    showToast(`เลื่อนขั้นตอนสำเร็จ → ขั้นตอนที่ ${nextStep}/19`);
+    const actionStepNum = getActionStepFrom19(nextStep);
+    showToast(`เลื่อนขั้นตอนสำเร็จ → ขั้นตอนที่ ${actionStepNum}/12 (อ้างอิงขั้น ${nextStep}/19)`);
   };
 
   // 5. Send LINE Notification Trigger
