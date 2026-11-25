@@ -403,23 +403,30 @@ export function formatThaiDateShort(dateStr?: string): string {
 
 // ฟังก์ชันสร้างชื่อเรื่องบันทึกข้อความตามเงื่อนไข (มีคำว่า "บทความ")
 export function getMemoSubject(app: ResearchApplication, isDisbursement = false): string {
-  const isReward = (app.claimedRewardAmount || 0) > 0 || app.requestType === 'reward_only' || app.requestType === 'both';
-  const isPage = (app.approvedPageChargeAmount || 0) > 0 || app.requestType === 'page_charge_only' || app.requestType === 'both';
+  const reqType = app.requestType;
+  const isReward =
+    reqType === 'reward_only' ||
+    reqType === 'both' ||
+    (!reqType && (app.claimedRewardAmount || 0) > 0);
+  const isPage =
+    reqType === 'page_charge_only' ||
+    reqType === 'both' ||
+    (!reqType && ((app.approvedPageChargeAmount || 0) > 0 || (app.claimedPageChargeAmount || 0) > 0));
   const scopeStr = app.journalScope === 'national' ? 'ระดับชาติ' : 'ระดับนานาชาติ';
 
   if (isDisbursement) {
     if (isReward && isPage) {
-      return `ขออนุมัติเบิกเงินสนับสนุนค่าตีพิมพ์และเงินรางวัลตีพิมพ์บทความในวารสารวิชาการ${scopeStr}`;
+      return `ขออนุมัติเบิกเงินค่าตีพิมพ์และรางวัลตีพิมพ์บทความในวารสารวิชาการ${scopeStr}`;
     } else if (isPage) {
-      return `ขออนุมัติเบิกเงินสนับสนุนค่าตีพิมพ์บทความในวารสารวิชาการ${scopeStr}`;
+      return `ขออนุมัติเบิกเงินค่าตีพิมพ์บทความในวารสารวิชาการ${scopeStr}`;
     } else {
       return `ขออนุมัติเบิกเงินรางวัลตีพิมพ์บทความในวารสารวิชาการ${scopeStr}`;
     }
   } else {
     if (isReward && isPage) {
-      return `ขอรับการสนับสนุนค่าตีพิมพ์และเงินรางวัลตีพิมพ์บทความในวารสารวิชาการ${scopeStr}`;
+      return `ขออนุมัติเงินค่าตีพิมพ์และรางวัลตีพิมพ์บทความในวารสารวิชาการ${scopeStr}`;
     } else if (isPage) {
-      return `ขออนุมัติเงินสนับสนุนค่าตีพิมพ์บทความในวารสารวิชาการ${scopeStr}`;
+      return `ขออนุมัติเงินค่าตีพิมพ์บทความในวารสารวิชาการ${scopeStr}`;
     } else {
       return `ขออนุมัติเงินรางวัลตีพิมพ์บทความในวารสารวิชาการ${scopeStr}`;
     }

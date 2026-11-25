@@ -809,14 +809,14 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                     {
                       id: 'memo_reward',
                       num: '2',
-                      title: 'บันทึกขออนุมัติเงินรางวัล',
+                      title: 'บันทึกขออนุมัติเงินฯ',
                       sub: 'ถึง คณบดีคณะแพทยศาสตร์',
                       icon: Award,
                     },
                     {
                       id: 'memo_disbursement',
                       num: '3',
-                      title: 'บันทึกขออนุมัติเบิกเงินรางวัล',
+                      title: 'บันทึกขออนุมัติเบิกเงินฯ',
                       sub: 'ถึง อธิการบดีมหาวิทยาลัยนเรศวร',
                       icon: FileText,
                     },
@@ -958,7 +958,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-bold text-blue-900 flex items-center gap-1.5">
                             <Award className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                            <span>1. บันทึกขออนุมัติเงินรางวัล (ฉบับที่ 2)</span>
+                            <span>1. บันทึกขออนุมัติเงินฯ (ฉบับที่ 2)</span>
                           </span>
                           <span className="text-[9.5px] text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded font-medium">ฉบับต้นเรื่อง</span>
                         </div>
@@ -1049,7 +1049,7 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
                             <FileText className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                            <span>2. บันทึกขออนุมัติเบิกเงิน (ฉบับที่ 3)</span>
+                            <span>2. บันทึกขออนุมัติเบิกเงินฯ (ฉบับที่ 3)</span>
                           </span>
                           {activeDoc === 'memo_disbursement' && !disbursementDocRunningNo.trim() ? (
                             <span className="text-[9.5px] text-white bg-amber-500 px-1.5 py-0.5 rounded font-bold animate-pulse">⚠️ กรอกด้วย</span>
