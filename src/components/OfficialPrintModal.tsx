@@ -1004,28 +1004,35 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                             />
                             {!isResearcher && (
                               <>
-                                <input
-                                  ref={datePickerRef1}
-                                  type="date"
-                                  onChange={handlePickDate1}
-                                  className="sr-only"
-                                  tabIndex={-1}
-                                  aria-hidden="true"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    try {
-                                      datePickerRef1.current?.showPicker?.();
-                                    } catch {
-                                      datePickerRef1.current?.focus();
-                                    }
-                                  }}
-                                  className="p-1.5 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-600 border border-slate-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer shadow-xs flex items-center justify-center transition-colors"
-                                  title="เลือกวันที่จากปฏิทิน"
-                                >
-                                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                                </button>
+                                <div className="relative shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      try {
+                                        datePickerRef1.current?.showPicker?.();
+                                      } catch {
+                                        datePickerRef1.current?.focus();
+                                      }
+                                    }}
+                                    className="p-1.5 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-600 border border-slate-300 rounded-lg text-xs font-semibold cursor-pointer shadow-xs flex items-center justify-center transition-colors"
+                                    title="เลือกวันที่จากปฏิทิน"
+                                  >
+                                    <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                                  </button>
+                                  <input
+                                    ref={datePickerRef1}
+                                    type="date"
+                                    onChange={handlePickDate1}
+                                    onClick={() => {
+                                      try {
+                                        datePickerRef1.current?.showPicker?.();
+                                      } catch {}
+                                    }}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    tabIndex={-1}
+                                    aria-label="เลือกวันที่ในหนังสือ"
+                                  />
+                                </div>
                                 <button
                                   type="button"
                                   onClick={handleSetToday}
@@ -1097,28 +1104,35 @@ export const OfficialPrintModal: React.FC<OfficialPrintModalProps> = ({
                             />
                             {!isResearcher && (
                               <>
-                                <input
-                                  ref={datePickerRef2}
-                                  type="date"
-                                  onChange={handlePickDate2}
-                                  className="sr-only"
-                                  tabIndex={-1}
-                                  aria-hidden="true"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    try {
-                                      datePickerRef2.current?.showPicker?.();
-                                    } catch {
-                                      datePickerRef2.current?.focus();
-                                    }
-                                  }}
-                                  className="p-1.5 bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border border-slate-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer shadow-xs flex items-center justify-center transition-colors"
-                                  title="เลือกวันที่จากปฏิทิน"
-                                >
-                                  <Calendar className="w-3.5 h-3.5 text-indigo-600" />
-                                </button>
+                                <div className="relative shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      try {
+                                        datePickerRef2.current?.showPicker?.();
+                                      } catch {
+                                        datePickerRef2.current?.focus();
+                                      }
+                                    }}
+                                    className="p-1.5 bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border border-slate-300 rounded-lg text-xs font-semibold cursor-pointer shadow-xs flex items-center justify-center transition-colors"
+                                    title="เลือกวันที่จากปฏิทิน"
+                                  >
+                                    <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                                  </button>
+                                  <input
+                                    ref={datePickerRef2}
+                                    type="date"
+                                    onChange={handlePickDate2}
+                                    onClick={() => {
+                                      try {
+                                        datePickerRef2.current?.showPicker?.();
+                                      } catch {}
+                                    }}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    tabIndex={-1}
+                                    aria-label="เลือกวันที่ในบันทึกเบิกเงิน"
+                                  />
+                                </div>
                                 <button
                                   type="button"
                                   onClick={handleSetDisbursementToday}
