@@ -1855,10 +1855,10 @@ export default function App() {
         />
       )}
 
-      {/* MODAL 2: 12-Step SLA Timeline Tracker Modal */}
+      {/* MODAL 2: 19-Step SLA Timeline Tracker Modal */}
       <TimelineTrackerModal
         isOpen={!!timelineApp}
-        application={timelineApp}
+        application={timelineApp ? (applications.find((a) => a.id === timelineApp.id) || timelineApp) : null}
         onClose={() => setTimelineApp(null)}
         onAdvanceStep={handleAdvanceTimelineStep}
         onPrint={(app) => setPrintApp(app)}
