@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
   Calendar,
   ShieldCheck,
@@ -116,7 +117,30 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
     return false;
   };
 
-  const isAllowedToAdvance = canEdit && isRoleAuthorizedForActionStep(currentActionStep, currentRole as UserRole);
+  // Role authorization for stepping BACKWARD by 1 action step
+  const isRoleAuthorizedToRevertActionStep = (actionStep: number, role: UserRole): boolean => {
+    if (actionStep <= 1) return false;
+    if (role === 'admin') return true;
+    if (role === 'finance') {
+      // เจ้าหน้าที่การเงิน: ย้อนกลับได้ตามสิทธิ์ของงานการเงิน (ขั้น 5, 6, 11, 12 และย้อนจาก 7 กลับ 6 หากเพิ่งผ่านขั้น 6)
+      return actionStep === 5 || actionStep === 6 || actionStep === 7 || actionStep === 11 || actionStep === 12;
+    }
+    if (role === 'coordinator') {
+      // เจ้าหน้าที่งานวิจัย: ย้อนกลับได้ในช่วงขั้น 2..11 (ไม่อนุญาตให้ย้อนขั้น 12 โอนเงินแล้ว ซึ่งเป็นสิทธิ์งานการเงิน/ผู้ดูแลระบบ)
+      return actionStep >= 2 && actionStep <= 11;
+    }
+    if (role === 'executive') {
+      return actionStep === 7 || actionStep === 8 || actionStep === 10 || actionStep === 11;
+    }
+    if (role === 'dept_secretary') {
+      return (isSameDept || isMyApp) && (actionStep === 2 || actionStep === 4 || actionStep === 9);
+    }
+    return false;
+  };
+
+  const isAllowedToAdvance = canEdit && currentActionStep < 12 && isRoleAuthorizedForActionStep(currentActionStep, currentRole as UserRole);
+  const isAllowedToRevert = canEdit && currentActionStep > 1 && isRoleAuthorizedToRevertActionStep(currentActionStep, currentRole as UserRole);
+  const prevStepDef = currentActionStep > 1 ? getActionStepDef(currentActionStep - 1) : null;
   const isActuallyPaid =
     application.paymentStatus === 'transferred' ||
     (application.status === 'paid' && ref19Step >= 18);
@@ -125,6 +149,19 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
     if (currentActionStep < 12 && isAllowedToAdvance) {
       const nextCanonical19Step = getCanonical19StepForAction(currentActionStep + 1);
       onAdvanceStep(application.id, nextCanonical19Step, officerNote.trim() || undefined);
+      setOfficerNote('');
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentActionStep > 1 && isAllowedToRevert && prevStepDef) {
+      const confirmMsg =
+        currentActionStep === 12
+          ? `ต้องการย้อนกลับขั้นตอนจาก "ขั้นที่ 12/12 (${currentStepDef.title})" กลับไปยัง "ขั้นที่ 11/12 (${prevStepDef.title})" และปรับสถานะการโอนเงินกลับเป็นรอโอน ใช่หรือไม่?`
+          : `ต้องการย้อนกลับ 1 ขั้นตอน จาก "ขั้นที่ ${currentActionStep}/12 (${currentStepDef.title})" กลับไปยัง "ขั้นที่ ${currentActionStep - 1}/12 (${prevStepDef.title})" ใช่หรือไม่?`;
+      if (!window.confirm(confirmMsg)) return;
+      const prevCanonical19Step = getCanonical19StepForAction(currentActionStep - 1);
+      onAdvanceStep(application.id, prevCanonical19Step, officerNote.trim() || undefined);
       setOfficerNote('');
     }
   };
@@ -463,28 +500,30 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
           })}
         </div>
 
-        {/* Sticky Footer: Officer Step-by-Step Advance Controls */}
+        {/* Sticky Footer: Officer Step-by-Step Advance & 1-Step Revert Controls */}
         <div className="px-4 sm:px-5 py-3 bg-slate-100 dark:bg-slate-800/95 border-t border-slate-300 dark:border-slate-700 shrink-0 space-y-2">
           {canEdit && currentActionStep < 12 ? (
             <>
               <div className="flex items-center justify-between text-[11px]">
                 <span className="font-bold text-slate-800 dark:text-white font-prompt flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-blue-700 dark:text-blue-400 shrink-0" />
-                  <span>ส่วนงานเจ้าหน้าที่: ตรวจสอบและส่งต่องานตามลำดับ (Step-by-Step)</span>
+                  <span>ส่วนงานเจ้าหน้าที่: ปรับขั้นตอนทีละ 1 ขั้นตอน (เดินหน้า / ย้อนกลับตามสิทธิ์)</span>
                 </span>
                 <span className="text-slate-600 dark:text-slate-400">
                   สิทธิ์: <strong className="text-blue-900 dark:text-amber-400 uppercase">{currentRole}</strong>
                 </span>
               </div>
 
-              {!isAllowedToAdvance ? (
+              {!isAllowedToAdvance && (
                 <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-300 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
-                    ขั้นตอนที่ {currentActionStep}/12 ({currentStepDef.title}) อยู่ในความรับผิดชอบของ <strong>{currentStepDef.responsibleParty}</strong> (สิทธิ์ปัจจุบัน <strong className="uppercase">{currentRole}</strong> ไม่สามารถกดยืนยันขั้นตอนนี้ได้)
+                    ขั้นตอนที่ {currentActionStep}/12 ({currentStepDef.title}) อยู่ในความรับผิดชอบของ <strong>{currentStepDef.responsibleParty}</strong> (สิทธิ์ปัจจุบัน <strong className="uppercase">{currentRole}</strong> ไม่สามารถกดยืนยันไปขั้นถัดไปได้{isAllowedToRevert ? ' — แต่สามารถย้อนกลับ 1 ขั้นตอนได้' : ''})
                   </span>
                 </div>
-              ) : (
+              )}
+
+              {(isAllowedToAdvance || isAllowedToRevert) && (
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
@@ -492,38 +531,76 @@ export const TimelineTrackerModal: React.FC<TimelineTrackerModalProps> = ({
                     value={officerNote}
                     onChange={(e) => setOfficerNote(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleNextStep();
+                      if (e.key === 'Enter' && isAllowedToAdvance) handleNextStep();
                     }}
                     className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-white"
                   />
-                  <button
-                    type="button"
-                    onClick={handleNextStep}
-                    className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors shrink-0 cursor-pointer"
-                  >
-                    <span>ผ่านขั้นตอนที่ {currentActionStep} &rarr; ไปขั้นตอนที่ {currentActionStep + 1}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isAllowedToRevert && (
+                      <button
+                        type="button"
+                        onClick={handlePrevStep}
+                        className="px-3 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 border border-amber-300 dark:border-amber-700 shadow-xs transition-colors shrink-0 cursor-pointer"
+                        title={`ย้อนกลับ 1 ขั้นตอนไปยังขั้นตอนที่ ${currentActionStep - 1}/12 (${prevStepDef?.title || ''})`}
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>ย้อนกลับขั้นที่ {currentActionStep - 1}</span>
+                      </button>
+                    )}
+                    {isAllowedToAdvance && (
+                      <button
+                        type="button"
+                        onClick={handleNextStep}
+                        className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors shrink-0 cursor-pointer"
+                      >
+                        <span>ผ่านขั้นตอนที่ {currentActionStep} &rarr; ไปขั้นตอนที่ {currentActionStep + 1}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </>
           ) : currentActionStep === 12 ? (
-            <div className="flex items-center justify-between gap-3 text-emerald-900 dark:text-emerald-200">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="font-bold text-xs sm:text-sm font-prompt">
-                  กระบวนการขอรับเงินรางวัลและค่าตีพิมพ์เสร็จสมบูรณ์แล้ว (12/12 • อ้างอิง 18–19/19)
-                </span>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-emerald-900 dark:text-emerald-200">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="font-bold text-xs sm:text-sm font-prompt">
+                    กระบวนการขอรับเงินรางวัลและค่าตีพิมพ์เสร็จสมบูรณ์แล้ว (12/12 • อ้างอิง 18–19/19)
+                  </span>
+                </div>
+                {isActuallyPaid && (
+                  <button
+                    type="button"
+                    onClick={() => onVerifyPayment(application)}
+                    className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                  >
+                    <Banknote className="w-3.5 h-3.5" />
+                    <span>ดูหลักฐานโอนเงิน</span>
+                  </button>
+                )}
               </div>
-              {isActuallyPaid && (
-                <button
-                  type="button"
-                  onClick={() => onVerifyPayment(application)}
-                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
-                >
-                  <Banknote className="w-3.5 h-3.5" />
-                  <span>ดูหลักฐานโอนเงิน</span>
-                </button>
+
+              {isAllowedToRevert && (
+                <div className="flex flex-col sm:flex-row gap-2 pt-1.5 border-t border-slate-200 dark:border-slate-700">
+                  <input
+                    type="text"
+                    placeholder="ระบุเหตุผลในการย้อนกลับขั้นตอนที่ 12 → 11 (ถ้ามี)..."
+                    value={officerNote}
+                    onChange={(e) => setOfficerNote(e.target.value)}
+                    className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handlePrevStep}
+                    className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 border border-amber-300 dark:border-amber-700 shadow-xs transition-colors shrink-0 cursor-pointer"
+                    title="ย้อนกลับ 1 ขั้นตอนไปยังขั้นตอนที่ 11/12 (การเงินจัดทำฎีกาส่งเบิกเงิน)"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>ย้อนกลับขั้นที่ 12 &rarr; ขั้นที่ 11</span>
+                  </button>
+                </div>
               )}
             </div>
           ) : (

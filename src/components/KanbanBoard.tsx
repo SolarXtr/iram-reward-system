@@ -5,6 +5,7 @@ import {
   FileText, 
   Printer, 
   Eye, 
+  ArrowLeft,
   ArrowRight, 
   Sparkles, 
   User, 
@@ -114,6 +115,51 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     e.preventDefault();
   };
 
+  const getLaneTargetState = (laneId: string): { nextStatus: ApplicationStatus; nextStep: WorkflowStepId } => {
+    if (laneId === 'lane-verify') {
+      return { nextStatus: 'staff_verified', nextStep: 3 };
+    }
+    if (laneId === 'lane-approval') {
+      return { nextStatus: 'dean_approved', nextStep: 11 };
+    }
+    if (laneId === 'lane-finance') {
+      return { nextStatus: 'finance_processing', nextStep: 17 };
+    }
+    if (laneId === 'lane-transferred') {
+      return { nextStatus: 'paid', nextStep: 18 };
+    }
+    return { nextStatus: 'submitted', nextStep: 2 };
+  };
+
+  // สิทธิ์ในการย้อนกลับ 1 ช่องจากช่องปัจจุบัน: Admin ย้อนได้ทุกช่อง, ส่วนเจ้าหน้าที่ย้อนได้เฉพาะช่องที่เป็นความรับผิดชอบของบทบาทตน
+  const canRevertFromLane = (sourceLane: KanbanLane): boolean => {
+    if (sourceLane.order <= 1) return false;
+    if (currentRole === 'admin') return true;
+    return sourceLane.allowedRole.includes(currentRole as UserRole);
+  };
+
+  const handleRevertOneLane = (app: ResearchApplication, sourceLane: KanbanLane) => {
+    if (!canRevertFromLane(sourceLane)) {
+      const msg = `⚠️ สิทธิ์ไม่เพียงพอ! การย้อนกลับจากช่อง "${sourceLane.title}" กำหนดให้เฉพาะบทบาท [${sourceLane.allowedRole.join(', ')}] หรือผู้ดูแลระบบเท่านั้น (ปัจจุบันท่านอยู่ในบทบาท: ${currentRole})`;
+      if (onShowAlert) onShowAlert(msg);
+      else alert(msg);
+      return;
+    }
+
+    const prevLane = KANBAN_LANES.find((l) => l.order === sourceLane.order - 1);
+    if (!prevLane) return;
+
+    const confirmMsg =
+      sourceLane.id === 'lane-transferred'
+        ? `ต้องการย้อนกลับคำขอ ${app.trackingNo} จาก "${sourceLane.title}" กลับไปยัง "${prevLane.title}" และปรับสถานะการโอนเงินกลับเป็นรอโอน ใช่หรือไม่?`
+        : `ต้องการย้อนกลับคำขอ ${app.trackingNo} 1 ขั้นตอน จาก "${sourceLane.title}" กลับไปยัง "${prevLane.title}" ใช่หรือไม่?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    const { nextStatus, nextStep } = getLaneTargetState(prevLane.id);
+    onUpdateStatus(app.id, nextStatus, nextStep);
+  };
+
   const handleDrop = (e: React.DragEvent, targetLane: KanbanLane) => {
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain') || draggedAppId;
@@ -131,10 +177,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       return;
     }
 
-    // Check 2: Sequential advancement rule - only forward by exactly 1 lane
-    if (targetLane.order !== sourceLane.order + 1) {
+    const isForwardOne = targetLane.order === sourceLane.order + 1;
+    const isBackwardOne = targetLane.order === sourceLane.order - 1;
+
+    // Check 2: Sequential rule - allow forward by 1 lane OR backward by 1 lane only
+    if (!isForwardOne && !isBackwardOne) {
       const msg = targetLane.order < sourceLane.order
-        ? '⚠️ ไม่อนุญาตให้ย้อนสถานะงานกลับทางกระดาน'
+        ? `⚠️ ห้ามย้อนข้ามขั้นตอน! สามารถย้อนกลับได้ครั้งละ 1 ขั้นตอนจาก "${sourceLane.title}" ไปยังช่องก่อนหน้าเท่านั้น`
         : `⚠️ ห้ามเลื่อนข้ามขั้นตอน! ต้องดำเนินการตามลำดับจาก "${sourceLane.title}" ไปยังช่องถัดไปเท่านั้น`;
       if (onShowAlert) onShowAlert(msg);
       else alert(msg);
@@ -142,32 +191,34 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       return;
     }
 
-    // Check 3: Role authorization rule (Admin role has full access to all lanes)
-    if (currentRole !== 'admin' && !targetLane.allowedRole.includes(currentRole as UserRole)) {
-      const msg = `⚠️ สิทธิ์ไม่เพียงพอ! ช่อง "${targetLane.title}" กำหนดให้เฉพาะบทบาท [${targetLane.allowedRole.join(', ')}] เป็นผู้ดำเนินการเท่านั้น (ปัจจุบันท่านอยู่ในบทบาท: ${currentRole})`;
-      if (onShowAlert) onShowAlert(msg);
-      else alert(msg);
-      setDraggedAppId(null);
-      return;
+    // Check 3: Role authorization rule (Admin has full access; officers can advance into or revert from their authorized lanes)
+    if (isForwardOne) {
+      if (currentRole !== 'admin' && !targetLane.allowedRole.includes(currentRole as UserRole)) {
+        const msg = `⚠️ สิทธิ์ไม่เพียงพอ! ช่อง "${targetLane.title}" กำหนดให้เฉพาะบทบาท [${targetLane.allowedRole.join(', ')}] เป็นผู้ดำเนินการเท่านั้น (ปัจจุบันท่านอยู่ในบทบาท: ${currentRole})`;
+        if (onShowAlert) onShowAlert(msg);
+        else alert(msg);
+        setDraggedAppId(null);
+        return;
+      }
+    } else if (isBackwardOne) {
+      if (!canRevertFromLane(sourceLane)) {
+        const msg = `⚠️ สิทธิ์ไม่เพียงพอ! การย้อนกลับจากช่อง "${sourceLane.title}" กำหนดให้เฉพาะบทบาท [${sourceLane.allowedRole.join(', ')}] หรือผู้ดูแลระบบเท่านั้น (ปัจจุบันท่านอยู่ในบทบาท: ${currentRole})`;
+        if (onShowAlert) onShowAlert(msg);
+        else alert(msg);
+        setDraggedAppId(null);
+        return;
+      }
+      const confirmMsg =
+        sourceLane.id === 'lane-transferred'
+          ? `ต้องการย้อนกลับคำขอ ${targetApp.trackingNo} จาก "${sourceLane.title}" กลับไปยัง "${targetLane.title}" และปรับสถานะการโอนเงินกลับเป็นรอโอน ใช่หรือไม่?`
+          : `ต้องการย้อนกลับคำขอ ${targetApp.trackingNo} 1 ขั้นตอน จาก "${sourceLane.title}" กลับไปยัง "${targetLane.title}" ใช่หรือไม่?`;
+      if (!window.confirm(confirmMsg)) {
+        setDraggedAppId(null);
+        return;
+      }
     }
 
-    let nextStatus: ApplicationStatus = 'submitted';
-    let nextStep: WorkflowStepId = 1;
-
-    if (targetLane.id === 'lane-verify') {
-      nextStatus = 'staff_verified';
-      nextStep = 3;
-    } else if (targetLane.id === 'lane-approval') {
-      nextStatus = 'dean_approved';
-      nextStep = 11;
-    } else if (targetLane.id === 'lane-finance') {
-      nextStatus = 'finance_processing';
-      nextStep = 17;
-    } else if (targetLane.id === 'lane-transferred') {
-      nextStatus = 'paid';
-      nextStep = 18;
-    }
-
+    const { nextStatus, nextStep } = getLaneTargetState(targetLane.id);
     onUpdateStatus(id, nextStatus, nextStep);
     setDraggedAppId(null);
   };
@@ -176,14 +227,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
         <div>
-          <h2 className="text-base font-bold text-slate-900 font-prompt flex items-center gap-2">
+          <h2 className="text-base font-bold text-slate-900 font-prompt flex items-center gap-2 flex-wrap">
             <span>กระดานติดตามสถานะแบบลากวาง (Interactive Kanban Flow)</span>
-            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-              ลากการ์ดเพื่อเลื่อนขั้นตอน
+            <span className="text-xs font-normal text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">
+              ลากการ์ดเดินหน้า / ย้อนกลับได้ครั้งละ 1 ขั้นตอนตามสิทธิ์
             </span>
           </h2>
-          <p className="text-xs text-slate-500">
-            จำแนกตาม 5 ช่วงการดำเนินงานหลักตามขั้นตอนการดำเนินงาน
+          <p className="text-xs text-slate-500 mt-0.5">
+            จำแนกตาม 5 ช่วงการดำเนินงานหลัก (12 ขั้นตอนปฏิบัติงาน) • เจ้าหน้าที่งานวิจัย/การเงิน/ผู้ดูแลระบบ สามารถย้อนกลับทีละ 1 ขั้นตอนตามสิทธิ์ของตนเอง
           </p>
         </div>
       </div>
@@ -282,6 +333,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         </button>
 
                         <div className="flex items-center gap-1">
+                          {canRevertFromLane(lane) && (
+                            <button
+                              onClick={() => handleRevertOneLane(app, lane)}
+                              className="px-1.5 py-1 text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded text-[10px] font-semibold flex items-center gap-0.5 transition-colors cursor-pointer"
+                              title={`ย้อนกลับ 1 ขั้นตอนไปยังช่องก่อนหน้า`}
+                            >
+                              <ArrowLeft className="w-3 h-3" />
+                              <span>ย้อน 1 ขั้น</span>
+                            </button>
+                          )}
+
                           <button
                             onClick={() => onPrintApplication(app)}
                             className="p-1 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded"

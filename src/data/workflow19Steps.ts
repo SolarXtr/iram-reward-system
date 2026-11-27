@@ -322,8 +322,8 @@ export function generateTimelineFor19Steps(currentStep: number): WorkflowStep[] 
 
 /**
  * Map a 19-step workflow number to its corresponding ApplicationStatus.
- * Matches the 5 Kanban lanes: 1-2 (submitted), 3-4 (staff_verified),
- * 5-12 (dean_approved), 13-17 (finance_processing), 18-19 (paid).
+ * Matches the 5 Kanban lanes: 1-2 (submitted), 3-6 (staff_verified),
+ * 7-12 (dean_approved), 13-17 (finance_processing), 18-19 (paid).
  */
 export function getStatusFor19Step(
   step: number,
@@ -335,6 +335,93 @@ export function getStatusFor19Step(
   if (s >= 7 && s <= 12) return 'dean_approved';
   if (s >= 13 && s <= 17) return 'finance_processing';
   return 'paid';
+}
+
+/**
+ * Rebuild timeline step statuses cleanly for both advancing and reverting.
+ * Steps < targetStep -> completed; step === targetStep -> in_progress; steps > targetStep -> pending (completedAt cleared).
+ */
+export function rebuildTimelineForStep(
+  existingTimeline: WorkflowStep[] | undefined,
+  targetStep: WorkflowStepId,
+  note?: string
+): WorkflowStep[] {
+  const normalizedTarget = normalizeWorkflowStep(targetStep);
+  const today = new Date().toISOString().split('T')[0];
+  const baseTimeline =
+    existingTimeline && existingTimeline.length > 0
+      ? existingTimeline
+      : generateTimelineFor19Steps(normalizedTarget);
+
+  return baseTimeline.map((step) => {
+    if (step.stepNumber < normalizedTarget) {
+      return {
+        ...step,
+        status: 'completed' as const,
+        completedAt: step.completedAt || today,
+      };
+    }
+    if (step.stepNumber === normalizedTarget) {
+      return {
+        ...step,
+        status: 'in_progress' as const,
+        completedAt: undefined,
+        notes: note !== undefined ? note : step.notes,
+      };
+    }
+    return {
+      ...step,
+      status: 'pending' as const,
+      completedAt: undefined,
+    };
+  });
+}
+
+/**
+ * Synchronize currentStep, paymentStatus, paymentDate, and timeline when ApplicationStatus
+ * is updated directly (e.g., from TableView inline status dropdown).
+ */
+export function syncWorkflowFieldsForStatus(
+  original: ResearchApplication,
+  updated: ResearchApplication
+): ResearchApplication {
+  const newStatus = updated.status;
+  if (newStatus === original.status) {
+    return updated;
+  }
+
+  const current19 = normalizeWorkflowStep(updated.currentStep || original.currentStep || 1);
+  let syncedStep: WorkflowStepId = current19;
+
+  if (newStatus === 'draft') {
+    syncedStep = 1;
+  } else if (newStatus === 'submitted') {
+    syncedStep = 2;
+  } else if (newStatus === 'staff_verified' || newStatus === 'researcher_signed') {
+    syncedStep = current19 >= 3 && current19 <= 6 ? current19 : 3;
+  } else if (newStatus === 'admin_review' || newStatus === 'budget_verified' || newStatus === 'dean_approved') {
+    syncedStep = current19 >= 7 && current19 <= 12 ? current19 : 11;
+  } else if (newStatus === 'finance_processing') {
+    syncedStep = current19 >= 13 && current19 <= 17 ? current19 : 17;
+  } else if (newStatus === 'paid' || newStatus === 'closed') {
+    syncedStep = current19 >= 18 ? current19 : 18;
+  }
+
+  const isNowPaid = newStatus === 'paid' || newStatus === 'closed';
+  const nextPaymentStatus = isNowPaid ? 'transferred' : 'unpaid';
+  const nextPaymentDate = isNowPaid
+    ? updated.paymentDate || new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })
+    : original.status === 'paid' || original.paymentStatus === 'transferred'
+    ? ''
+    : updated.paymentDate;
+
+  return {
+    ...updated,
+    currentStep: syncedStep,
+    paymentStatus: nextPaymentStatus,
+    paymentDate: nextPaymentDate,
+    timeline: rebuildTimelineForStep(updated.timeline || original.timeline, syncedStep),
+  };
 }
 
 export interface WorkflowActionStep12 {

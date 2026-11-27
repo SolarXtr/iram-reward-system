@@ -20,7 +20,14 @@ import { AboutView } from './components/AboutView';
 import { LoginModal } from './components/LoginModal';
 import { ResearcherActivationModal } from './components/ResearcherActivationModal';
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
-import { generateTimelineFor19Steps, getActionStepFrom19, getStatusFor19Step } from './data/workflow19Steps';
+import {
+  generateTimelineFor19Steps,
+  getActionStepFrom19,
+  getStatusFor19Step,
+  normalizeWorkflowStep,
+  rebuildTimelineForStep,
+  syncWorkflowFieldsForStatus,
+} from './data/workflow19Steps';
 import { ApplicationStatus, LineMilestoneType, LineNotificationRecord, PublicRewardSummary, ResearchApplication, UserProfile, WorkflowStepId, NuDisbursementRecord } from './types';
 import { generateNextTrackingNo } from './data/regulations';
 import { 
@@ -1284,49 +1291,83 @@ export default function App() {
     showToast(`↩️ ย้ายรายการกลับมาเตรียมเบิกในปีงบประมาณ ${currentFiscalYear} เรียบร้อยแล้ว`);
   };
 
-  // 2. Drag-and-Drop / Kanban status update
+  // 2. Drag-and-Drop / Kanban status update (supports 1-step forward & 1-step backward)
   const handleUpdateStatus = (id: string, newStatus: ApplicationStatus, nextStep: WorkflowStepId) => {
     const target = applications.find(a => a.id === id);
+    const prev19Step = normalizeWorkflowStep(target?.currentStep || 1);
+    const prevActionStep = getActionStepFrom19(prev19Step);
+    const nextActionStep = getActionStepFrom19(nextStep);
+    const isRevert = target ? nextStep < prev19Step : false;
+    const todayIso = new Date().toISOString().split('T')[0];
+    const todayThai = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+    const isNowPaid = newStatus === 'paid';
+    const wasPaid = Boolean(target && (target.status === 'paid' || target.paymentStatus === 'transferred'));
+    const nextPaymentStatus = isNowPaid ? 'transferred' : (wasPaid ? 'unpaid' : target?.paymentStatus);
+    const nextPaymentDate = isNowPaid
+      ? (target?.paymentDate || todayThai)
+      : (wasPaid ? '' : target?.paymentDate);
+    const nextVoucherNo = isNowPaid
+      ? (target?.disbursementVoucherNo || `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70`)
+      : target?.disbursementVoucherNo;
+    const nextTimeline = target ? rebuildTimelineForStep(target.timeline, nextStep) : undefined;
+
     setApplications((prev) =>
       prev.map((app) => {
         if (app.id !== id) return app;
-        const isNowPaid = newStatus === 'paid';
+        const appWasPaid = app.status === 'paid' || app.paymentStatus === 'transferred';
         return {
           ...app,
           status: newStatus,
           currentStep: nextStep,
-          paymentStatus: isNowPaid ? 'transferred' : app.paymentStatus,
-          paymentDate: isNowPaid && !app.paymentDate ? new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : app.paymentDate,
-          disbursementVoucherNo: isNowPaid && !app.disbursementVoucherNo ? `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70` : app.disbursementVoucherNo,
-          updatedAt: new Date().toISOString().split('T')[0],
+          paymentStatus: isNowPaid ? 'transferred' : (appWasPaid ? 'unpaid' : app.paymentStatus),
+          paymentDate: isNowPaid
+            ? (app.paymentDate || todayThai)
+            : (appWasPaid ? '' : app.paymentDate),
+          disbursementVoucherNo: isNowPaid
+            ? (app.disbursementVoucherNo || nextVoucherNo)
+            : app.disbursementVoucherNo,
+          timeline: rebuildTimelineForStep(app.timeline, nextStep),
+          updatedAt: todayIso,
         };
       })
     );
-    showToast(`อัปเดตสถานะโครงการเป็น "${newStatus}" (ขั้นตอนที่ ${nextStep}) เรียบร้อย`);
+
+    showToast(
+      isRevert
+        ? `↩️ ย้อนกลับขั้นตอนสำเร็จ → ขั้นตอนที่ ${nextActionStep}/12 (อ้างอิงขั้น ${nextStep}/19)`
+        : `อัปเดตสถานะสำเร็จ → ขั้นตอนที่ ${nextActionStep}/12 (อ้างอิงขั้น ${nextStep}/19)`
+    );
+
     logActivity(
-      'UPDATE_STATUS',
+      isRevert ? 'REVERT_STEP' : 'UPDATE_STATUS',
       'REWARD_APPLICATION',
       target?.trackingNo || id,
-      `เปลี่ยนสถานะเป็น "${newStatus}" (ขั้นตอนที่ ${nextStep}) บทความ: "${target?.articleTitle || '-'}"`
+      isRevert
+        ? `ย้อนกลับขั้นตอนผ่าน Kanban จากขั้นที่ ${prevActionStep}/12 → ${nextActionStep}/12 (อ้างอิง ${nextStep}/19, สถานะ: ${newStatus}) บทความ: "${target?.articleTitle || '-'}"`
+        : `เปลี่ยนสถานะผ่าน Kanban เป็น "${newStatus}" (ขั้นที่ ${nextActionStep}/12, อ้างอิง ${nextStep}/19) บทความ: "${target?.articleTitle || '-'}"`
     );
 
     // Cloudflare D1 sync for status update
     updateRewardApplicationInD1(id, {
       status: newStatus,
       currentStep: nextStep,
-      paymentStatus: newStatus === 'paid' ? 'transferred' : undefined,
-      paymentDate: newStatus === 'paid' ? new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : undefined,
-      disbursementVoucherNo: newStatus === 'paid' ? (target?.disbursementVoucherNo || `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70`) : undefined,
-    }).catch(e => console.warn('D1 update status error:', e));
+      paymentStatus: nextPaymentStatus,
+      paymentDate: nextPaymentDate,
+      disbursementVoucherNo: nextVoucherNo,
+      timeline: nextTimeline,
+    }).catch((e) => {
+      console.warn('D1 update status error:', e);
+      showToast(`⚠️ อัปเดตสถานะในหน้าจอแล้ว แต่ซิงก์เข้า Cloudflare D1 ไม่สำเร็จ: ${e.message}`);
+    });
 
-    // Automatic LINE Trigger on milestone status changes
-    if (target) {
+    // Automatic LINE Trigger on forward milestone status changes only (do NOT notify on revert)
+    if (target && !isRevert) {
       if (newStatus === 'paid') {
         triggerLineMilestoneNotification({ 
           ...target, 
           status: 'paid', 
           currentStep: nextStep, 
-          disbursementVoucherNo: target.disbursementVoucherNo || 'ฎีกา 3606/70'
+          disbursementVoucherNo: nextVoucherNo || 'ฎีกา 3606/70'
         }, 'payment_transferred');
       } else if (newStatus === 'staff_verified') {
         triggerLineMilestoneNotification({ ...target, status: newStatus, currentStep: nextStep }, 'document_verified');
@@ -1336,30 +1377,57 @@ export default function App() {
     }
   };
 
-  // 3. Save edited row in Table view
-  const handleSaveTableRow = (updatedApp: ResearchApplication) => {
-    let cleanApp = { ...updatedApp };
+  // 3. Save edited row in Table view (with full status/step/payment sync & D1 confirmation)
+  const handleSaveTableRow = async (updatedApp: ResearchApplication): Promise<boolean> => {
+    const original = applications.find((a) => a.id === updatedApp.id);
+    let cleanApp: ResearchApplication = { ...updatedApp };
+
     if (cleanApp.quartile === 'TCI_2' && cleanApp.database !== 'TCI Tier 2') {
       cleanApp.database = 'TCI Tier 2';
       cleanApp.databaseName = 'TCI Tier 2';
     } else if (cleanApp.quartile === 'TCI_1' && cleanApp.database !== 'TCI Tier 1') {
       cleanApp.database = 'TCI Tier 1';
       cleanApp.databaseName = 'TCI Tier 1';
+    } else if (cleanApp.database && !cleanApp.databaseName) {
+      cleanApp.databaseName = cleanApp.database;
     }
+
+    const rewardAmt = Math.max(0, Number(cleanApp.claimedRewardAmount ?? 0) || 0);
+    const pageChargeAmt = Math.max(0, Number(cleanApp.approvedPageChargeAmount ?? 0) || 0);
+    cleanApp.claimedRewardAmount = rewardAmt;
+    cleanApp.approvedPageChargeAmount = pageChargeAmt;
+    cleanApp.totalClaimedAmount = rewardAmt + pageChargeAmt;
+
+    if (original) {
+      cleanApp = syncWorkflowFieldsForStatus(original, cleanApp);
+    }
+
+    // Optimistic UI update
     setApplications((prev) =>
       prev.map((a) => (a.id === cleanApp.id ? cleanApp : a))
     );
-    showToast(`บันทึกการแก้ไข ${cleanApp.trackingNo} สำเร็จ`);
-    logActivity(
-      'UPDATE_APPLICATION',
-      'REWARD_APPLICATION',
-      cleanApp.trackingNo,
-      `แก้ไขข้อมูลคำขอในตาราง: "${cleanApp.articleTitle}" ของ ${cleanApp.applicantName} ยอดรวม ${cleanApp.totalClaimedAmount.toLocaleString()} บาท`
-    );
 
-    // Cloudflare D1 sync
-    updateRewardApplicationInD1(cleanApp.id, cleanApp)
-      .catch(e => console.warn('D1 update row error:', e));
+    try {
+      await updateRewardApplicationInD1(cleanApp.id, cleanApp);
+      showToast(`✅ บันทึกการแก้ไข ${cleanApp.trackingNo} ลงฐานข้อมูล D1 สำเร็จ`);
+      logActivity(
+        'UPDATE_APPLICATION',
+        'REWARD_APPLICATION',
+        cleanApp.trackingNo,
+        `แก้ไขข้อมูลคำขอในตาราง: "${cleanApp.articleTitle}" ของ ${cleanApp.applicantName} สถานะ ${cleanApp.status} (ขั้น ${getActionStepFrom19(cleanApp.currentStep)}/12) ยอดรวม ${cleanApp.totalClaimedAmount.toLocaleString()} บาท`
+      );
+      return true;
+    } catch (e: any) {
+      console.error('D1 update row error:', e);
+      // Rollback optimistic update so UI reflects actual persisted DB state
+      if (original) {
+        setApplications((prev) =>
+          prev.map((a) => (a.id === original.id ? original : a))
+        );
+      }
+      showToast(`⚠️ บันทึกการแก้ไข ${cleanApp.trackingNo} ลงฐานข้อมูล D1 ไม่สำเร็จ: ${e?.message || 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้'}`);
+      return false;
+    }
   };
 
   // 3.1 Update Document Numbering & Online Review Details
@@ -1399,34 +1467,45 @@ export default function App() {
     showToast('บันทึกข้อมูลเลขที่หนังสือราชการและวันที่เรียบร้อย');
   };
 
-  // 4. Advance timeline step
+  // 4. Advance or Revert timeline step by 1 action step
   const handleAdvanceTimelineStep = (id: string, nextStep: WorkflowStepId, note?: string) => {
     const target = applications.find(a => a.id === id);
+    const prev19Step = normalizeWorkflowStep(target?.currentStep || 1);
+    const prevActionStep = getActionStepFrom19(prev19Step);
+    const actionStepNum = getActionStepFrom19(nextStep);
+    const isRevert = target ? nextStep < prev19Step : false;
+    const todayIso = new Date().toISOString().split('T')[0];
+    const todayThai = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+    const isNowPaid = nextStep >= 18;
+    const wasPaid = Boolean(target && (target.status === 'paid' || target.paymentStatus === 'transferred'));
+    const nextPaymentStatus = isNowPaid ? 'transferred' : (wasPaid ? 'unpaid' : target?.paymentStatus);
+    const nextPaymentDate = isNowPaid
+      ? (target?.paymentDate || todayThai)
+      : (wasPaid ? '' : target?.paymentDate);
+    const nextVoucherNo = isNowPaid
+      ? (target?.disbursementVoucherNo || `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70`)
+      : target?.disbursementVoucherNo;
+    const updatedTimelineForD1 = target ? rebuildTimelineForStep(target.timeline, nextStep, note) : undefined;
+
     setApplications((prev) =>
       prev.map((app) => {
         if (app.id !== id) return app;
         const newStatus = getStatusFor19Step(nextStep, app.status);
-
-        const updatedTimeline = app.timeline.map((step) => {
-          if (step.stepNumber < nextStep) {
-            return { ...step, status: 'completed' as const, completedAt: step.completedAt || new Date().toISOString().split('T')[0] };
-          }
-          if (step.stepNumber === nextStep) {
-            return { ...step, status: 'in_progress' as const, notes: note || step.notes };
-          }
-          return { ...step, status: 'pending' as const };
-        });
-
-        const isNowPaid = nextStep >= 18;
+        const updatedTimeline = rebuildTimelineForStep(app.timeline, nextStep, note);
+        const appWasPaid = app.status === 'paid' || app.paymentStatus === 'transferred';
 
         return {
           ...app,
           currentStep: nextStep,
           status: newStatus,
-          paymentStatus: isNowPaid ? 'transferred' : app.paymentStatus,
-          paymentDate: isNowPaid && !app.paymentDate ? new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : app.paymentDate,
-          disbursementVoucherNo: isNowPaid && !app.disbursementVoucherNo ? `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70` : app.disbursementVoucherNo,
-          updatedAt: new Date().toISOString().split('T')[0],
+          paymentStatus: isNowPaid ? 'transferred' : (appWasPaid ? 'unpaid' : app.paymentStatus),
+          paymentDate: isNowPaid
+            ? (app.paymentDate || todayThai)
+            : (appWasPaid ? '' : app.paymentDate),
+          disbursementVoucherNo: isNowPaid
+            ? (app.disbursementVoucherNo || nextVoucherNo)
+            : app.disbursementVoucherNo,
+          updatedAt: todayIso,
           timeline: updatedTimeline,
         };
       })
@@ -1435,47 +1514,52 @@ export default function App() {
     // Cloudflare D1 sync
     if (target) {
       const calcStatus = getStatusFor19Step(nextStep, target.status);
-      const isNowPaid = nextStep >= 18;
 
       updateRewardApplicationInD1(id, {
         currentStep: nextStep,
         status: calcStatus,
-        paymentStatus: isNowPaid ? 'transferred' : undefined,
-        paymentDate: isNowPaid && !target.paymentDate ? new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : undefined,
-        disbursementVoucherNo: isNowPaid && !target.disbursementVoucherNo ? `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70` : undefined,
-        coordinatorNotes: note
-      }).catch(e => console.warn('D1 advance step error:', e));
+        paymentStatus: nextPaymentStatus,
+        paymentDate: nextPaymentDate,
+        disbursementVoucherNo: nextVoucherNo,
+        coordinatorNotes: note,
+        timeline: updatedTimelineForD1,
+      }).catch((e) => {
+        console.warn('D1 advance/revert step error:', e);
+        showToast(`⚠️ ปรับขั้นตอนในหน้าจอแล้ว แต่ซิงก์เข้า Cloudflare D1 ไม่สำเร็จ: ${e.message}`);
+      });
 
       logActivity(
-        'ADVANCE_STEP',
+        isRevert ? 'REVERT_STEP' : 'ADVANCE_STEP',
         'REWARD_APPLICATION',
         target.trackingNo || id,
-        `เลื่อนขั้นตอนเป็น ขั้นตอนที่ ${nextStep}/19 (สถานะ: ${calcStatus})${note ? ` หมายเหตุ: ${note}` : ''}`
+        isRevert
+          ? `ย้อนกลับขั้นตอนจากขั้นที่ ${prevActionStep}/12 → ${actionStepNum}/12 (อ้างอิง ${nextStep}/19, สถานะ: ${calcStatus})${note ? ` หมายเหตุ: ${note}` : ''}`
+          : `เลื่อนขั้นตอนเป็นขั้นที่ ${actionStepNum}/12 (อ้างอิง ${nextStep}/19, สถานะ: ${calcStatus})${note ? ` หมายเหตุ: ${note}` : ''}`
       );
     }
 
-    // Automatic LINE Notification Triggers for Milestones 2, 3, 4
-    if (target) {
+    // Automatic LINE Notification Triggers for Forward Milestones 2, 3, 4 ONLY (skip when reverting)
+    if (target && !isRevert) {
       if (nextStep === 4) {
-        // Milestone 2: Document Verified
         triggerLineMilestoneNotification({ ...target, currentStep: nextStep }, 'document_verified');
       } else if (nextStep === 11 || nextStep === 12) {
-        // Milestone 3: Dean Approved
         triggerLineMilestoneNotification({ ...target, currentStep: nextStep }, 'dean_approved');
       } else if (nextStep >= 18) {
-        // Milestone 4: Payment Transferred (Real-time)
         triggerLineMilestoneNotification({ 
           ...target, 
           currentStep: nextStep, 
           status: 'paid',
-          disbursementVoucherNo: target.disbursementVoucherNo || `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70`,
-          paymentDate: new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })
+          disbursementVoucherNo: nextVoucherNo || `ฎีกา ${Math.floor(3000 + Math.random() * 1000)}/70`,
+          paymentDate: todayThai
         }, 'payment_transferred');
       }
     }
 
-    const actionStepNum = getActionStepFrom19(nextStep);
-    showToast(`เลื่อนขั้นตอนสำเร็จ → ขั้นตอนที่ ${actionStepNum}/12 (อ้างอิงขั้น ${nextStep}/19)`);
+    showToast(
+      isRevert
+        ? `↩️ ย้อนกลับขั้นตอนสำเร็จ → ขั้นตอนที่ ${actionStepNum}/12 (อ้างอิงขั้น ${nextStep}/19)`
+        : `เลื่อนขั้นตอนสำเร็จ → ขั้นตอนที่ ${actionStepNum}/12 (อ้างอิงขั้น ${nextStep}/19)`
+    );
   };
 
   // 5. Send LINE Notification Trigger
@@ -1720,8 +1804,8 @@ export default function App() {
           />
         )}
 
-        {/* Tab 2: Interactive Drag-and-Drop Kanban Board (Coordinator and Admin ONLY) */}
-        {activeTab === 'kanban' && (currentRole === 'coordinator' || currentRole === 'admin') && !isGuest && (
+        {/* Tab 2: Interactive Drag-and-Drop Kanban Board (Coordinator, Finance, and Admin) */}
+        {activeTab === 'kanban' && (currentRole === 'coordinator' || currentRole === 'finance' || currentRole === 'admin') && !isGuest && (
           <KanbanBoard
             applications={displayApplications}
             onUpdateStatus={handleUpdateStatus}
@@ -1938,7 +2022,7 @@ export default function App() {
         onPrint={(app) => setPrintApp(app)}
         onVerifyPayment={(app) => setPaymentApp(app)}
         onReturnToDraft={handleReturnToDraft}
-        canEdit={currentRole === 'coordinator' || currentRole === 'finance' || currentRole === 'admin' || currentRole === 'dept_secretary'}
+        canEdit={currentRole === 'coordinator' || currentRole === 'finance' || currentRole === 'admin' || currentRole === 'dept_secretary' || currentRole === 'executive'}
         currentRole={currentRole}
         currentUser={currentUser}
       />

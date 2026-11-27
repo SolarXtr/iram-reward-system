@@ -173,6 +173,13 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
         </span>
       );
     }
+    if (act.includes('REVERT') || act.includes('RETURN')) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-50 text-orange-800 border border-orange-200">
+          {action}
+        </span>
+      );
+    }
     if (act.includes('UPDATE') || act.includes('EDIT') || act.includes('CHANGE')) {
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
@@ -424,6 +431,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
               <option value="UPDATE_APPLICATION">UPDATE_APPLICATION (แก้ไขข้อมูลคำขอ)</option>
               <option value="UPDATE_STATUS">UPDATE_STATUS (เปลี่ยนสถานะโครงการ)</option>
               <option value="ADVANCE_STEP">ADVANCE_STEP (เลื่อนขั้นตอน SLA)</option>
+              <option value="REVERT_STEP">REVERT_STEP (ย้อนกลับขั้นตอน SLA)</option>
               <option value="UPDATE_DOC_DETAILS">UPDATE_DOC_DETAILS (บันทึกเลขที่หนังสือ)</option>
               <option value="RETURN_TO_DRAFT">RETURN_TO_DRAFT (ส่งคืนแก้ไข)</option>
               <option value="TRASH_APPLICATION">TRASH_APPLICATION (ย้ายลงถังขยะ)</option>

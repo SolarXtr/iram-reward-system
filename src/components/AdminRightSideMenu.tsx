@@ -67,7 +67,7 @@ export const AdminRightSideMenu: React.FC<AdminRightSideMenuProps> = ({
     {
       id: 'kanban',
       label: 'ติดตามแบบลากวาง (Kanban)',
-      description: 'กระดานติดตามงานและขั้นตอน 19 ระดับ',
+      description: 'กระดานติดตามงานและปรับขั้นตอน 12 ระดับ (อ้างอิง 1–19)',
       icon: KanbanSquare,
     },
     {

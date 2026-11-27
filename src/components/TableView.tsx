@@ -16,7 +16,8 @@ import {
   UserCheck,
   ShieldCheck,
   Lock,
-  RotateCcw
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
 import { ApplicationStatus, ResearchApplication, UserRole } from '../types';
 import { 
@@ -27,11 +28,11 @@ import {
   maskThaiCitizenId 
 } from '../data/regulations';
 import { isSameDepartment } from '../utils/permissionUtils';
-import { get19StepDisplayInfo } from '../data/workflow19Steps';
+import { get19StepDisplayInfo, syncWorkflowFieldsForStatus } from '../data/workflow19Steps';
 
 interface TableViewProps {
   applications: ResearchApplication[];
-  onSaveRow: (updatedApp: ResearchApplication) => void;
+  onSaveRow: (updatedApp: ResearchApplication) => void | Promise<boolean | void>;
   onViewApplication: (app: ResearchApplication) => void;
   onPrintApplication: (app: ResearchApplication) => void;
   onVerifyPayment: (app: ResearchApplication) => void;
@@ -78,6 +79,16 @@ export const TableView: React.FC<TableViewProps> = ({
   // Inline editing state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ResearchApplication>>({});
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  const roleAllowedStatuses: ApplicationStatus[] =
+    currentRole === 'admin'
+      ? ['submitted', 'staff_verified', 'dean_approved', 'finance_processing', 'paid']
+      : currentRole === 'finance'
+      ? ['dean_approved', 'finance_processing', 'paid']
+      : currentRole === 'coordinator' || currentRole === 'dept_secretary'
+      ? ['submitted', 'staff_verified', 'dean_approved']
+      : [];
 
   const startEdit = (app: ResearchApplication) => {
     let db = app.database;
@@ -91,16 +102,17 @@ export const TableView: React.FC<TableViewProps> = ({
   };
 
   const cancelEdit = () => {
+    if (isSaving) return;
     setEditingId(null);
     setEditForm({});
   };
 
-  const saveEdit = () => {
-    if (!editingId) return;
+  const saveEdit = async () => {
+    if (!editingId || isSaving) return;
     const original = applications.find((a) => a.id === editingId);
     if (!original) return;
 
-    let db = editForm.database || original.database;
+    let db = editForm.database || editForm.databaseName || original.database;
     const q = editForm.quartile || original.quartile;
     if (q === 'TCI_2' && db !== 'TCI Tier 2') {
       db = 'TCI Tier 2';
@@ -108,15 +120,39 @@ export const TableView: React.FC<TableViewProps> = ({
       db = 'TCI Tier 1';
     }
 
-    const updated = {
+    const rewardAmt = Math.max(0, Number(editForm.claimedRewardAmount ?? original.claimedRewardAmount ?? 0) || 0);
+    const pageChargeAmt = Math.max(0, Number(editForm.approvedPageChargeAmount ?? original.approvedPageChargeAmount ?? 0) || 0);
+    const totalAmt = rewardAmt + pageChargeAmt;
+
+    // ป้องกันการเปลี่ยนสถานะนอกช่วงสิทธิ์ของบทบาท
+    const nextStatus = roleAllowedStatuses.includes(original.status)
+      ? (editForm.status || original.status)
+      : original.status;
+
+    const merged: ResearchApplication = {
       ...original,
       ...editForm,
-      database: db,
-      databaseName: db,
+      status: nextStatus,
+      database: db as any,
+      databaseName: db as any,
+      claimedRewardAmount: rewardAmt,
+      approvedPageChargeAmount: pageChargeAmt,
+      totalClaimedAmount: totalAmt,
       updatedAt: new Date().toISOString().split('T')[0],
     };
-    onSaveRow(updated);
-    setEditingId(null);
+
+    const updated = syncWorkflowFieldsForStatus(original, merged);
+
+    setIsSaving(true);
+    try {
+      const result = await onSaveRow(updated);
+      if (result !== false) {
+        setEditingId(null);
+        setEditForm({});
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const isMyApp = (app: ResearchApplication) => {
@@ -535,7 +571,7 @@ export const TableView: React.FC<TableViewProps> = ({
                             <input
                               type="text"
                               value={editForm.database || ''}
-                              onChange={(e) => setEditForm({ ...editForm, database: e.target.value as any })}
+                              onChange={(e) => setEditForm({ ...editForm, database: e.target.value as any, databaseName: e.target.value as any })}
                               placeholder="ฐานข้อมูล เช่น Scopus"
                               className="px-1.5 py-0.5 border border-slate-300 rounded text-[10px] w-24 block"
                             />
@@ -558,17 +594,62 @@ export const TableView: React.FC<TableViewProps> = ({
 
                       {/* Col 5: Reward Amount */}
                       <td className="px-3 py-3 whitespace-nowrap text-right font-medium text-slate-700">
-                        {formatBaht(app.claimedRewardAmount)}
+                        {isEditing && (canEditArticle || canEditFinance) ? (
+                          <input
+                            type="number"
+                            min={0}
+                            step={500}
+                            value={editForm.claimedRewardAmount ?? app.claimedRewardAmount ?? 0}
+                            onChange={(e) => {
+                              const val = Math.max(0, Number(e.target.value) || 0);
+                              const pageAmt = Number(editForm.approvedPageChargeAmount ?? app.approvedPageChargeAmount ?? 0) || 0;
+                              setEditForm({
+                                ...editForm,
+                                claimedRewardAmount: val,
+                                totalClaimedAmount: val + pageAmt,
+                              });
+                            }}
+                            className="px-1.5 py-0.5 border border-blue-400 rounded text-xs font-mono w-24 text-right"
+                            title="แก้ไขยอดเงินรางวัล (บาท)"
+                          />
+                        ) : (
+                          formatBaht(app.claimedRewardAmount)
+                        )}
                       </td>
 
                       {/* Col 6: Page Charge */}
                       <td className="px-3 py-3 whitespace-nowrap text-right font-medium text-slate-700">
-                        {formatBaht(app.approvedPageChargeAmount)}
+                        {isEditing && (canEditArticle || canEditFinance) ? (
+                          <input
+                            type="number"
+                            min={0}
+                            step={100}
+                            value={editForm.approvedPageChargeAmount ?? app.approvedPageChargeAmount ?? 0}
+                            onChange={(e) => {
+                              const val = Math.max(0, Number(e.target.value) || 0);
+                              const rewAmt = Number(editForm.claimedRewardAmount ?? app.claimedRewardAmount ?? 0) || 0;
+                              setEditForm({
+                                ...editForm,
+                                approvedPageChargeAmount: val,
+                                totalClaimedAmount: rewAmt + val,
+                              });
+                            }}
+                            className="px-1.5 py-0.5 border border-blue-400 rounded text-xs font-mono w-24 text-right"
+                            title="แก้ไขยอดค่าตีพิมพ์ที่อนุมัติ (บาท)"
+                          />
+                        ) : (
+                          formatBaht(app.approvedPageChargeAmount)
+                        )}
                       </td>
 
                       {/* Col 7: Total Amount */}
                       <td className="px-3 py-3 whitespace-nowrap text-right font-bold text-slate-900 font-prompt">
-                        {formatBaht(app.totalClaimedAmount)}
+                        {isEditing && (canEditArticle || canEditFinance)
+                          ? formatBaht(
+                              (Number(editForm.claimedRewardAmount ?? app.claimedRewardAmount ?? 0) || 0) +
+                              (Number(editForm.approvedPageChargeAmount ?? app.approvedPageChargeAmount ?? 0) || 0)
+                            )
+                          : formatBaht(app.totalClaimedAmount)}
                       </td>
 
                       {/* Col 8: Bank & Voucher */}
@@ -612,7 +693,7 @@ export const TableView: React.FC<TableViewProps> = ({
 
                       {/* Col 9: Status */}
                       <td className="px-3 py-3 whitespace-nowrap text-center">
-                        {isEditing ? (
+                        {isEditing && roleAllowedStatuses.includes(app.status) ? (
                           <select
                             value={editForm.status || app.status}
                             onChange={(e) => setEditForm({ ...editForm, status: e.target.value as ApplicationStatus })}
@@ -643,13 +724,20 @@ export const TableView: React.FC<TableViewProps> = ({
                         ) : (() => {
                           const stepInfo = get19StepDisplayInfo(app);
                           return (
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${stepInfo.badgeClass}`}
-                              title={`ขั้นตอนที่ ${stepInfo.step}/12 (อ้างอิง 19 ขั้นตอน: ${stepInfo.refSteps}): ${stepInfo.stepTitle}`}
-                            >
-                              {stepInfo.isActuallyPaid && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-                              <span>{stepInfo.label}</span>
-                            </span>
+                            <div className="inline-flex flex-col items-center gap-0.5">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${stepInfo.badgeClass}`}
+                                title={`ขั้นตอนที่ ${stepInfo.step}/12 (อ้างอิง 19 ขั้นตอน: ${stepInfo.refSteps}): ${stepInfo.stepTitle}`}
+                              >
+                                {stepInfo.isActuallyPaid && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                                <span>{stepInfo.label}</span>
+                              </span>
+                              {isEditing && !roleAllowedStatuses.includes(app.status) && (
+                                <span className="text-[9px] text-slate-400 flex items-center gap-0.5">
+                                  <Lock className="w-2.5 h-2.5 text-slate-400" /> ล็อกสถานะตามสิทธิ์
+                                </span>
+                              )}
+                            </div>
                           );
                         })()}
                       </td>
@@ -660,14 +748,20 @@ export const TableView: React.FC<TableViewProps> = ({
                           <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={saveEdit}
-                              className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700"
-                              title="บันทึก"
+                              disabled={isSaving}
+                              className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60 cursor-pointer"
+                              title={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
                             >
-                              <Save className="w-3.5 h-3.5" />
+                              {isSaving ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Save className="w-3.5 h-3.5" />
+                              )}
                             </button>
                             <button
                               onClick={cancelEdit}
-                              className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+                              disabled={isSaving}
+                              className="p-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 disabled:opacity-50 cursor-pointer"
                               title="ยกเลิก"
                             >
                               <X className="w-3.5 h-3.5" />
