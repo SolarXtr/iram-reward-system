@@ -34,7 +34,7 @@ import { UserProfile, UserRole } from '../types';
 import { LINE_NOTIFICATION_SYSTEM_ENABLED } from '../data/lineNotificationService';
 
 export type { UserRole };
-export type ActiveTab = 'dashboard' | 'quota_planner' | 'article_table' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management' | 'audit_logs' | 'user_guide' | 'about';
+export type ActiveTab = 'dashboard' | 'quota_planner' | 'article_table' | 'table' | 'kanban' | 'calendar' | 'line_oa' | 'user_management' | 'audit_logs' | 'data_health' | 'user_guide' | 'about';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -206,6 +206,16 @@ export const Header: React.FC<HeaderProps> = ({
       icon: History,
       badge: 'Admin',
       badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+      roles: ['admin'],
+    },
+    {
+      id: 'data_health',
+      label: 'ตรวจสอบข้อมูล (Data Health)',
+      shortLabel: 'ตรวจสอบข้อมูล',
+      description: 'ตรวจสอบความสอดคล้องของข้อมูล Foreign Key และ SLA (Data Health Inspector)',
+      icon: ShieldCheck,
+      badge: 'Admin',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
       roles: ['admin'],
     },
   ];

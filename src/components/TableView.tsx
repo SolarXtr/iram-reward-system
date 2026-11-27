@@ -29,6 +29,8 @@ import {
 } from '../data/regulations';
 import { isSameDepartment } from '../utils/permissionUtils';
 import { get19StepDisplayInfo, syncWorkflowFieldsForStatus } from '../data/workflow19Steps';
+import { evaluateApplicationSla } from '../utils/slaUtils';
+import { exportExecutiveMultiSheetReport } from '../services/executiveReportService';
 
 interface TableViewProps {
   applications: ResearchApplication[];
@@ -386,12 +388,23 @@ export const TableView: React.FC<TableViewProps> = ({
 
           <button
             onClick={exportToCsv}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition-colors shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition-colors shrink-0 cursor-pointer"
             title="ส่งออกเป็นไฟล์ CSV สำหรับ Google Sheets / Excel"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>ส่งออก CSV</span>
+            <Download className="w-3.5 h-3.5 text-slate-600" />
+            <span>CSV</span>
           </button>
+
+          {currentRole !== 'researcher' && (
+            <button
+              onClick={() => exportExecutiveMultiSheetReport(filteredApps, selectedFiscalYear)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors shrink-0 cursor-pointer"
+              title="ส่งออกรายงานสรุปผู้บริหารแบบหลายชีต (.xlsx: ภาพรวม, แยกภาควิชา, แยก Quartile, ทะเบียนทั้งหมด)"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
+              <span>รายงานผู้บริหาร (.xlsx)</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -723,6 +736,7 @@ export const TableView: React.FC<TableViewProps> = ({
                           </select>
                         ) : (() => {
                           const stepInfo = get19StepDisplayInfo(app);
+                          const sla = evaluateApplicationSla(app);
                           return (
                             <div className="inline-flex flex-col items-center gap-0.5">
                               <span
@@ -732,6 +746,12 @@ export const TableView: React.FC<TableViewProps> = ({
                                 {stepInfo.isActuallyPaid && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
                                 <span>{stepInfo.label}</span>
                               </span>
+                              {!isEditing && (sla.isOverdue || sla.isDueSoon) && (
+                                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] font-semibold ${sla.badgeClass}`}>
+                                  <Clock className="w-2.5 h-2.5" />
+                                  <span>{sla.label}</span>
+                                </span>
+                              )}
                               {isEditing && !roleAllowedStatuses.includes(app.status) && (
                                 <span className="text-[9px] text-slate-400 flex items-center gap-0.5">
                                   <Lock className="w-2.5 h-2.5 text-slate-400" /> ล็อกสถานะตามสิทธิ์

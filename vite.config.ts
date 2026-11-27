@@ -11,6 +11,21 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('xlsx')) return 'vendor-xlsx';
+              if (id.includes('firebase')) return 'vendor-firebase';
+              if (id.includes('lucide-react')) return 'vendor-icons';
+              if (id.includes('docx') || id.includes('file-saver')) return 'vendor-docs';
+              if (id.includes('react-dom') || id.includes('/react/')) return 'vendor-react';
+            }
+          },
+        },
+      },
+    },
     server: {
       fs: {
         strict: false,

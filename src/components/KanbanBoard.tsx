@@ -18,6 +18,7 @@ import { UserRole } from './Header';
 import { ApplicationStatus, ResearchApplication, WorkflowStepId } from '../types';
 import { formatBaht } from '../data/regulations';
 import { getActionStepFrom19 } from '../data/workflow19Steps';
+import { evaluateApplicationSla } from '../utils/slaUtils';
 
 interface KanbanBoardProps {
   applications: ResearchApplication[];
@@ -315,12 +316,25 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       </div>
 
                       {/* Voucher or SLA Indicator */}
-                      {app.disbursementVoucherNo && (
-                        <div className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 flex items-center gap-1">
-                          <Banknote className="w-3 h-3 text-emerald-600" />
-                          <span>{app.disbursementVoucherNo}</span>
-                        </div>
-                      )}
+                      {(() => {
+                        const sla = evaluateApplicationSla(app);
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {app.disbursementVoucherNo && (
+                              <div className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+                                <Banknote className="w-3 h-3 text-emerald-600" />
+                                <span>{app.disbursementVoucherNo}</span>
+                              </div>
+                            )}
+                            {(sla.isOverdue || sla.isDueSoon) && (
+                              <div className={`text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 ${sla.badgeClass}`}>
+                                <Clock className="w-3 h-3 shrink-0" />
+                                <span>{sla.label}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Card Action Toolbar */}
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">

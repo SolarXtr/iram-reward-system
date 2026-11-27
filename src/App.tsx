@@ -1,24 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { Header, UserRole, ActiveTab } from './components/Header';
 import { DashboardView } from './components/DashboardView';
-import { QuotaPlannerView } from './components/QuotaPlannerView';
-import { KanbanBoard } from './components/KanbanBoard';
-import { TableView } from './components/TableView';
-import { ArticleMasterTable } from './components/ArticleMasterTable';
 import { AdminRightSideMenu } from './components/AdminRightSideMenu';
-import { CalendarView } from './components/CalendarView';
-import { LineNotificationModal } from './components/LineNotificationModal';
-import { SubmissionFormModal } from './components/SubmissionFormModal';
-import { TimelineTrackerModal } from './components/TimelineTrackerModal';
-import { OfficialPrintModal } from './components/OfficialPrintModal';
-import { PaymentVerificationModal } from './components/PaymentVerificationModal';
-import { UserProfileModal } from './components/UserProfileModal';
-import { UserManagementView } from './components/UserManagementView';
-import { AuditLogView } from './components/AuditLogView';
-import { UserGuideView } from './components/UserGuideView';
-import { AboutView } from './components/AboutView';
 import { LoginModal } from './components/LoginModal';
 import { ResearcherActivationModal } from './components/ResearcherActivationModal';
+
+// Lazy-loaded Views & Modals for fast initial bundle load
+const QuotaPlannerView = React.lazy(() => import('./components/QuotaPlannerView').then((m) => ({ default: m.QuotaPlannerView })));
+const KanbanBoard = React.lazy(() => import('./components/KanbanBoard').then((m) => ({ default: m.KanbanBoard })));
+const TableView = React.lazy(() => import('./components/TableView').then((m) => ({ default: m.TableView })));
+const ArticleMasterTable = React.lazy(() => import('./components/ArticleMasterTable').then((m) => ({ default: m.ArticleMasterTable })));
+const CalendarView = React.lazy(() => import('./components/CalendarView').then((m) => ({ default: m.CalendarView })));
+const LineNotificationModal = React.lazy(() => import('./components/LineNotificationModal').then((m) => ({ default: m.LineNotificationModal })));
+const SubmissionFormModal = React.lazy(() => import('./components/SubmissionFormModal').then((m) => ({ default: m.SubmissionFormModal })));
+const TimelineTrackerModal = React.lazy(() => import('./components/TimelineTrackerModal').then((m) => ({ default: m.TimelineTrackerModal })));
+const OfficialPrintModal = React.lazy(() => import('./components/OfficialPrintModal').then((m) => ({ default: m.OfficialPrintModal })));
+const PaymentVerificationModal = React.lazy(() => import('./components/PaymentVerificationModal').then((m) => ({ default: m.PaymentVerificationModal })));
+const UserProfileModal = React.lazy(() => import('./components/UserProfileModal').then((m) => ({ default: m.UserProfileModal })));
+const UserManagementView = React.lazy(() => import('./components/UserManagementView').then((m) => ({ default: m.UserManagementView })));
+const AuditLogView = React.lazy(() => import('./components/AuditLogView').then((m) => ({ default: m.AuditLogView })));
+const DataHealthView = React.lazy(() => import('./components/DataHealthView').then((m) => ({ default: m.DataHealthView })));
+const UserGuideView = React.lazy(() => import('./components/UserGuideView').then((m) => ({ default: m.UserGuideView })));
+const AboutView = React.lazy(() => import('./components/AboutView').then((m) => ({ default: m.AboutView })));
 import { OFFICIAL_WORKFLOW_STEPS_DEF } from './data/initialData';
 import {
   generateTimelineFor19Steps,
@@ -164,6 +167,7 @@ export default function App() {
       line_oa: '/line-oa',
       user_management: '/admin',
       audit_logs: '/audit-logs',
+      data_health: '/data-health',
       user_guide: '/guide',
       about: '/about',
     };
@@ -1797,6 +1801,13 @@ export default function App() {
         )}
 
         {/* Tab 1: Dashboard View */}
+        <Suspense
+          fallback={
+            <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center text-xs text-slate-500 shadow-xs my-6">
+              กำลังโหลดหน้าจอ...
+            </div>
+          }
+        >
         {activeTab === 'dashboard' && (
           <DashboardView
             applications={isGuest ? [] : displayApplications}
@@ -1973,6 +1984,49 @@ export default function App() {
           </div>
         ) : null}
 
+        {/* Tab 7.5: Admin Data Health & Mismatch Inspector */}
+        {activeTab === 'data_health' && currentRole === 'admin' && !isGuest ? (
+          <DataHealthView
+            applications={applications}
+            nuDisbursements={nuDisbursements}
+            users={registeredUsers}
+            onSaveApplication={handleSaveTableRow}
+            onUpdateNuRecord={handleUpdateNuRecord}
+            onViewApplication={(app) => setTimelineApp(app)}
+            onReloadApplications={() => {
+              fetchRewardApplicationsFromD1()
+                .then((d1Data) => {
+                  if (Array.isArray(d1Data)) setApplications(d1Data);
+                })
+                .catch(() => {});
+              fetchNuDisbursementsFromD1()
+                .then((nuData) => {
+                  if (Array.isArray(nuData)) setNuDisbursements(nuData);
+                })
+                .catch(() => {});
+            }}
+            onShowAlert={showToast}
+          />
+        ) : activeTab === 'data_health' ? (
+          <div className="bg-white rounded-2xl p-8 border border-rose-200 text-center max-w-lg mx-auto my-12 shadow-lg animate-in fade-in duration-150">
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 font-prompt">
+              สิทธิ์การเข้าถึงไม่เพียงพอ (Access Denied)
+            </h3>
+            <p className="text-xs text-slate-600 mt-2 leading-relaxed font-prompt">
+              หน้าจอตรวจสอบคุณภาพข้อมูลสงวนไว้สำหรับผู้ดูแลระบบ (Admin Console) เท่านั้น
+            </p>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors font-prompt"
+            >
+              กลับสู่หน้าหลัก (Dashboard)
+            </button>
+          </div>
+        ) : null}
+
         {/* About Tab */}
         {activeTab === 'about' && (
           <AboutView
@@ -1990,6 +2044,7 @@ export default function App() {
             isAdmin={!isGuest && currentRole === 'admin'}
           />
         )}
+        </Suspense>
 
           </div>
 
@@ -2026,72 +2081,104 @@ export default function App() {
         </div>
       </footer>
 
-      {/* MODAL 1: Submission Form Modal */}
-      {isSubmissionModalOpen && (
-        <SubmissionFormModal
-          isOpen={isSubmissionModalOpen}
-          onClose={() => {
-            setIsSubmissionModalOpen(false);
-            setEditingDraftApp(null);
-          }}
-          onSubmit={handleCreateSubmission}
-          existingApplications={applications}
-          nuDisbursements={nuDisbursements}
-          currentUser={currentUser || DEFAULT_LOGGED_IN_USER}
-          currentRole={currentRole}
-          registeredUsers={registeredUsers}
-          initialData={editingDraftApp}
-        />
-      )}
+      <Suspense fallback={null}>
+        {/* MODAL 1: Submission Form Modal */}
+        {isSubmissionModalOpen && (
+          <SubmissionFormModal
+            isOpen={isSubmissionModalOpen}
+            onClose={() => {
+              setIsSubmissionModalOpen(false);
+              setEditingDraftApp(null);
+            }}
+            onSubmit={handleCreateSubmission}
+            existingApplications={applications}
+            nuDisbursements={nuDisbursements}
+            currentUser={currentUser || DEFAULT_LOGGED_IN_USER}
+            currentRole={currentRole}
+            registeredUsers={registeredUsers}
+            initialData={editingDraftApp}
+          />
+        )}
 
-      {/* MODAL 2: 19-Step SLA Timeline Tracker Modal */}
-      <TimelineTrackerModal
-        isOpen={!!timelineApp}
-        application={timelineApp ? (applications.find((a) => a.id === timelineApp.id) || timelineApp) : null}
-        onClose={() => setTimelineApp(null)}
-        onAdvanceStep={handleAdvanceTimelineStep}
-        onPrint={(app) => setPrintApp(app)}
-        onVerifyPayment={(app) => setPaymentApp(app)}
-        onReturnToDraft={handleReturnToDraft}
-        canEdit={currentRole === 'coordinator' || currentRole === 'finance' || currentRole === 'admin' || currentRole === 'dept_secretary' || currentRole === 'executive'}
-        currentRole={currentRole}
-        currentUser={currentUser}
-      />
+        {/* MODAL 2: 12-Action-Step (19 Ref) SLA Timeline Tracker Modal */}
+        {timelineApp && (
+          <TimelineTrackerModal
+            isOpen={!!timelineApp}
+            application={applications.find((a) => a.id === timelineApp.id) || timelineApp}
+            onClose={() => setTimelineApp(null)}
+            onAdvanceStep={handleAdvanceTimelineStep}
+            onPrint={(app) => setPrintApp(app)}
+            onVerifyPayment={(app) => setPaymentApp(app)}
+            onReturnToDraft={handleReturnToDraft}
+            canEdit={currentRole === 'coordinator' || currentRole === 'finance' || currentRole === 'admin' || currentRole === 'dept_secretary' || currentRole === 'executive'}
+            currentRole={currentRole}
+            currentUser={currentUser}
+          />
+        )}
 
-      {/* MODAL 3: Official Printable Documents (AWP69 / Memo / Receipt) */}
-      <OfficialPrintModal
-        isOpen={!!printApp}
-        application={printApp}
-        currentUser={currentUser || DEFAULT_LOGGED_IN_USER}
-        currentRole={currentRole}
-        onClose={() => setPrintApp(null)}
-        onSaveDocDetails={handleUpdateDocDetails}
-      />
+        {/* MODAL 3: Official Printable Documents (AWP69 / Memo / Receipt) */}
+        {printApp && (
+          <OfficialPrintModal
+            isOpen={!!printApp}
+            application={printApp}
+            currentUser={currentUser || DEFAULT_LOGGED_IN_USER}
+            currentRole={currentRole}
+            onClose={() => setPrintApp(null)}
+            onSaveDocDetails={handleUpdateDocDetails}
+          />
+        )}
 
-      {/* MODAL 4: Payment Verification & Transfer Slip Modal */}
-      <PaymentVerificationModal
-        isOpen={!!paymentApp}
-        application={paymentApp}
-        onClose={() => setPaymentApp(null)}
-        onPrintSlip={() => {
-          if (paymentApp) {
-            setPrintApp(paymentApp);
-          }
-        }}
-      />
+        {/* MODAL 4: Payment Verification & Transfer Slip Modal */}
+        {paymentApp && (
+          <PaymentVerificationModal
+            isOpen={!!paymentApp}
+            application={applications.find((a) => a.id === paymentApp.id) || paymentApp}
+            onClose={() => setPaymentApp(null)}
+            onPrintSlip={() => {
+              if (paymentApp) {
+                setPrintApp(paymentApp);
+              }
+            }}
+            currentRole={currentRole}
+            onShowAlert={showToast}
+            onUploadSlipSuccess={(appId, fileUrl, attachment) => {
+              setApplications((prev) =>
+                prev.map((a) => {
+                  if (a.id !== appId) return a;
+                  const nextAttachments = [
+                    ...(a.attachments || []).filter((att) => att.type !== 'transfer_slip'),
+                    attachment,
+                  ];
+                  return {
+                    ...a,
+                    paymentTransferSlipUrl: fileUrl,
+                    attachments: nextAttachments,
+                  };
+                })
+              );
+              logActivity(
+                'UPLOAD_TRANSFER_SLIP',
+                'REWARD_APPLICATION',
+                paymentApp.trackingNo || appId,
+                `แนบไฟล์หลักฐานสลิปโอนเงิน "${attachment?.fileName || '-'}" สำหรับคำขอ ${paymentApp.trackingNo}`
+              );
+            }}
+          />
+        )}
 
-      {/* MODAL 5: User Profile & PDPA Settings Modal */}
-      {isProfileModalOpen && currentUser && (
-        <UserProfileModal
-          currentUser={currentUser}
-          users={registeredUsers}
-          onClose={() => setIsProfileModalOpen(false)}
-          onSaveProfile={handleSaveProfile}
-          onSwitchUser={handleSwitchUser}
-          impersonatorAdmin={impersonatorAdmin}
-          onExitImpersonation={handleExitImpersonation}
-        />
-      )}
+        {/* MODAL 5: User Profile & PDPA Settings Modal */}
+        {isProfileModalOpen && currentUser && (
+          <UserProfileModal
+            currentUser={currentUser}
+            users={registeredUsers}
+            onClose={() => setIsProfileModalOpen(false)}
+            onSaveProfile={handleSaveProfile}
+            onSwitchUser={handleSwitchUser}
+            impersonatorAdmin={impersonatorAdmin}
+            onExitImpersonation={handleExitImpersonation}
+          />
+        )}
+      </Suspense>
 
       {/* MODAL 6: NU Account Login Modal */}
       <LoginModal

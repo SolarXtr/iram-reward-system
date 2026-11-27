@@ -1,25 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   CheckCircle2, 
   Printer, 
   Download, 
-  Building, 
   Banknote, 
-  Calendar, 
   CreditCard, 
-  FileCheck, 
-  Share2,
-  ShieldAlert
+  Upload,
+  FileText,
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
-import { ResearchApplication } from '../types';
+import { ResearchApplication, UserRole } from '../types';
 import { bahtText, formatBaht } from '../data/regulations';
+import { fetchRewardAttachmentFromD1, uploadRewardAttachmentToD1 } from '../services/rewardD1Service';
 
 interface PaymentVerificationModalProps {
   application: ResearchApplication | null;
   isOpen: boolean;
   onClose: () => void;
   onPrintSlip: () => void;
+  currentRole?: UserRole;
+  onUploadSlipSuccess?: (appId: string, fileUrl: string, attachment: any) => void;
+  onShowAlert?: (msg: string) => void;
 }
 
 export const PaymentVerificationModal: React.FC<PaymentVerificationModalProps> = ({
@@ -27,11 +30,70 @@ export const PaymentVerificationModal: React.FC<PaymentVerificationModalProps> =
   isOpen,
   onClose,
   onPrintSlip,
+  currentRole = 'researcher',
+  onUploadSlipSuccess,
+  onShowAlert,
 }) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingSlip, setIsLoadingSlip] = useState(false);
+  const [loadedSlip, setLoadedSlip] = useState<{ fileName: string; mimeType: string; dataUrl: string } | null>(null);
+
+  const slipUrl = application?.paymentTransferSlipUrl || '';
+  const canUploadSlip = currentRole === 'finance' || currentRole === 'admin';
+
+  useEffect(() => {
+    setLoadedSlip(null);
+    if (!isOpen || !slipUrl || !slipUrl.includes('/api/rewards/files/')) return;
+
+    let cancelled = false;
+    setIsLoadingSlip(true);
+    fetchRewardAttachmentFromD1(slipUrl)
+      .then((res) => {
+        if (!cancelled) setLoadedSlip(res);
+      })
+      .catch((err) => {
+        console.warn('Could not load transfer slip:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingSlip(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, slipUrl]);
+
   if (!isOpen || !application) return null;
 
   const totalAmount = application.actualPaidAmount || application.totalClaimedAmount;
   const isPaid = application.status === 'paid' || application.paymentStatus === 'transferred';
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const res = await uploadRewardAttachmentToD1(application.id, file, 'transfer_slip', 'หลักฐานสลิปการโอนเงิน');
+      if (onUploadSlipSuccess) {
+        onUploadSlipSuccess(application.id, res.fileUrl, res.attachment);
+      }
+      const fetched = await fetchRewardAttachmentFromD1(res.fileUrl);
+      setLoadedSlip(fetched);
+      if (onShowAlert) {
+        onShowAlert(`✅ อัปโหลดหลักฐานสลิปโอนเงิน "${file.name}" สำหรับ ${application.trackingNo} สำเร็จ`);
+      }
+    } catch (err: any) {
+      if (onShowAlert) {
+        onShowAlert(`⚠️ อัปโหลดสลิปไม่สำเร็จ: ${err.message}`);
+      } else {
+        alert(err.message);
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
@@ -55,20 +117,20 @@ export const PaymentVerificationModal: React.FC<PaymentVerificationModalProps> =
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800 transition-colors"
+            className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto p-6 space-y-6 text-xs text-slate-800">
+        <div className="overflow-y-auto p-6 space-y-5 text-xs text-slate-800">
           
           {/* Transfer Status Banner */}
           {isPaid ? (
             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div>
@@ -76,19 +138,19 @@ export const PaymentVerificationModal: React.FC<PaymentVerificationModalProps> =
                     โอนเงินเข้าบัญชีเรียบร้อยแล้ว (สำเร็จ)
                   </span>
                   <span className="text-emerald-800 text-[11px]">
-                    วันที่ทำรายการโอน: <strong>{application.paymentDate || '23 มีนาคม 2569'}</strong>
+                    วันที่ทำรายการโอน: <strong>{application.paymentDate || '-'}</strong>
                   </span>
                 </div>
               </div>
 
-              <span className="px-3 py-1 bg-emerald-200 text-emerald-900 font-bold rounded-full text-xs">
+              <span className="px-3 py-1 bg-emerald-200 text-emerald-900 font-bold rounded-full text-xs shrink-0">
                 โอนแล้ว
               </span>
             </div>
           ) : (
             <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-600 text-white flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-amber-600 text-white flex items-center justify-center shrink-0">
                   <CreditCard className="w-6 h-6" />
                 </div>
                 <div>
@@ -101,13 +163,80 @@ export const PaymentVerificationModal: React.FC<PaymentVerificationModalProps> =
                 </div>
               </div>
 
-              <span className="px-3 py-1 bg-amber-200 text-amber-900 font-bold rounded-full text-xs">
+              <span className="px-3 py-1 bg-amber-200 text-amber-900 font-bold rounded-full text-xs shrink-0">
                 รอการโอน
               </span>
             </div>
           )}
 
-          {/* Realistic University Official Transfer Receipt Card (เหมือนหน้า 1 ตัวจริง) */}
+          {/* Attached Real Transfer Slip Section (Upload & Preview) */}
+          {(canUploadSlip || loadedSlip || isLoadingSlip) && (
+            <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="font-bold text-blue-950 font-prompt flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-blue-700" />
+                  <span>ไฟล์หลักฐานสลิปโอนเงินจริง (Transfer Slip Attachment)</span>
+                </div>
+
+                {canUploadSlip && (
+                  <label className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg text-xs inline-flex items-center gap-1.5 cursor-pointer shadow-2xs transition">
+                    {isUploading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5" />
+                    )}
+                    <span>{isUploading ? 'กำลังอัปโหลด...' : loadedSlip ? 'เปลี่ยนไฟล์สลิป' : 'แนบสลิปโอนเงิน (PNG/JPG/PDF ≤ 2MB)'}</span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,application/pdf"
+                      className="hidden"
+                      disabled={isUploading}
+                      onChange={handleFileChange}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {isLoadingSlip ? (
+                <div className="py-4 text-center text-slate-500 flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>กำลังโหลดไฟล์หลักฐานการโอนเงิน...</span>
+                </div>
+              ) : loadedSlip ? (
+                <div className="space-y-2.5 bg-white p-3 rounded-lg border border-slate-200">
+                  {loadedSlip.mimeType.startsWith('image/') ? (
+                    <img
+                      src={loadedSlip.dataUrl}
+                      alt={loadedSlip.fileName}
+                      className="max-h-64 mx-auto rounded-lg border border-slate-200 object-contain"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 text-slate-700 font-medium">
+                      <FileText className="w-4 h-4 text-rose-600" />
+                      <span>{loadedSlip.fileName}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span className="text-[11px] text-slate-500 truncate">{loadedSlip.fileName}</span>
+                    <a
+                      href={loadedSlip.dataUrl}
+                      download={loadedSlip.fileName}
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[11px] font-semibold inline-flex items-center gap-1"
+                    >
+                      <Download className="w-3 h-3" />
+                      <span>ดาวน์โหลดสลิป</span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[11px] text-slate-500">
+                  ยังไม่มีการแนบไฟล์สลิปโอนเงินในรายการนี้ (เจ้าหน้าที่การเงินสามารถกดปุ่มด้านบนเพื่อแนบรูปภาพสลิปหรือไฟล์ PDF ได้)
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Realistic University Official Transfer Receipt Card */}
           <div className="border-2 border-slate-300 rounded-xl p-6 bg-slate-50/50 space-y-4 font-sarabun text-slate-900 shadow-inner">
             <div className="text-center border-b border-slate-300 pb-3">
               <div className="font-bold text-sm">คณะแพทยศาสตร์ มหาวิทยาลัยนเรศวร</div>
@@ -141,7 +270,7 @@ export const PaymentVerificationModal: React.FC<PaymentVerificationModalProps> =
               <thead>
                 <tr className="bg-slate-200/80">
                   <th className="border border-slate-300 px-2 py-1.5 text-center w-12">ลำดับ</th>
-                  <th className="border border-slate-300 px-2 py-1.5 text-center w-28">เลขรับการเงิน</th>
+                  <th className="border border-slate-300 px-2 py-1.5 text-center w-28">เลขฎีกา/รับการเงิน</th>
                   <th className="border border-slate-300 px-2 py-1.5 text-left">รายการ</th>
                   <th className="border border-slate-300 px-2 py-1.5 text-right w-28">จำนวนเงิน (บาท)</th>
                 </tr>
@@ -150,7 +279,7 @@ export const PaymentVerificationModal: React.FC<PaymentVerificationModalProps> =
                 <tr>
                   <td className="border border-slate-300 px-2 py-1.5 text-center">1</td>
                   <td className="border border-slate-300 px-2 py-1.5 text-center font-mono font-bold text-emerald-800">
-                    {application.disbursementVoucherNo || '3606/69'}
+                    {application.disbursementVoucherNo || '-'}
                   </td>
                   <td className="border border-slate-300 px-2 py-1.5">
                     <div>ขออนุมัติเบิกเงินรางวัลตีพิมพ์ฯ {application.applicantName}</div>
@@ -227,7 +356,7 @@ export const PaymentVerificationModal: React.FC<PaymentVerificationModalProps> =
             <div className="flex items-center gap-2">
               <button
                 onClick={onPrintSlip}
-                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
                 <span>พิมพ์ใบรับเอกสาร / สลิปโอนเงิน</span>

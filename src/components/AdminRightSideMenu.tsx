@@ -107,6 +107,14 @@ export const AdminRightSideMenu: React.FC<AdminRightSideMenuProps> = ({
       badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
     },
     {
+      id: 'data_health',
+      label: 'ตรวจสอบข้อมูล (Data Health)',
+      description: 'สแกนความสอดคล้องของข้อมูล, Foreign Key และรายการเกิน SLA',
+      icon: ShieldCheck,
+      badge: 'ใหม่',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    },
+    {
       id: 'user_guide',
       label: 'แผนผัง 19 ขั้นตอน & คู่มือ',
       description: 'คู่มือระเบียบและแผนผัง 19 ขั้นตอนตาม Infographic',

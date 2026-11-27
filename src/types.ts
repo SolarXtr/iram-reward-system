@@ -99,6 +99,7 @@ export interface ResearchApplication {
   updatedAt: string;
 
   // Researcher Profile (Complies with PDPA)
+  applicantUserId?: string; // Foreign Key อ้างอิง irUser.id บน Cloudflare D1
   applicantName: string; // ชื่อ-นามสกุล ผู้ขอรับทุน
   academicPosition: string; // ตำแหน่งทางวิชาการ
   department: string; // ภาควิชา/หน่วยงาน
@@ -280,6 +281,7 @@ export interface UserProfile {
 // ==========================================
 export interface NuDisbursementRecord {
   id: string;
+  researcherUserId?: string; // Foreign Key อ้างอิง irUser.id บน Cloudflare D1
   researcherName: string; // ชื่อนักวิจัย (เช่น รองศาสตราจารย์ แพทย์หญิงรสสุคนธ์ คชรัตน์)
   articleTitle: string; // ชื่อผลงาน/บทความวิจัย
   department: string; // หน่วยงาน เช่น คณะแพทยศาสตร์

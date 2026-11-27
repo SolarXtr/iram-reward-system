@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { NuDisbursementRecord, ResearchApplication } from '../types';
 
 export interface ParseResult {
@@ -9,13 +8,14 @@ export interface ParseResult {
 
 export function normalizeText(text?: string): string {
   if (!text) return '';
-  return text.toLowerCase().replace(/[^a-z0-9฀-๿]/g, '');
+  return text.toLowerCase().replace(/[^a-z0-9\u0E00-\u0E7F]/g, '');
 }
 
 export async function parseNuDisbursementExcel(
   file: File,
   facultyApps: ResearchApplication[] = []
 ): Promise<ParseResult> {
+  const XLSX = await import('xlsx');
   const arrayBuffer = await file.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
   

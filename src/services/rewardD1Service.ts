@@ -229,3 +229,84 @@ export async function deleteRewardApplicationInD1(id: string): Promise<boolean> 
     return false;
   }
 }
+
+/**
+ * Admin: Reconcile and backfill applicantUserId / researcherUserId Foreign Keys across D1
+ */
+export async function reconcileRewardUserIdsInD1(): Promise<{
+  status: string;
+  linkedApplications: number;
+  linkedNuDisbursements: number;
+}> {
+  const response = await fetch(`${API_BASE_URL}/reconcile-user-ids`, {
+    method: 'POST',
+    headers: await buildRewardApiHeaders(true),
+    body: JSON.stringify({}),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || `HTTP error ${response.status}`);
+  }
+  return result;
+}
+
+/**
+ * Upload an attachment or payment transfer slip (PDF / PNG / JPG <= 2MB) to Cloudflare D1 Blob Table
+ */
+export async function uploadRewardAttachmentToD1(
+  applicationId: string,
+  file: File,
+  category: 'transfer_slip' | 'reprint' | 'invoice' | 'payment_receipt' | 'quartile_proof' = 'transfer_slip',
+  title?: string
+): Promise<{ status: string; fileId: string; fileUrl: string; attachment: any }> {
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error('ขนาดไฟล์ต้องไม่เกิน 2 MB กรุณาย่อขนาดภาพหรือไฟล์ PDF');
+  }
+
+  const dataBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์ที่เลือกได้'));
+    reader.readAsDataURL(file);
+  });
+
+  const response = await fetch(`${API_BASE_URL}/${encodeURIComponent(applicationId)}/attachments`, {
+    method: 'POST',
+    headers: await buildRewardApiHeaders(true),
+    body: JSON.stringify({
+      category,
+      title: title || file.name,
+      fileName: file.name,
+      mimeType: file.type || 'application/pdf',
+      dataBase64,
+    }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || `อัปโหลดไฟล์ไม่สำเร็จ (HTTP ${response.status})`);
+  }
+  return result;
+}
+
+/**
+ * Fetch protected attachment or transfer slip Data URL with RBAC headers
+ */
+export async function fetchRewardAttachmentFromD1(fileUrlOrId: string): Promise<{
+  fileName: string;
+  mimeType: string;
+  dataUrl: string;
+}> {
+  const fileId = fileUrlOrId.includes('/files/')
+    ? fileUrlOrId.split('/files/').pop() || fileUrlOrId
+    : fileUrlOrId;
+
+  const response = await fetch(`${API_BASE_URL}/files/${encodeURIComponent(fileId)}`, {
+    headers: await buildRewardApiHeaders(),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || `ไม่สามารถเปิดดูไฟล์แนบได้ (HTTP ${response.status})`);
+  }
+  return result;
+}
