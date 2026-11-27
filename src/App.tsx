@@ -77,6 +77,7 @@ import {
   bulkUpsertNuDisbursementsInD1,
   updateNuDisbursementInD1
 } from './services/nuDisbursementD1Service';
+import { ACTIVE_ROLE_STORAGE_KEY, UnauthorizedApiError } from './services/apiAuthHeaders';
 import { Bell, CheckCircle2, RotateCcw, LogOut, ShieldAlert } from 'lucide-react';
 
 export default function App() {
@@ -105,11 +106,22 @@ export default function App() {
 
   // Current active navigation role & view
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
-    if (currentUser?.role === 'dept_secretary' || (currentUser?.roles && currentUser.roles.includes('dept_secretary') && currentUser.role === 'researcher')) {
-      return 'dept_secretary';
-    }
-    return currentUser?.role || 'researcher';
+    const initialRole: UserRole =
+      currentUser?.role === 'dept_secretary' ||
+      (currentUser?.roles && currentUser.roles.includes('dept_secretary') && currentUser.role === 'researcher')
+        ? 'dept_secretary'
+        : currentUser?.role || 'researcher';
+    try {
+      sessionStorage.setItem(ACTIVE_ROLE_STORAGE_KEY, initialRole);
+    } catch {}
+    return initialRole;
   });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(ACTIVE_ROLE_STORAGE_KEY, currentRole);
+    } catch {}
+  }, [currentRole]);
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -171,6 +183,9 @@ export default function App() {
     const loadFromD1 = async () => {
       setIsLoadingD1(true);
       try {
+        try {
+          sessionStorage.setItem(ACTIVE_ROLE_STORAGE_KEY, currentRole);
+        } catch {}
         const d1Data = await fetchRewardApplicationsFromD1();
         if (!cancelled && Array.isArray(d1Data)) {
           // Merge with any offline doc details cache from localStorage as fallback
@@ -189,6 +204,18 @@ export default function App() {
           setApplications(merged);
         }
       } catch (err) {
+        if (!cancelled && err instanceof UnauthorizedApiError) {
+          console.warn('Session expired or missing Firebase token; prompting re-login.');
+          setCurrentUser(null);
+          setCurrentAuthUser(null);
+          setImpersonatorAdmin(null);
+          try {
+            sessionStorage.removeItem('med_nu_impersonator_admin_v1');
+          } catch {}
+          setApplications([]);
+          setIsLoginModalOpen(true);
+          return;
+        }
         console.warn('Failed to load applications from D1:', err);
       } finally {
         if (!cancelled) setIsLoadingD1(false);
@@ -198,7 +225,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentRole]);
 
   useEffect(() => {
     if (currentUser) {
@@ -362,17 +389,21 @@ export default function App() {
   // DRI NU Disbursement Tracking State (ม.นเรศวร) - Single Source of Truth on Cloudflare D1
   const [nuDisbursements, setNuDisbursements] = useState<NuDisbursementRecord[]>(() => getStoredNuDisbursements());
 
-  // Sync NU Disbursements from Cloudflare D1 on mount (with one-time safe migration from localStorage)
+  // Sync NU Disbursements from Cloudflare D1 for authenticated users (with one-time safe migration from localStorage)
   useEffect(() => {
+    if (!currentUser) return;
+
     let cancelled = false;
     const MIGRATION_FLAG = 'med_nu_disb_d1_migrated_v1';
+    const canSyncNuToD1 =
+      currentRole === 'admin' || currentRole === 'coordinator' || currentRole === 'finance';
 
     fetchNuDisbursementsFromD1()
       .then(async (d1Records) => {
         if (cancelled) return;
         const alreadyMigrated = localStorage.getItem(MIGRATION_FLAG) === 'true';
 
-        if (d1Records.length === 0 || !alreadyMigrated) {
+        if ((d1Records.length === 0 || !alreadyMigrated) && (d1Records.length === 0 || canSyncNuToD1)) {
           const localRecords = getStoredNuDisbursements();
           // Merge D1 (priority) + any local-only records from this browser
           const mergedMap = new Map<string, NuDisbursementRecord>();
@@ -403,7 +434,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentUser?.id]);
 
   const handleUpdateNuRecord = (updated: NuDisbursementRecord) => {
     setNuDisbursements((prev) => upsertNuDisbursement(prev, updated));

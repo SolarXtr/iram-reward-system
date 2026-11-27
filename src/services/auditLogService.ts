@@ -5,6 +5,7 @@
  */
 
 import { AuditLogEntry, AuditRetentionSummary } from '../types';
+import { buildRewardApiHeaders } from './apiAuthHeaders';
 
 const AUDIT_API_BASE = 'https://iram-backend.tinnakornh.workers.dev/api/audit-logs';
 
@@ -34,9 +35,12 @@ export async function fetchAuditLogs(params: AuditQueryParams = {}): Promise<Aud
   if (params.limit) url.searchParams.set('limit', String(params.limit));
   if (params.offset !== undefined) url.searchParams.set('offset', String(params.offset));
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), {
+    headers: await buildRewardApiHeaders(),
+  });
   if (!res.ok) {
-    throw new Error(`Failed to fetch audit logs: ${res.statusText}`);
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(errBody.error || `Failed to fetch audit logs: ${res.statusText}`);
   }
   return res.json();
 }
@@ -56,9 +60,7 @@ export async function recordAuditLog(entry: {
   try {
     const res = await fetch(AUDIT_API_BASE, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: await buildRewardApiHeaders(true),
       body: JSON.stringify(entry)
     });
     if (!res.ok) {
@@ -76,7 +78,9 @@ export async function recordAuditLog(entry: {
  * Check 24-month retention status (logs older than 730 days)
  */
 export async function checkAuditRetention(): Promise<AuditRetentionSummary> {
-  const res = await fetch(`${AUDIT_API_BASE}/check-retention`);
+  const res = await fetch(`${AUDIT_API_BASE}/check-retention`, {
+    headers: await buildRewardApiHeaders(),
+  });
   if (!res.ok) {
     throw new Error(`Failed to check retention: ${res.statusText}`);
   }
@@ -87,7 +91,9 @@ export async function checkAuditRetention(): Promise<AuditRetentionSummary> {
  * Download CSV backup of logs older than 24 months
  */
 export async function downloadAuditBackup24m(): Promise<string> {
-  const res = await fetch(`${AUDIT_API_BASE}/backup-24m`);
+  const res = await fetch(`${AUDIT_API_BASE}/backup-24m`, {
+    headers: await buildRewardApiHeaders(),
+  });
   if (!res.ok) {
     throw new Error(`Failed to download backup: ${res.statusText}`);
   }
@@ -109,7 +115,9 @@ export async function downloadAuditBackup24m(): Promise<string> {
  * Download CSV export of all audit logs
  */
 export async function exportAllAuditLogs(): Promise<string> {
-  const res = await fetch(`${AUDIT_API_BASE}/export-all`);
+  const res = await fetch(`${AUDIT_API_BASE}/export-all`, {
+    headers: await buildRewardApiHeaders(),
+  });
   if (!res.ok) {
     throw new Error(`Failed to export all logs: ${res.statusText}`);
   }
@@ -136,9 +144,7 @@ export async function purgeAuditLogs24m(
 ): Promise<{ status: string; purgedCount: number; cutoffDate: string }> {
   const res = await fetch(`${AUDIT_API_BASE}/purge-24m`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: await buildRewardApiHeaders(true),
     body: JSON.stringify({
       confirmed: true,
       confirmedBy,

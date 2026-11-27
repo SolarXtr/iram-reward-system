@@ -4,11 +4,14 @@
  */
 
 import { NuDisbursementRecord } from '../types';
+import { buildRewardApiHeaders } from './apiAuthHeaders';
 
 const NU_DISB_API_BASE = 'https://iram-backend.tinnakornh.workers.dev/api/nu-disbursements';
 
 export async function fetchNuDisbursementsFromD1(): Promise<NuDisbursementRecord[]> {
-  const response = await fetch(NU_DISB_API_BASE);
+  const response = await fetch(NU_DISB_API_BASE, {
+    headers: await buildRewardApiHeaders(),
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch NU disbursements from D1: ${response.status}`);
   }
@@ -24,7 +27,7 @@ export async function bulkUpsertNuDisbursementsInD1(
   }
   const response = await fetch(NU_DISB_API_BASE, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await buildRewardApiHeaders(true),
     body: JSON.stringify({ records }),
   });
   if (!response.ok) {
@@ -39,7 +42,7 @@ export async function updateNuDisbursementInD1(
 ): Promise<{ status: string; id: string }> {
   const response = await fetch(`${NU_DISB_API_BASE}/${encodeURIComponent(record.id)}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await buildRewardApiHeaders(true),
     body: JSON.stringify(record),
   });
   if (!response.ok) {

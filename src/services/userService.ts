@@ -5,7 +5,7 @@
  */
 
 import { UserProfile } from '../types';
-import { auth } from './googleAuth';
+import { buildRewardApiHeaders } from './apiAuthHeaders';
 import { 
   getStoredUsersRegistry, 
   saveStoredUsersRegistry, 
@@ -17,20 +17,7 @@ import {
 const API_BASE_URL = 'https://iram-backend.tinnakornh.workers.dev/api/users';
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
-  try {
-    const firebaseUser = auth.currentUser;
-    if (firebaseUser) {
-      const token = await firebaseUser.getIdToken();
-      if (token) {
-        return {
-          Authorization: `Bearer ${token}`,
-        };
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to retrieve Firebase ID token:', error);
-  }
-  return {};
+  return buildRewardApiHeaders();
 }
 
 /**

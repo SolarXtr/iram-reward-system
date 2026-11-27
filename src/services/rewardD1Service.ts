@@ -4,41 +4,9 @@
  */
 
 import { PublicRewardSummary, QuartileRank, ResearchApplication } from '../types';
-import { auth, getAccessToken } from './googleAuth';
+import { buildRewardApiHeaders, UnauthorizedApiError } from './apiAuthHeaders';
 
 const API_BASE_URL = 'https://iram-backend.tinnakornh.workers.dev/api/rewards';
-
-/**
- * Build Authorization header from Firebase session (ID token) or cached access token.
- *
- * ข้อสังเกต: ผู้ใช้บางรายอาจมีบัญชีในระบบแต่ยังไม่เคย login ผ่าน Firebase SSO
- * (เช่น ผู้ใช้ที่ Admin สร้างให้ หรือ Admin กำลัง Impersonate ผู้ใช้นั้น)
- * ในกรณีดังกล่าว auth.currentUser จะเป็น null และ cachedAccessToken จะไม่มีค่า
- * → คืนค่า {} (ไม่ส่ง header) ซึ่ง backend รองรับกรณีนี้โดยตรวจสอบจาก
- *   applicantEmail ใน request body แทน token ownership
- */
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  try {
-    // 1. ลองดึง Firebase ID token จาก session ปัจจุบัน (ถ้ายัง login อยู่)
-    const firebaseUser = auth.currentUser;
-    if (firebaseUser) {
-      const idToken = await firebaseUser.getIdToken();
-      if (idToken) {
-        return { Authorization: `Bearer ${idToken}` };
-      }
-    }
-
-    // 2. Fallback: ใช้ cached OAuth/access token จากตอน sign-in (ถ้ามี)
-    const cachedToken = await getAccessToken();
-    if (cachedToken) {
-      return { Authorization: `Bearer ${cachedToken}` };
-    }
-  } catch (error) {
-    // กรณีผู้ใช้ยังไม่ได้ login ผ่าน Firebase หรือ session หมดอายุ → ส่ง request โดยไม่มี token
-    console.warn('[rewardD1Service] No Firebase session available for auth header:', error);
-  }
-  return {};
-}
 
 export interface DuplicateCheckResult {
   isDuplicate: boolean;
@@ -106,7 +74,12 @@ export async function checkArticleDuplicate(doi?: string, title?: string): Promi
     if (cleanDoi) params.append('doi', cleanDoi);
     if (cleanTitle) params.append('title', cleanTitle);
 
-    const response = await fetch(`${API_BASE_URL}/check-duplicate?${params.toString()}`);
+    const response = await fetch(`${API_BASE_URL}/check-duplicate?${params.toString()}`, {
+      headers: await buildRewardApiHeaders(),
+    });
+    if (response.status === 401) {
+      throw new UnauthorizedApiError();
+    }
     if (!response.ok) {
       throw new Error(`Duplicate check failed with status: ${response.status}`);
     }
@@ -129,10 +102,14 @@ export async function fetchRewardApplicationsFromD1(fiscalYear?: number): Promis
   try {
     const url = fiscalYear ? `${API_BASE_URL}?fiscalYear=${fiscalYear}` : API_BASE_URL;
     const response = await fetch(url, {
-      headers: await getAuthHeaders(),
+      headers: await buildRewardApiHeaders(),
     });
+    if (response.status === 401) {
+      throw new UnauthorizedApiError();
+    }
     if (!response.ok) {
-      throw new Error(`Failed to fetch applications: ${response.status}`);
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.error || `Failed to fetch applications: ${response.status}`);
     }
     const data = await response.json();
     const mapped = (data as any[]).map((row) => {
@@ -181,14 +158,14 @@ export async function createRewardApplicationInD1(application: Partial<ResearchA
     };
     const response = await fetch(API_BASE_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...await getAuthHeaders(),
-      },
+      headers: await buildRewardApiHeaders(true),
       body: JSON.stringify(payload)
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      throw new UnauthorizedApiError(result.error);
+    }
     if (!response.ok) {
       throw new Error(result.error || `HTTP error ${response.status}`);
     }
@@ -218,14 +195,14 @@ export async function updateRewardApplicationInD1(id: string, updates: Partial<R
     };
     const response = await fetch(`${API_BASE_URL}/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...await getAuthHeaders(),
-      },
+      headers: await buildRewardApiHeaders(true),
       body: JSON.stringify(payload)
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      throw new UnauthorizedApiError(result.error);
+    }
     if (!response.ok) {
       throw new Error(result.error || `HTTP error ${response.status}`);
     }
@@ -244,7 +221,7 @@ export async function deleteRewardApplicationInD1(id: string): Promise<boolean> 
   try {
     const response = await fetch(`${API_BASE_URL}/${id}`, {
       method: 'DELETE',
-      headers: await getAuthHeaders(),
+      headers: await buildRewardApiHeaders(),
     });
     return response.ok;
   } catch (error) {
