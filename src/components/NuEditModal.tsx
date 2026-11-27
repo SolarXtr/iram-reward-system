@@ -17,6 +17,7 @@ export const NuEditModal: React.FC<NuEditModalProps> = ({
 }) => {
   if (!isOpen || !record) return null;
 
+  const [researcherName, setResearcherName] = useState<string>(record.researcherName || '');
   const [status, setStatus] = useState<string>(record.status || 'อยู่ระหว่างการจัดส่งเอกสาร');
   const [approvedDate, setApprovedDate] = useState<string>(record.approvedDate || '');
   const [paymentDate, setPaymentDate] = useState<string>(record.paymentDate || '');
@@ -31,6 +32,7 @@ export const NuEditModal: React.FC<NuEditModalProps> = ({
     e.preventDefault();
     onSave({
       ...record,
+      researcherName: researcherName.trim() || record.researcherName,
       status,
       approvedDate: approvedDate.trim() || undefined,
       paymentDate: paymentDate.trim() || undefined,
@@ -99,6 +101,20 @@ export const NuEditModal: React.FC<NuEditModalProps> = ({
               <span>ยื่นเมื่อ: <strong className="text-slate-700 font-mono">{record.submissionDate}</strong></span>
               <span>ประเภท: <strong className="text-slate-700">{record.claimType}</strong></span>
             </div>
+          </div>
+
+          {/* Editable Researcher Owner Name */}
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              อาจารย์ / นักวิจัยเจ้าของผลงาน
+            </label>
+            <input
+              type="text"
+              value={researcherName}
+              onChange={(e) => setResearcherName(e.target.value)}
+              placeholder="ระบุชื่อ-นามสกุลผู้ขอรับเงินรางวัล (ให้ตรงกับคำขอคณะฯ)"
+              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-medium text-slate-800"
+            />
           </div>
 
           {/* Status Selection */}

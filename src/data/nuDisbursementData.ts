@@ -3845,7 +3845,28 @@ export function getStoredNuDisbursements(): NuDisbursementRecord[] {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        let changed = false;
+        const reconciled = parsed.map((r: NuDisbursementRecord) => {
+          const isY105 =
+            r.matchedFacultyTrackingNo === 'AWP70-037' ||
+            (r.articleTitle && r.articleTitle.toLowerCase().includes('y105 phosphosite'));
+          if (isY105 && /jiraporn/i.test(r.researcherName || '')) {
+            changed = true;
+            return {
+              ...r,
+              researcherName: 'ศาสตราจารย์ ดร.แพทย์หญิงสุธาทิพย์ พงษ์เจริญ',
+              notes: r.notes
+                ? r.notes
+                : `ปรับชื่อเจ้าของจากข้อมูลเดิม (${r.researcherName}) ให้ตรงกับคำขอ AWP70-037`,
+              updatedAt: new Date().toISOString().split('T')[0],
+            };
+          }
+          return r;
+        });
+        if (changed) {
+          saveStoredNuDisbursements(reconciled);
+        }
+        return reconciled;
       }
     }
   } catch (e) {
