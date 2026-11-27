@@ -65,6 +65,11 @@ import {
 import { isSameDepartment, isResearcherOnlyUser } from './utils/permissionUtils';
 import { trackPageView } from './services/analyticsService';
 import { recordAuditLog } from './services/auditLogService';
+import {
+  fetchNuDisbursementsFromD1,
+  bulkUpsertNuDisbursementsInD1,
+  updateNuDisbursementInD1
+} from './services/nuDisbursementD1Service';
 import { Bell, CheckCircle2, RotateCcw, LogOut, ShieldAlert } from 'lucide-react';
 
 export default function App() {
@@ -347,15 +352,68 @@ export default function App() {
     showToast(`LINE OA [${LINE_BOT_CONFIG.botBasicId}]: แจ้งเตือน "${milestoneLabels[milestone]}" (${app.trackingNo}) ส่งตรงถึงมือถือสำเร็จ!`);
   };
 
-  // DRI NU Disbursement Tracking State (ม.นเรศวร)
+  // DRI NU Disbursement Tracking State (ม.นเรศวร) - Single Source of Truth on Cloudflare D1
   const [nuDisbursements, setNuDisbursements] = useState<NuDisbursementRecord[]>(() => getStoredNuDisbursements());
+
+  // Sync NU Disbursements from Cloudflare D1 on mount (with one-time safe migration from localStorage)
+  useEffect(() => {
+    let cancelled = false;
+    const MIGRATION_FLAG = 'med_nu_disb_d1_migrated_v1';
+
+    fetchNuDisbursementsFromD1()
+      .then(async (d1Records) => {
+        if (cancelled) return;
+        const alreadyMigrated = localStorage.getItem(MIGRATION_FLAG) === 'true';
+
+        if (d1Records.length === 0 || !alreadyMigrated) {
+          const localRecords = getStoredNuDisbursements();
+          // Merge D1 (priority) + any local-only records from this browser
+          const mergedMap = new Map<string, NuDisbursementRecord>();
+          for (const lr of localRecords) {
+            mergedMap.set(lr.id, lr);
+          }
+          for (const dr of d1Records) {
+            mergedMap.set(dr.id, dr);
+          }
+          const merged = Array.from(mergedMap.values());
+          setNuDisbursements(merged);
+          saveStoredNuDisbursements(merged);
+          try {
+            await bulkUpsertNuDisbursementsInD1(merged);
+            localStorage.setItem(MIGRATION_FLAG, 'true');
+          } catch (syncErr) {
+            console.warn('Initial NU disbursements D1 migration warning:', syncErr);
+          }
+        } else {
+          setNuDisbursements(d1Records);
+          saveStoredNuDisbursements(d1Records);
+        }
+      })
+      .catch((err) => {
+        console.warn('D1 NU disbursements fetch unavailable, using local cache:', err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleUpdateNuRecord = (updated: NuDisbursementRecord) => {
     setNuDisbursements((prev) => upsertNuDisbursement(prev, updated));
-    showToast(`อัปเดตข้อมูลการเบิกจ่าย มน. (${updated.researcherName}) เรียบร้อยแล้ว`);
+    updateNuDisbursementInD1(updated).catch((err) => {
+      console.warn('D1 update NU disbursement error:', err);
+    });
+    logActivity(
+      'UPDATE_NU_DISBURSEMENT',
+      'NU_DISBURSEMENT',
+      updated.matchedFacultyTrackingNo || updated.id,
+      `อัปเดตข้อมูลเบิกจ่าย มน.: ${updated.researcherName} (${updated.status}, ยอดรวม ${(updated.totalAmount || 0).toLocaleString()} บาท)`
+    );
+    showToast(`อัปเดตข้อมูลการเบิกจ่าย มน. (${updated.researcherName}) ลง D1 เรียบร้อยแล้ว`);
   };
 
   const handleImportNuRecords = (newRecords: NuDisbursementRecord[]) => {
+    const recordsToSync: NuDisbursementRecord[] = [];
     setNuDisbursements((prev) => {
       const merged = [...prev];
       for (const nr of newRecords) {
@@ -363,22 +421,37 @@ export default function App() {
           m => m.id === nr.id || (m.articleTitle && nr.articleTitle && m.articleTitle.trim().toLowerCase() === nr.articleTitle.trim().toLowerCase())
         );
         if (idx >= 0) {
-          merged[idx] = { 
-            ...merged[idx], 
-            ...nr, 
+          const updatedRec: NuDisbursementRecord = {
+            ...merged[idx],
+            ...nr,
+            id: merged[idx].id, // preserve existing D1 primary key
             rewardAmount: merged[idx].rewardAmount || nr.rewardAmount,
             pageChargeAmount: merged[idx].pageChargeAmount || nr.pageChargeAmount,
             totalAmount: (merged[idx].rewardAmount || nr.rewardAmount || 0) + (merged[idx].pageChargeAmount || nr.pageChargeAmount || 0),
-            updatedAt: new Date().toISOString().split('T')[0] 
+            updatedAt: new Date().toISOString().split('T')[0]
           };
+          merged[idx] = updatedRec;
+          recordsToSync.push(updatedRec);
         } else {
           merged.unshift(nr);
+          recordsToSync.push(nr);
         }
       }
       saveStoredNuDisbursements(merged);
       return merged;
     });
-    showToast(`นำเข้าข้อมูลจากระบบ มน. สำเร็จ (${newRecords.length} รายการ)`);
+    if (recordsToSync.length > 0) {
+      bulkUpsertNuDisbursementsInD1(recordsToSync).catch((err) => {
+        console.warn('D1 bulk import NU disbursements error:', err);
+      });
+    }
+    logActivity(
+      'IMPORT_NU_DISBURSEMENTS',
+      'NU_DISBURSEMENT',
+      `import-${newRecords.length}`,
+      `นำเข้าข้อมูลการเบิกจ่ายจากระบบ มน. จำนวน ${newRecords.length} รายการ ลง Cloudflare D1`
+    );
+    showToast(`นำเข้าข้อมูลจากระบบ มน. ลง D1 สำเร็จ (${newRecords.length} รายการ)`);
   };
 
   // Audit Log Helper

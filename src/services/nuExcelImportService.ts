@@ -86,6 +86,8 @@ export async function parseNuDisbursementExcel(
     // Check matching with faculty applications
     let matchedFacultyTrackingNo: string | undefined = undefined;
     let facultyVoucher: string | undefined = undefined;
+    let canonicalResearcherName = researcherName;
+    let importNotes: string | undefined = undefined;
     const normArticle = normalizeText(articleTitle);
 
     if (normArticle.length > 10) {
@@ -96,6 +98,12 @@ export async function parseNuDisbursementExcel(
       if (match) {
         matchedFacultyTrackingNo = match.trackingNo;
         facultyVoucher = match.disbursementVoucherNo;
+        if (match.applicantName) {
+          canonicalResearcherName = match.applicantName;
+          if (researcherName && researcherName !== match.applicantName) {
+            importNotes = `ผู้ยื่นในระบบ มน.: ${researcherName}`;
+          }
+        }
         matchedCount++;
       }
     }
@@ -114,7 +122,7 @@ export async function parseNuDisbursementExcel(
 
     const rec: NuDisbursementRecord = {
       id: 'nu-import-' + Date.now() + '-' + r + '-' + Math.random().toString(36).substring(2, 6),
-      researcherName: researcherName || 'ไม่ระบุชื่อ',
+      researcherName: canonicalResearcherName || 'ไม่ระบุชื่อ',
       articleTitle: articleTitle || 'ไม่ระบุชื่อบทความ',
       department: department || 'คณะแพทยศาสตร์',
       submissionDate: submissionDate || new Date().toISOString().split('T')[0],
@@ -128,6 +136,7 @@ export async function parseNuDisbursementExcel(
       matchedFacultyTrackingNo,
       disbursementVoucherNo: facultyVoucher,
       isNuPaidConfirmed: isPaid,
+      notes: importNotes,
       createdAt: new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString().split('T')[0],
     };
